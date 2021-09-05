@@ -235,7 +235,7 @@ export class SavedObjectsClient {
       overwrite: options.overwrite,
     };
 
-    const createRequest: Promise<SavedObject<T>> = this.savedObjectsFetch(path, {
+    const createRequest = this.savedObjectsFetch<SavedObject<T>>(path, {
       method: 'POST',
       query,
       body: JSON.stringify({
@@ -480,10 +480,10 @@ export class SavedObjectsClient {
       upsert,
     };
 
-    return this.savedObjectsFetch(path, {
+    return this.savedObjectsFetch<SavedObject<T>>(path, {
       method: 'PUT',
       body: JSON.stringify(body),
-    }).then((resp: SavedObject<T>) => {
+    }).then((resp) => {
       return this.createSavedObject(resp);
     });
   }
@@ -497,11 +497,12 @@ export class SavedObjectsClient {
   public bulkUpdate<T = unknown>(objects: SavedObjectsBulkUpdateObject[] = []) {
     const path = this.getPath(['_bulk_update']);
 
-    return this.savedObjectsFetch(path, {
+    // TODO: replace inline-type with an interface
+    return this.savedObjectsFetch<{ saved_objects: Array<SavedObject<T>> }>(path, {
       method: 'PUT',
       body: JSON.stringify(objects),
     }).then((resp) => {
-      resp.saved_objects = resp.saved_objects.map((d: SavedObject<T>) => this.createSavedObject(d));
+      resp.saved_objects = resp.saved_objects.map((d) => this.createSavedObject(d));
       return renameKeys<
         PromiseType<ReturnType<SavedObjectsApi['bulkUpdate']>>,
         SavedObjectsBatchResponse
@@ -522,8 +523,8 @@ export class SavedObjectsClient {
    * the old kfetch error format of `{res: {status: number}}` whereas `http.fetch`
    * uses `{response: {status: number}}`.
    */
-  private savedObjectsFetch(path: string, { method, query, body }: HttpFetchOptions) {
-    return this.http.fetch(path, { method, query, body });
+  private savedObjectsFetch<T = unknown>(path: string, { method, query, body }: HttpFetchOptions) {
+    return this.http.fetch<T>(path, { method, query, body });
   }
 }
 

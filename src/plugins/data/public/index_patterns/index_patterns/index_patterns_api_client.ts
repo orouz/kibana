@@ -23,9 +23,9 @@ export class IndexPatternsApiClient implements IIndexPatternsApiClient {
     this.http = http;
   }
 
-  private _request(url: string, query?: any) {
+  private _request<T = unknown>(url: string, query?: any) {
     return this.http
-      .fetch(url, {
+      .fetch<T>(url, {
         query,
       })
       .catch((resp: any) => {
@@ -64,7 +64,10 @@ export class IndexPatternsApiClient implements IIndexPatternsApiClient {
   }
 
   async hasUserIndexPattern(): Promise<boolean> {
-    const response = await this._request(this._getUrl(['has_user_index_pattern']));
+    // TODO: replace inline-type with an interface
+    const response = await this._request<{ result: boolean }>(
+      this._getUrl(['has_user_index_pattern'])
+    );
     return response.result;
   }
 }

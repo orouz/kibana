@@ -24,7 +24,7 @@ export async function shortenUrl(
 
   const body = JSON.stringify({ url: relativeUrl });
 
-  const resp = await post(CREATE_PATH, { body });
+  const resp = await post<{ urlId: string }>(CREATE_PATH, { body });
   return url.format({
     protocol: parsedUrl.protocol,
     host: parsedUrl.host,
