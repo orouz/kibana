@@ -74,6 +74,7 @@ export const createFindingsRoute = (router: SecuritySolutionPluginRouter, logger
 
       return response.ok({ body: hits });
     } catch (err) {
+      logger.error(err); // TODO: handle err types
       return response.customError({ body: { message: 'Unknown error' }, statusCode: 500 });
     }
   });

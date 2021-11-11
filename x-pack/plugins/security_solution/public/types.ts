@@ -5,6 +5,7 @@
  * 2.0.
  */
 
+import { NavigationPublicPluginStart } from 'src/plugins/navigation/public';
 import { CoreStart } from '../../../../src/core/public';
 import { HomePublicPluginSetup } from '../../../../src/plugins/home/public';
 import { DataPublicPluginStart } from '../../../../src/plugins/data/public';
@@ -70,6 +71,7 @@ export interface StartPlugins {
   ml?: MlPluginStart;
   spaces?: SpacesPluginStart;
   indexPatternFieldEditor: IndexPatternFieldEditorStart;
+  navigation: NavigationPublicPluginStart;
 }
 
 export type StartServices = CoreStart &
