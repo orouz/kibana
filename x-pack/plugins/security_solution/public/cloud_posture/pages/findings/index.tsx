@@ -5,8 +5,11 @@
  * 2.0.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { EuiSpacer } from '@elastic/eui';
+import { Filter } from '@kbn/es-query';
+import { DataView } from 'src/plugins/data/public/types'; // TODO: why is this import a problem and relative isn't?
+import { SearchHit } from '@elastic/elasticsearch/lib/api/types';
 import { SecuritySolutionPageWrapper } from '../../../common/components/page_wrapper';
 import { HeaderPage } from '../../../common/components/header_page';
 import { useCloudPostureFindingsApi } from '../../common/api';
@@ -14,8 +17,8 @@ import { FindingsTable } from './findings_table';
 import { SpyRoute } from '../../../common/utils/route/spy_routes';
 import { CloudPosturePage } from '../../../app/types';
 import { useKibana } from '../../../common/lib/kibana';
-import { SiemSearchBar } from '../../../common/components/search_bar';
-import { IIndexPattern } from 'src/plugins/data/public';
+
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 
 export const Findings = () => (
   <SecuritySolutionPageWrapper noPadding={false} data-test-subj="csp_rules">
@@ -25,55 +28,57 @@ export const Findings = () => (
   </SecuritySolutionPageWrapper>
 );
 
-const idxPtrn: IIndexPattern = {
-  fields: [
-    {
-      name: '_id',
-      searchable: true,
-      type: 'string',
-      aggregatable: false,
-      esTypes: [],
-    },
-    {
-      name: '_index',
-      searchable: true,
-      type: 'string',
-      aggregatable: true,
-      esTypes: [],
-    },
-  ],
-  title: '.alerts-security.alerts-default',
-};
 // Note: we can't use useCloudPostureFindingsApi inside Findings, need to nest it
 const FindingsTableContainer = () => {
-  const findings = useCloudPostureFindingsApi();
+  // const findings = useCloudPostureFindingsApi();
   const { services } = useKibana();
-
-  console.log({ services });
-  // const { TopNavMenu } = services.navigation.ui;
   const { SearchBar } = services.data.ui;
+  const [findingsDataView, setFindingsDataView] = useState<DataView>();
+  const [filters, setFilters] = useState<Filter[]>([]);
+  const [query, setQuery] = useState<any>();
+  const [results, setResults] = useState<Array<SearchHit<any>>>();
 
-  // TODO: handle states: isSuccess/isError/isLoading
-  if (!findings.isSuccess) return <h1>???</h1>;
+  const search = async () => {
+    const dataView = (await services.data.dataViews.find('findings'))?.[0];
 
-  const d = findings.data.map((v) => ({ ...v, ...v._source }));
+    setFindingsDataView(dataView);
 
+    // services.data.query.queryString.setQuery(query);
+    services.data.query.filterManager.setFilters(filters);
+
+    // const nextQuery = services.data.query.queryString.getQuery();
+    const nextFilters = services.data.query.filterManager.getFilters();
+    const searchSource = await services.data.search.searchSource.create();
+    const searchResponse = await searchSource
+      .setParent(undefined)
+      .setField('index', dataView!)
+      .setField('filter', nextFilters)
+      // .setField('query', nextQuery)
+      .fetch();
+
+    setResults(searchResponse.hits.hits.map((v) => ({ ...v, ...v._source })));
+
+    console.log({ searchResponse });
+  };
+
+  React.useEffect(() => {
+    search();
+    console.log('new search', { filters, query });
+  }, [filters, query]);
+
+  if (!findingsDataView || !results) return null;
   return (
     <div style={{ height: '100%', width: '100%' }}>
-      {/* <SiemSearchBar id="global" indexPattern={idxPtrn} /> */}
-      {/* <SearchBar
+      <SearchBar
         appName="foo"
-        indexPatterns={[idxPtrn]}
-        // showQueryBar
+        indexPatterns={[findingsDataView] as any[]}
         showQueryInput
-        // showFilterBar
-        // showSaveQuery
-        onQuerySubmit={(...v) => {
-          console.log({ v });
-        }}
-      /> */}
+        // TODO: is this prop meant to be provided? not typed directly
+        onFiltersUpdated={setFilters}
+        onQuerySubmit={setQuery}
+      />
       <EuiSpacer />
-      <FindingsTable data={d} />
+      <FindingsTable data={results} />
     </div>
   );
 };
