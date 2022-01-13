@@ -1,6 +1,6 @@
 # cloudSecurityPosture
 
-A Kibana plugin
+A Kibana plugin test
 
 ---
 
