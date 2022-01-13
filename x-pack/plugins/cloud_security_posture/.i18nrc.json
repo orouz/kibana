@@ -1,0 +1,7 @@
+{
+  "prefix": "cloudSecurityPosture",
+  "paths": {
+    "cloudSecurityPosture": "."
+  },
+  "translations": ["translations/ja-JP.json"]
+}
