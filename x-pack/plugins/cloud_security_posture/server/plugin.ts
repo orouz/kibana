@@ -20,13 +20,13 @@ import type {
   CspServerPluginStartDeps,
 } from './types';
 import { defineRoutes } from './routes';
-import { cspRuleAssetType } from './saved_objects/cis_1_4_1/csp_rule_type';
 import { initializeCspRules } from './saved_objects/cis_1_4_1/initialize_rules';
 
 export interface CspAppContext {
   logger: Logger;
   service: CspAppService;
 }
+import { cspRuleTemplateAssetType } from './saved_objects/cis_1_4_1/csp_rule_template';
 
 export class CspPlugin
   implements
@@ -52,7 +52,7 @@ export class CspPlugin
       service: this.CspAppService,
     };
 
-    core.savedObjects.registerType(cspRuleAssetType);
+    core.savedObjects.registerType(cspRuleTemplateAssetType);
 
     const router = core.http.createRouter();
 
