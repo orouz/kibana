@@ -22,6 +22,7 @@ import {
   load,
   isPseudoLocale,
   translateUsingPseudoLocale,
+  common,
 } from './core';
 
 import {
@@ -34,6 +35,7 @@ import {
 } from './loader';
 
 const i18n = {
+  common,
   formats,
   addTranslation,
   getTranslation,

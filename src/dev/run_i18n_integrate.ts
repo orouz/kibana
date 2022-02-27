@@ -98,7 +98,7 @@ run(
 
     try {
       const reporter = new ErrorReporter();
-      const messages: Map<string, { message: string }> = new Map();
+      const messages: Map<string, [file: string, msg: { message: string }]> = new Map();
       await list.run({ messages, reporter });
       process.exitCode = 0;
     } catch (error) {

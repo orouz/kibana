@@ -13,16 +13,16 @@ import { globAsync, readFileAsync, normalizePath } from './utils';
 
 import { createFailError, isFailError } from '@kbn/dev-utils';
 
-function addMessageToMap(targetMap, key, value, reporter) {
+function addMessageToMap(targetMap, key, value, file, reporter) {
   const existingValue = targetMap.get(key);
 
-  if (targetMap.has(key) && existingValue.message !== value.message) {
+  if (targetMap.has(key) && existingValue[1].message !== value.message) {
     reporter.report(
       createFailError(`There is more than one default message for the same id "${key}":
 "${existingValue.message}" and "${value.message}"`)
     );
   } else {
-    targetMap.set(key, value);
+    targetMap.set(key, [file, value]);
   }
 }
 
@@ -97,7 +97,7 @@ export async function extractMessagesFromPathToMap(inputPath, targetMap, config,
         try {
           for (const [id, value] of extractFunction(content, reporterWithContext)) {
             validateMessageNamespace(id, name, config.paths, reporterWithContext);
-            addMessageToMap(targetMap, id, value, reporterWithContext);
+            addMessageToMap(targetMap, id, value, name, reporterWithContext);
           }
         } catch (error) {
           if (!isFailError(error)) {

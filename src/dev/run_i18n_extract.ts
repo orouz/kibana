@@ -13,6 +13,7 @@ import { resolve } from 'path';
 import { createFailError, run } from '@kbn/dev-utils';
 import { ErrorReporter, serializeToJson, serializeToJson5, writeFileAsync } from './i18n';
 import { extractDefaultMessages, mergeConfigs } from './i18n/tasks';
+import { extractCommonDefaultMessages } from './i18n/tasks/extract_common_translations';
 
 run(
   async ({
@@ -21,6 +22,8 @@ run(
       'output-dir': outputDir,
       'output-format': outputFormat,
       'include-config': includeConfig,
+      'common-count': commonLocale,
+      transform: transformCommon,
     },
     log,
   }) => {
@@ -45,15 +48,19 @@ run(
       {
         title: 'Extracting Default Messages',
         task: ({ config }) =>
-          new Listr(extractDefaultMessages(config, srcPaths), { exitOnError: true }),
+          new Listr(extractDefaultMessages(config, srcPaths), {
+            exitOnError: true,
+            renderer: 'silent',
+          }),
       },
       {
         title: 'Writing to file',
         enabled: (ctx) => outputDir && ctx.messages.size,
         task: async (ctx) => {
-          const sortedMessages = [...ctx.messages].sort(([key1], [key2]) =>
-            key1.localeCompare(key2)
+          const msgs: Array<[string, { message: string }]> = [...ctx.messages].map(
+            ([id, [, msg]]) => [id, msg]
           );
+          const sortedMessages = msgs.sort(([key1], [key2]) => key1.localeCompare(key2));
           await writeFileAsync(
             resolve(outputDir, 'en.json'),
             outputFormat === 'json5'
@@ -62,12 +69,20 @@ run(
           );
         },
       },
+      {
+        enabled: () => !!commonLocale,
+        title: 'Extract common translations',
+        task: () =>
+          // @ts-ignore
+          new Listr(extractCommonDefaultMessages(), { exitOnError: true, collapse: false }),
+      },
     ]);
 
     try {
       const reporter = new ErrorReporter();
-      const messages: Map<string, { message: string }> = new Map();
-      await list.run({ messages, reporter });
+      const messages: Map<string, [file: string, msg: { message: string }]> = new Map();
+
+      await list.run({ messages, reporter, transformCommon });
     } catch (error) {
       process.exitCode = 1;
       if (error instanceof ErrorReporter) {

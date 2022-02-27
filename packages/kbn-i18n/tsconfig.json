@@ -1,6 +1,8 @@
 {
   "extends": "../../tsconfig.bazel.json",
   "compilerOptions": {
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
     "declaration": true,
     "emitDeclarationOnly": true,
     "outDir": "./target_types",
@@ -10,12 +12,11 @@
     ]
   },
   "include": [
+    "src/core/en-common.json",
     "src/**/*.ts",
     "src/**/*.tsx",
     "types/intl_format_cache.d.ts",
     "types/intl_relativeformat.d.ts"
   ],
-  "exclude": [
-    "**/__fixtures__/**/*"
-  ]
+  "exclude": ["**/__fixtures__/**/*"]
 }

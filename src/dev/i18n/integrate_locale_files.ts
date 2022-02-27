@@ -38,7 +38,7 @@ export interface IntegrateOptions {
   log: ToolingLog;
 }
 
-type MessageMap = Map<string, { message: string }>;
+type MessageMap = Map<string, [file: string, msg: { message: string }]>;
 type GroupedMessageMap = Map<string, Array<[string, { message: string }]>>;
 type LocalizedMessageMap = Map<string, string | { text: string }>;
 
@@ -78,9 +78,10 @@ export function verifyMessages(
     const defaultMessage = defaultMessagesMap.get(messageId);
     if (defaultMessage) {
       try {
+        const [, msg] = defaultMessage;
         const message = localizedMessagesMap.get(messageId)!;
         checkValuesProperty(
-          extractValueReferencesFromMessage(defaultMessage.message, messageId),
+          extractValueReferencesFromMessage(msg.message, messageId),
           typeof message === 'string' ? message : message.text,
           messageId
         );
