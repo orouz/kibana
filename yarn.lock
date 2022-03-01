@@ -3968,10 +3968,6 @@
   version "0.0.0"
   uid ""
 
-"@kbn/i18n-common@link:bazel-bin/packages/kbn-i18n-common":
-  version "0.0.0"
-  uid ""
-
 "@kbn/i18n-react@link:bazel-bin/packages/kbn-i18n-react":
   version "0.0.0"
   uid ""
@@ -6922,10 +6918,6 @@
   uid ""
 
 "@types/kbn__field-types@link:bazel-bin/packages/kbn-field-types/npm_module_types":
-  version "0.0.0"
-  uid ""
-
-"@types/kbn__i18n-common@link:bazel-bin/packages/kbn-i18n-common/npm_module_types":
   version "0.0.0"
   uid ""
 
