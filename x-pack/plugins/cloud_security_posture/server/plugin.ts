@@ -20,13 +20,14 @@ import type {
   CspServerPluginStartDeps,
 } from './types';
 import { defineRoutes } from './routes';
-import { initializeCspRules } from './saved_objects/cis_1_4_1/initialize_rules';
+import { cspRuleTemplateAssetType } from './saved_objects/csp_rule_template';
+import { cspRuleAssetType } from './saved_objects/csp_rule_type';
+import { initializeCspRules } from './saved_objects/initialize_rules';
 
 export interface CspAppContext {
   logger: Logger;
   service: CspAppService;
 }
-import { cspRuleTemplateAssetType } from './saved_objects/cis_1_4_1/csp_rule_template';
 
 export class CspPlugin
   implements
@@ -51,6 +52,8 @@ export class CspPlugin
       logger: this.logger,
       service: this.CspAppService,
     };
+
+    core.savedObjects.registerType(cspRuleAssetType);
 
     core.savedObjects.registerType(cspRuleTemplateAssetType);
 
