@@ -78,6 +78,8 @@ export class I18nService {
 
     const translationFiles = await getKibanaTranslationFiles(locale, pluginPaths);
 
+    console.log({ pluginPaths, locale, translationFiles });
+
     this.log.debug(`Using translation files: [${translationFiles.join(', ')}]`);
     await initTranslations(locale, translationFiles);
 

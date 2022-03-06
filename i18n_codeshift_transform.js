@@ -9,8 +9,6 @@
 export const parser = 'tsx';
 
 const hasValuesProperty = (attrs) => attrs.some((a) => a.name.name === 'values');
-const isArrowFunctionExpression = (v) => v.type === 'ArrowFunctionExpression';
-const isReturnStatement = (v) => v.type === 'ReturnStatement';
 
 const isAttributesMatch = (attrs, word) =>
   attrs.some((a) => a.name.name === 'defaultMessage' && a.value.value === word);
@@ -18,7 +16,7 @@ const isAttributesMatch = (attrs, word) =>
 const isArgumentsMatch = (args, word) =>
   args.some(
     (a) =>
-      a.type === 'ObjectExpression' &&
+      j.ObjectExpression.check(a) &&
       a.properties.some((p) => p.key.name === 'defaultMessage' && p.value.value === word)
   );
 
@@ -51,7 +49,10 @@ export default function transform(file, api, opts) {
       if (Array.isArray(p.parentPath.value))
         return p.parentPath.name === 'children' ? j.jsxExpressionContainer(exp) : exp;
 
-      if (isArrowFunctionExpression(p.parentPath.value) || isReturnStatement(p.parentPath.value))
+      if (
+        j.ArrowFunctionExpression.check(p.parentPath.value) ||
+        j.ReturnStatement.check(p.parentPath.value)
+      )
         return exp;
 
       return p.value;

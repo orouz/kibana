@@ -6,9 +6,10 @@
  * Side Public License, v 1.
  */
 
-const { transformSync } = require('@babel/core');
+const { transformFileSync, transformSync } = require('@babel/core');
 const t = require('@babel/types');
-// const fs = require('fs');
+const path = require('path');
+const fs = require('fs');
 
 function getImports(root) {
   let node = root;
@@ -16,7 +17,7 @@ function getImports(root) {
     node = node.parentPath;
   }
   const imports = node.node.body.filter(t.isImportDeclaration);
-  console.log({ imports: imports[0].specifiers[0] });
+  // console.log({ imports: imports[0].specifiers[0] });
   return imports;
 }
 function isMissingingI18nImport(node) {}
@@ -63,22 +64,26 @@ const getNode = (str) =>
 const replace = (str) => () => ({
   visitor: {
     CallExpression(path) {
-      getImports(path);
+      // getImports(path);
       if (isI18nTranslateFunctionWithCommon(path.node, str)) path.replaceWith(getNode(str));
     },
     JSXElement(path) {
-      getImports(path);
+      // getImports(path);
       if (isFormattedMessageWithCommon(path.node, str)) path.replaceWith(getNode(str));
     },
   },
 });
 
-const source1 = `import {fo1o} from 'fzzoo'; \n const foo = i18n.translate({ defaultMessage: "Cancel" });`;
-const source2 = `const foo = <FormattedMessage defaultMessage="Cancel"/> `;
-// const file = fs.readFileSync('const foo = 1;', { encoding: 'utf-8' });
+const source1 = `const foo = i18n.translate('foo', { defaultMessage: 'Cancel' });\n`;
+const source2 = `const foo = <FormattedMessage defaultMessage="Cancel"/>`;
+const file = fs.readFileSync(path.resolve('foo.tsx'), 'utf-8');
+// console.log(file === source1, { file, source1 });
 
-const src = transformSync(source1, {
-  plugins: ['@babel/plugin-syntax-jsx', replace('Cancel')], // TODO: full list of plugins
+const src = transformSync(file, {
+  filename: path.resolve('foo.tsx'),
+  // root: '.',
+  // babelrc: true,
+  plugins: [replace('Cancel')], // TODO: full list of plugins
 });
 
 console.log(src.code);

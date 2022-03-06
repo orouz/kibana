@@ -74,7 +74,9 @@ run(
         title: 'Extract common translations',
         task: () =>
           // @ts-ignore
-          new Listr(extractCommonDefaultMessages(), { exitOnError: true, collapse: false }),
+          new Listr(extractCommonDefaultMessages(outputDir), {
+            exitOnError: true,
+          }),
       },
     ]);
 
