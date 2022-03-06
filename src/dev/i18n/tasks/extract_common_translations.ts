@@ -9,53 +9,35 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { resolve } from 'path';
 import Listr, { type ListrTask } from 'listr';
-import { writeFileAsync } from '..';
+import fs from 'fs/promises';
 // @ts-expect-error
 import { isI18nTranslateFunction } from '../utils/utils';
 // @ts-expect-error
 import { isIntlFormatMessageFunction, isFormattedMessageElement } from '../extractors/code';
+/** 
+  runtime discovery 
+  - if dependenecy
+  - call addTranslation, or
+  - make it auto-discoverable 
 
-// What does i18n-common mean?
-/**
- * 1 - for all strings with more than 3 instances
- *     replace their IDs with a single one
- *     mapping to the same string
- *
- * 2 - register a common locale for all langs
- *
- * 3 - discovery is easy. get('..autocomplete')
- *
- * adoption - opt in vs all in once?
+  static discovery 
+
+  x-pack/plugins/translations
  */
 
-// PR 1 - changes to i18n engine to add common en locale
-// PR 2 - jscodeshift to use those changes
-// you need to write common to x-pack/plugins/translations/common
-// en-locale conflict ? no! addTranslation merges them
-
-// then make the engine scan it too
-// then see if it works for all langs?
-
-// cancel vs Cancel for ID
-
-// translate / traslateCommon
-
 // Option1:
-// i18n.translate('somefoo.cancel', { defaultMessage: 'Cancel'})
-// i18n.translate('kbn.common.cancel')
 // i18n.common('cancel')
-// <CommonMessage id='Cancel'/>
-
-// i18n.translate('kbn.common.cancel')
-// <FormattedMessage defaultMessage={'common.Cancel'} />
-// i18n.translate('common.cancel')
-// i18n.common["Cancel"] // dont work when changing locale
-// i18n.get('Cancel')
-// i18n.get('Cancel')
-// i18n.getCommonMessage('Cancel')
+// <CommonMessage id='cancel'/>
 
 const ex = promisify(exec);
 
+function camelize(str) {
+  return str
+    .replace(/(?:^\w|[A-Z]|\b\w)/g, function (word, index) {
+      return index === 0 ? word.toLowerCase() : word.toUpperCase();
+    })
+    .replace(/\s+/g, '');
+}
 // TODO:
 // - transform:
 //  - fix eslint-dot-notation (i18n.common["Foo"])
@@ -85,6 +67,13 @@ function getCommonMessages(
   );
 }
 
+const i18nCommonPath = resolve('src/plugins/i18n_common/translations');
+
+const createTranslation = (msgs: Array<[string, string[]]>) => ({
+  locale: 'en',
+  messages: Object.fromEntries(msgs.map(([msg]) => [camelize(msg), msg])),
+});
+
 export function extractCommonDefaultMessages(outputDir: string): ListrTask[] {
   return [
     {
@@ -93,37 +82,42 @@ export function extractCommonDefaultMessages(outputDir: string): ListrTask[] {
         const allMessages = getCommonMessages(ctx.messages);
         const commonMessages = allMessages.filter(isCommonTranslation);
         ctx.commonMessages = commonMessages; // TODO: types
-        return writeFileAsync(
-          `${outputDir}/common/en.json`,
-          JSON.stringify(commonMessages.map(([key, value]) => ({ [key]: key })))
-        );
+
+        return fs
+          .mkdir(i18nCommonPath, { recursive: true })
+          .then(() =>
+            fs.writeFile(
+              `${i18nCommonPath}/en.json`,
+              JSON.stringify(createTranslation(commonMessages))
+            )
+          );
         // TODO: need to build kbn18 afterwards
       },
     },
-    {
-      enabled: (ctx) => !!ctx.commonMessages && !!ctx.transformCommon,
-      title: 'Transform to i18n.common',
-      task: (ctx) => new Listr(ctx.commonMessages.map(createTransformTask)),
-    },
-    {
-      enabled: (ctx) => !!ctx.commonMessages && !!ctx.transformCommon,
-      title: 'run i18n_check --fix',
-      // TODO: call script directly
-      task: () => ex('node scripts/i18n_check --fix'),
-    },
-    {
-      enabled: (ctx) => !!ctx.commonMessages && !!ctx.transformCommon,
-      title: 'Prettify',
-      task: (ctx) => {
-        const fileList = [
-          ...new Set(ctx.commonMessages.flatMap(([, files]: [unknown, string[]]) => files)),
-        ].join(' ');
-        // TODO: use api
-        return ex(`node_modules/.bin/prettier --write ${fileList}`);
-      },
-    },
     // {
-    //   title: 'Add JP/CN back?'
+    //   enabled: (ctx) => !!ctx.commonMessages && !!ctx.transformCommon,
+    //   title: 'Transform to i18n.common',
+    //   task: (ctx) => new Listr(ctx.commonMessages.map(createTransformTask)),
+    // },
+    // {
+    //   enabled: (ctx) => !!ctx.commonMessages && !!ctx.transformCommon,
+    //   title: 'run i18n_check --fix',
+    //   // TODO: call script directly
+    //   task: () => ex('node scripts/i18n_check --fix'),
+    // },
+    // {
+    //   enabled: (ctx) => !!ctx.commonMessages && !!ctx.transformCommon,
+    //   title: 'Prettify',
+    //   task: (ctx) => {
+    //     const fileList = [
+    //       ...new Set(ctx.commonMessages.flatMap(([, files]: [unknown, string[]]) => files)),
+    //     ].join(' ');
+    //     // TODO: use api
+    //     return ex(`node_modules/.bin/prettier --write ${fileList}`);
+    //   },
+    // },
+    // {
+    // title: 'Add JP/CN back?'
     // get all keys for a word
     // get all their values from JP/CN
     // get the highest ranking one and set it at JP.common.Word

@@ -1,0 +1,7 @@
+{
+  "prefix": "i18nCommon",
+  "paths": {
+    "i18nCommon": "."
+  },
+  "translations": ["translations/en.json"]
+}

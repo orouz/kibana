@@ -51,11 +51,12 @@ export const FoozaApp = ({ basename, notifications, http, navigation }: FoozaApp
           <EuiPage restrictWidth="1000px">
             <EuiPageBody>
               <EuiPageHeader>
-                <EuiTitle size="l">
-                  <h1>
-                    <FormattedMessage id="kbn.common.foo" />
-                  </h1>
-                </EuiTitle>
+                <div>
+                  <FormattedMessage id="kbn.i18nCommon.cancel" />
+                </div>
+                <div>
+                  <FormattedMessage id="clearSelection" />
+                </div>
               </EuiPageHeader>
             </EuiPageBody>
           </EuiPage>
