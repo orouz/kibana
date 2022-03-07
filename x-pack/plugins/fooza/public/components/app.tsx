@@ -18,7 +18,6 @@ import {
 
 import { CoreStart } from '../../../../../src/core/public';
 import { NavigationPublicPluginStart } from '../../../../../src/plugins/navigation/public';
-
 import { PLUGIN_ID, PLUGIN_NAME } from '../../common';
 
 interface FoozaAppDeps {
@@ -37,6 +36,8 @@ export const FoozaApp = ({ basename, notifications, http, navigation }: FoozaApp
     notifications.toasts.addSuccess(PLUGIN_NAME);
   };
 
+  console.log({ m: i18n.getTranslation() });
+
   // Render the application DOM.
   // Note that `navigation.ui.TopNavMenu` is a stateful component exported on the `navigation` plugin's start contract.
   return (
@@ -53,6 +54,7 @@ export const FoozaApp = ({ basename, notifications, http, navigation }: FoozaApp
               <EuiPageHeader>
                 <div>
                   <FormattedMessage id="kbn.i18nCommon.cancel" />
+                  {/* {i18n.common('clearSelection')} */}
                 </div>
                 <div>
                   <FormattedMessage id="clearSelection" />

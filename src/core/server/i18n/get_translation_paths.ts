@@ -20,6 +20,7 @@ export async function getTranslationPaths({ cwd, nested }: { cwd: string; nested
   const glob = nested ? `*/${I18N_RC}` : I18N_RC;
   const entries = await globby(glob, { cwd, dot: true });
   const translationPaths: string[] = [];
+  console.log({ cwd, entries });
 
   for (const entry of entries) {
     const entryFullPath = resolve(cwd, entry);

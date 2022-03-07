@@ -79,5 +79,5 @@
     "visTypeXy": "src/plugins/vis_types/xy",
     "visualizations": "src/plugins/visualizations"
   },
-  "translations": []
+  "translations": ["packages/kbn-i18n/translations/en.json"]
 }

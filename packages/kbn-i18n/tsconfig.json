@@ -12,7 +12,7 @@
     ]
   },
   "include": [
-    "src/core/en-common.json",
+    "translations/en.json",
     "src/**/*.ts",
     "src/**/*.tsx",
     "types/intl_format_cache.d.ts",

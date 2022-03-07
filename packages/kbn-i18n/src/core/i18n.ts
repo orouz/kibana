@@ -15,6 +15,9 @@ import { Formats, formats as EN_FORMATS } from './formats';
 import { hasValues, isObject, isString, mergeAll } from './helper';
 import { isPseudoLocale, translateUsingPseudoLocale } from './pseudo_locale';
 
+// @ts-ignore
+import enCommonLocale from '../../translations/en.json';
+
 // Add all locale data to `IntlMessageFormat`.
 import './locales.js';
 
@@ -240,4 +243,8 @@ export async function load(translationsUrl: string) {
   }
 
   init(await response.json());
+}
+
+export function common(id: keyof typeof enCommonLocale['messages']) {
+  return translate(id as string, {} as any);
 }

@@ -29,7 +29,9 @@ filegroup(
 NPM_MODULE_EXTRA_FILES = [
   "package.json",
   "GUIDELINE.md",
-  "README.md"
+  "README.md",
+  ".i18nrc.json",
+  "translations/en.json",
 ]
 
 RUNTIME_DEPS = [
