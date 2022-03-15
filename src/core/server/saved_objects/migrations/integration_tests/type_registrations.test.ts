@@ -84,7 +84,7 @@ const previouslyRegisteredTypes = [
   'search-session',
   'search-telemetry',
   'security-rule',
-  'csp-rule-template',
+  'cloud-security-posture-rule-template',
   'security-solution-signals-migration',
   'server',
   'siem-detection-engine-rule-actions',

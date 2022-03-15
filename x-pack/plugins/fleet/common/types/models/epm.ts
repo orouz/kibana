@@ -72,7 +72,7 @@ export enum KibanaAssetType {
   map = 'map',
   lens = 'lens',
   securityRule = 'security_rule',
-  cspRuleTemplate = 'csp_rule_template',
+  cloudSecurityPostureRuleTemplate = 'cloud_security_posture_rule_template',
   mlModule = 'ml_module',
   tag = 'tag',
 }
@@ -89,7 +89,7 @@ export enum KibanaSavedObjectType {
   lens = 'lens',
   mlModule = 'ml-module',
   securityRule = 'security-rule',
-  cspRuleTemplate = 'csp-rule-template',
+  cloudSecurityPostureRuleTemplate = 'cloud_security_posture_rule_template',
   tag = 'tag',
 }
 

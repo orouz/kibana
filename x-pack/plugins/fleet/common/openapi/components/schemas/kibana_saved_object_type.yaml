@@ -9,4 +9,4 @@ enum:
   - lens
   - ml-module
   - security-rule
-  - csp-rule-template
+  - cloud-security-posture-rule-template

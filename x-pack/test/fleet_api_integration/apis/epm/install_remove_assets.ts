@@ -447,11 +447,13 @@ const expectAssetsInstalled = ({
       id: 'sample_security_rule',
     });
     expect(resSecurityRule.id).equal('sample_security_rule');
-    const resCSPRuleTemplate = await kibanaServer.savedObjects.get({
-      type: 'csp-rule-template',
-      id: 'sample_csp_rule_template',
+    const resCloudSecurityPostureRuleTemplate = await kibanaServer.savedObjects.get({
+      type: 'cloud_security_posture-rule-template',
+      id: 'sample_cloud_security_posture_rule_template',
     });
-    expect(resCSPRuleTemplate.id).equal('sample_csp_rule_template');
+    expect(resCloudSecurityPostureRuleTemplate.id).equal(
+      'sample_cloud_security_posture_rule_template'
+    );
     const resTag = await kibanaServer.savedObjects.get({
       type: 'tag',
       id: 'sample_tag',
@@ -504,8 +506,8 @@ const expectAssetsInstalled = ({
       installed_kibana_space_id: 'default',
       installed_kibana: [
         {
-          id: 'sample_csp_rule_template',
-          type: 'csp-rule-template',
+          id: 'sample_cloud_security_posture_rule_template',
+          type: 'cloud_security_posture-rule-template',
         },
         {
           id: 'sample_dashboard',

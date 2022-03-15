@@ -7,51 +7,18 @@
 
 import { SavedObjectsType } from '../../../../../../src/core/server';
 import {
-  type CspRuleTemplateSchema,
-  cspRuleTemplateSavedObjectType,
+  type CloudSecurityPostureRuleTemplateSchema,
+  cloudSecurityPostureRuleTemplateSavedObjectType,
 } from '../../../common/schemas/csp_rule_template';
 
-const ruleTemplateAssetSavedObjectMappings: SavedObjectsType<CspRuleTemplateSchema>['mappings'] = {
-  dynamic: false,
-  properties: {
-    name: {
-      type: 'text',
-    },
-    description: {
-      type: 'text',
-    },
-    rationale: {
-      type: 'text',
-    },
-    impact: {
-      type: 'text',
-    },
-    default_value: {
-      type: 'text',
-    },
-    remediation: {
-      type: 'text',
-    },
-    benchmark: {
-      type: 'object',
-    },
-    severity: {
-      type: 'text',
-    },
-    benchmark_rule_id: {
-      type: 'text',
-    },
-    rego_rule_id: {
-      type: 'text',
-    },
-    tags: {
-      type: 'text',
-    },
-  },
-};
+const ruleTemplateAssetSavedObjectMappings: SavedObjectsType<CloudSecurityPostureRuleTemplateSchema>['mappings'] =
+  {
+    dynamic: false,
+    properties: {},
+  };
 
-export const cspRuleTemplateAssetType: SavedObjectsType<CspRuleTemplateSchema> = {
-  name: cspRuleTemplateSavedObjectType,
+export const cspRuleTemplateAssetType: SavedObjectsType<CloudSecurityPostureRuleTemplateSchema> = {
+  name: cloudSecurityPostureRuleTemplateSavedObjectType,
   hidden: false,
   management: {
     importableAndExportable: true,

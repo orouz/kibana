@@ -20,5 +20,6 @@ const cspRuleTemplateSchema = rt.object({
   tags: rt.arrayOf(rt.string()),
 });
 
-export const cspRuleTemplateSavedObjectType = 'csp-rule-template';
-export type CspRuleTemplateSchema = TypeOf<typeof cspRuleTemplateSchema>;
+export const cloudSecurityPostureRuleTemplateSavedObjectType =
+  'cloud-security-posture-rule-template';
+export type CloudSecurityPostureRuleTemplateSchema = TypeOf<typeof cspRuleTemplateSchema>;
