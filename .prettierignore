@@ -1,3 +1,2 @@
 # use stylelint
 *.scss
-x-pack/plugins/fleet/common/openapi/bundled.json
