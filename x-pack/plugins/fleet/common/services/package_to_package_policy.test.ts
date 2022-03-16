@@ -25,7 +25,7 @@ describe('Fleet - packageToPackagePolicy', () => {
     path: '',
     assets: {
       kibana: {
-        csp_rule_template: [],
+        cloud_security_posture_rule_template: [],
         dashboard: [],
         visualization: [],
         search: [],
