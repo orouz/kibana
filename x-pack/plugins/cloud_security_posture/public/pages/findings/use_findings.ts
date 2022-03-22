@@ -17,10 +17,11 @@ import type {
   TimeRange,
 } from '../../../../../../src/plugins/data/common';
 import type { CspClientPluginStartDeps } from '../../types';
-import { useKibana } from '../../../../../../src/plugins/kibana_react/public';
+
 import * as TEXT from './translations';
 import type { CoreStart } from '../../../../../../src/core/public';
 import type { CspFinding } from './types';
+import { useKibana } from '../../common/hooks/use_kibana';
 
 interface CspFindings {
   data: CspFinding[];
@@ -120,7 +121,7 @@ export const useFindings = (
   const {
     notifications,
     data: { query, search },
-  } = useKibana<CspClientPluginStartDeps>().services;
+  } = useKibana().services;
 
   return useQuery(
     ['csp_findings', { searchProps, urlKey }],
@@ -130,6 +131,7 @@ export const useFindings = (
       );
 
       const response = await source.fetch$().toPromise();
+      console.log({ response });
 
       return response;
     },
@@ -140,3 +142,59 @@ export const useFindings = (
     }
   );
 };
+
+export const useFindingsCounter = ({
+  dataView,
+  searchProps,
+  urlKey,
+}: {
+  dataView: DataView;
+  searchProps: CspFindingsRequest;
+  urlKey?: string; // Needed when URL query (searchProps) didn't change (now-15) but require a refetch
+}) => {
+  const { data } = useKibana().services;
+
+  if (searchProps.query) data.query.queryString.setQuery(searchProps.query);
+
+  return useQuery(['csp_findings', { searchProps, urlKey }], () =>
+    data.search
+      .search({
+        params: {
+          index: 'logs-cis_kubernetes_benchmark.findings*',
+          size: 0,
+          track_total_hits: true,
+          // aggregations: {
+          //   count: { value_count: { field: 'result.evaluation' } },
+          aggs: {
+            count: {
+              terms: {
+                // returns 4606 passed, 1410 failed , total: 6016
+                field: 'result.evaluation',
+              },
+            },
+          },
+          // aggs: {
+          //   count: {
+          //     terms: {
+          //       // returns 196 passed, 60 failed , total: 5888
+          //       field: 'result.evaluation.keyword',
+          //     },
+          //   },
+          // },
+        },
+
+        //   aggs: {
+        //     my_buckets: {
+        //       composite: {
+        //         sources: [{ count: { terms: { field: 'result.evaluation.keyword' } } }],
+        //       },
+        //     },
+        //   },
+        // },
+      })
+      .toPromise()
+  );
+};
+
+// 7654 passed
+// 2346 failed
