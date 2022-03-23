@@ -17,7 +17,7 @@ import type {
   TimeRange,
 } from '../../../../../../src/plugins/data/common';
 import type { CspClientPluginStartDeps } from '../../types';
-
+import { fromKueryExpression, toElasticsearchQuery } from '@kbn/es-query';
 import * as TEXT from './translations';
 import type { CoreStart } from '../../../../../../src/core/public';
 import type { CspFinding } from './types';
@@ -154,46 +154,54 @@ export const useFindingsCounter = ({
 
   const rs = createFindingsSearchSource({ ...searchProps, dataView }, data.query);
 
-  console.log({ rs });
+  console.log({
+    rs,
+  });
 
-  const q = useQuery(['csp_findings2', { searchProps, urlKey }], () =>
-    data.search
-      .search({
-        params: {
-          index: 'logs-cis_kubernetes_benchmark.findings*',
-          size: 0,
-          track_total_hits: true,
-          // aggregations: {
-          //   count: { value_count: { field: 'result.evaluation' } },
-          // query: rs.query,
-          aggs: {
-            count: {
-              terms: {
-                // returns 4606 passed, 1410 failed , total: 6016
-                field: 'result.evaluation',
+  const q = useQuery(
+    ['csp_findings2', { searchProps, urlKey }],
+    () =>
+      data.search
+        .search({
+          params: {
+            index: 'logs-cis_kubernetes_benchmark.findings*',
+            size: 0,
+            track_total_hits: true,
+            query: {
+              ...toElasticsearchQuery(fromKueryExpression(rs.query?.query)),
+              // TODO:
+              // use rs.filter too
+
+              // bool: {
+              //   must: [],
+              //   filter: [
+              //     {
+              //       match_phrase: {
+              //         'result.evaluation': 'failed',
+              //       },
+              //     },
+              //   ],
+              //   should: [],
+              //   must_not: [],
+              // },
+            },
+
+            aggs: {
+              count: {
+                terms: {
+                  field: 'result.evaluation',
+                },
               },
             },
           },
-          // aggs: {
-          //   count: {
-          //     terms: {
-          //       // returns 196 passed, 60 failed , total: 5888
-          //       field: 'result.evaluation.keyword',
-          //     },
-          //   },
-          // },
-        },
-
-        //   aggs: {
-        //     my_buckets: {
-        //       composite: {
-        //         sources: [{ count: { terms: { field: 'result.evaluation.keyword' } } }],
-        //       },
-        //     },
-        //   },
-        // },
-      })
-      .toPromise()
+        })
+        .toPromise(),
+    {
+      select: (v) =>
+        Object.fromEntries(
+          v.rawResponse.aggregations?.count.buckets.map((x) => [x.key, x.doc_count])
+        ) as Record<'passed' | 'failed', number>,
+    }
   );
 
   console.log({ q1: q, q: q.data?.rawResponse });
@@ -218,5 +226,18 @@ GET logs-cis_kubernetes_benchmark.findings-default/_msearch
 
 
 third: aggs ? 
+
+  // aggregations: {
+            //   count: { value_count: { field: 'result.evaluation' } },
+            // query: rs.query,
+
+   //   aggs: {
+          //     my_buckets: {
+          //       composite: {
+          //         sources: [{ count: { terms: { field: 'result.evaluation.keyword' } } }],
+          //       },
+          //     },
+          //   },
+          // },
 
  */

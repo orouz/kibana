@@ -6,7 +6,6 @@
  */
 import React from 'react';
 import { EuiSpacer } from '@elastic/eui';
-import { css } from '@emotion/react';
 import { FindingsTable } from './findings_table';
 import { FindingsSearchBar } from './findings_search_bar';
 import * as TEST_SUBJECTS from './test_subjects';
@@ -14,6 +13,7 @@ import type { DataView } from '../../../../../../src/plugins/data/common';
 import { SortDirection } from '../../../../../../src/plugins/data/common';
 import { useUrlQuery } from '../../common/hooks/use_url_query';
 import { useFindings, type CspFindingsRequest, useFindingsCounter } from './use_findings';
+import { FindingsDistributionBar } from './findings_distribution_bar';
 
 // TODO: define this as a schema with default values
 // need to get Query and DateRange schema
@@ -39,10 +39,10 @@ export const FindingsContainer = ({ dataView }: { dataView: DataView }) => {
   const findingsResult = useFindings(dataView, findingsQuery, key);
 
   const counters = {
-    total: 200,
+    total: findingsResult.data?.total || 0,
     page: 10,
-    passed: 20,
-    failed: 180,
+    passed: countResult.data?.passed || 0,
+    failed: countResult.data?.failed || 0,
   };
 
   return (
@@ -57,61 +57,6 @@ export const FindingsContainer = ({ dataView }: { dataView: DataView }) => {
       <FindingsDistributionBar {...counters} />
       <EuiSpacer size="s" />
       <FindingsTable setQuery={setUrlQuery} {...findingsQuery} {...findingsResult} />
-    </div>
-  );
-};
-
-const FindingsDistributionBar = ({
-  total,
-  passed,
-  failed,
-  page,
-}: {
-  total: number;
-  passed: number;
-  failed: number;
-  page: number;
-}) => {
-  return (
-    <div>
-      <div
-        css={css`
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        `}
-      >
-        <div>
-          Showing {page} of {total}
-        </div>
-        <div>
-          passed {passed} failed {failed}
-        </div>
-      </div>
-      <EuiSpacer size="s" />
-      <div
-        css={css`
-          display: flex;
-          align-items: center;
-          width: 100%;
-          height: 8px;
-        `}
-      >
-        <div
-          css={css`
-            flex: 242;
-            background: #00bfb3;
-            height: 100%;
-          `}
-        />
-        <div
-          css={css`
-            flex: 400;
-            background: #bd271e;
-            height: 100%;
-          `}
-        />
-      </div>
     </div>
   );
 };
