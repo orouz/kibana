@@ -131,8 +131,6 @@ export const useFindings = (
       );
 
       const response = await source.fetch$().toPromise();
-      console.log({ response });
-
       return response;
     },
     {
@@ -152,11 +150,13 @@ export const useFindingsCounter = ({
   searchProps: CspFindingsRequest;
   urlKey?: string; // Needed when URL query (searchProps) didn't change (now-15) but require a refetch
 }) => {
-  const { data } = useKibana().services;
+  const { http, data } = useKibana().services;
 
-  if (searchProps.query) data.query.queryString.setQuery(searchProps.query);
+  const rs = createFindingsSearchSource({ ...searchProps, dataView }, data.query);
 
-  return useQuery(['csp_findings', { searchProps, urlKey }], () =>
+  console.log({ rs });
+
+  const q = useQuery(['csp_findings2', { searchProps, urlKey }], () =>
     data.search
       .search({
         params: {
@@ -165,6 +165,7 @@ export const useFindingsCounter = ({
           track_total_hits: true,
           // aggregations: {
           //   count: { value_count: { field: 'result.evaluation' } },
+          // query: rs.query,
           aggs: {
             count: {
               terms: {
@@ -194,7 +195,28 @@ export const useFindingsCounter = ({
       })
       .toPromise()
   );
+
+  console.log({ q1: q, q: q.data?.rawResponse });
+  return q;
 };
 
-// 7654 passed
-// 2346 failed
+/**    
+ * 
+ 
+first: 2 queries, 1 for data, 1 for counters 
+
+second: multi_search query, (same as first, but in 1 api call)
+
+_msearch: 1 query for paginated data, 1 query for counters
+  
+GET logs-cis_kubernetes_benchmark.findings-default/_msearch
+{}
+{ "aggs": { "count": { "terms": { "field": "result.evaluation" } } }}
+{}
+{ "query": { "query_string": { "query": "result.evaluation : failed" }  } }
+
+
+
+third: aggs ? 
+
+ */

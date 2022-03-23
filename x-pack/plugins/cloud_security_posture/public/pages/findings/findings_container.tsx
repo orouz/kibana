@@ -38,7 +38,6 @@ export const FindingsContainer = ({ dataView }: { dataView: DataView }) => {
   });
   const findingsResult = useFindings(dataView, findingsQuery, key);
 
-  console.log({ countResult });
   const counters = {
     total: 200,
     page: 10,
