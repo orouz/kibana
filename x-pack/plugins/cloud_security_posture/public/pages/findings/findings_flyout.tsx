@@ -94,7 +94,7 @@ const Cards = ({ data }: { data: Card[] }) => (
           <EuiDescriptionList
             compressed={false}
             type="column"
-            listItems={card.listItems.map((v) => ({ title: v[0], description: v[1] }))}
+            listItems={card.listItems.map((v) => ({ title: v[0], description: v[1] || '-' }))}
             style={{ flexFlow: 'column' }}
             descriptionProps={{
               style: { width: '100%' },

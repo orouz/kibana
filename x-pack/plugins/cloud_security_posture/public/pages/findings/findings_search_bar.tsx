@@ -17,11 +17,10 @@ import { FINDINGS_SEARCH_PLACEHOLDER } from './translations';
 
 type SearchBarQueryProps = Pick<CspFindingsRequest, 'query' | 'filters'>;
 
-interface BaseFindingsSearchBarProps extends SearchBarQueryProps {
+interface FindingsSearchBarProps extends SearchBarQueryProps {
   setQuery(v: Partial<SearchBarQueryProps>): void;
+  status: CspFindingsResponse['status'];
 }
-
-type FindingsSearchBarProps = CspFindingsResponse & BaseFindingsSearchBarProps;
 
 export const FindingsSearchBar = ({
   dataView,

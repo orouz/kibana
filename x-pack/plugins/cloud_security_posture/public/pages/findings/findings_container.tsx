@@ -15,6 +15,8 @@ import type { DataView } from '../../../../../../src/plugins/data/common';
 import { SortDirection } from '../../../../../../src/plugins/data/common';
 import { useUrlQuery } from '../../common/hooks/use_url_query';
 import { useFindings, type CspFindingsRequest } from './use_findings';
+import { useFindingsCounter } from './use_findings_count';
+import { FindingsDistributionBar } from './findings_distribution_bar';
 
 // TODO: define this as a schema with default values
 const getDefaultQuery = (): CspFindingsRequest => ({
@@ -26,16 +28,28 @@ const getDefaultQuery = (): CspFindingsRequest => ({
 });
 
 export const FindingsContainer = ({ dataView }: { dataView: DataView }) => {
-  const { urlQuery: findingsQuery, setUrlQuery, key } = useUrlQuery(getDefaultQuery);
-  const findingsResult = useFindings(dataView, findingsQuery, key);
   const { euiTheme } = useEuiTheme();
+  const { urlQuery: findingsQuery, setUrlQuery } = useUrlQuery(getDefaultQuery);
+
+  const findingsResult = useFindings({
+    dataView,
+    ...findingsQuery,
+  });
+
+  const countResult = useFindingsCounter({
+    dataView,
+    filters: findingsQuery.filters,
+    query: findingsQuery.query,
+  });
+
   return (
     <div data-test-subj={TEST_SUBJECTS.FINDINGS_CONTAINER}>
       <FindingsSearchBar
         dataView={dataView}
         setQuery={setUrlQuery}
-        {...findingsQuery}
-        {...findingsResult}
+        query={findingsQuery.query}
+        filters={findingsQuery.filters}
+        status={findingsResult.status}
       />
       <div
         css={css`
@@ -43,6 +57,14 @@ export const FindingsContainer = ({ dataView }: { dataView: DataView }) => {
         `}
       >
         <PageTitle />
+        <EuiSpacer />
+        <FindingsDistributionBar
+          total={findingsResult.data?.total || 0}
+          passed={countResult.data?.passed || 0}
+          failed={countResult.data?.failed || 0}
+          pageStart={findingsQuery.from + 1} // API index is 0, but UI is 1
+          pageEnd={findingsQuery.from + findingsQuery.size}
+        />
         <EuiSpacer />
         <FindingsTable setQuery={setUrlQuery} {...findingsQuery} {...findingsResult} />
       </div>
