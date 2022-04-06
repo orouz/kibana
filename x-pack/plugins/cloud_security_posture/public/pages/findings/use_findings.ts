@@ -6,25 +6,22 @@
  */
 import { type UseQueryResult, useQuery } from 'react-query';
 import { number } from 'io-ts';
-import { buildEsQuery, type Filter } from '@kbn/es-query';
-import type * as estypes from '@elastic/elasticsearch/lib/api/typesWithBodyKey';
+import { type Filter } from '@kbn/es-query';
 import { extractErrorMessage } from '../../../common/utils/helpers';
 import type {
-  DataView,
   EsQuerySortValue,
   SerializedSearchSourceFields,
 } from '../../../../../../src/plugins/data/common';
-import type { CspClientPluginStartDeps } from '../../types';
 import * as TEXT from './translations';
 import type { CoreStart } from '../../../../../../src/core/public';
 import type { CspFinding } from './types';
 import { useKibana } from '../../common/hooks/use_kibana';
+import type { FindingsBaseQuery } from './findings_container';
 
 interface CspFindings {
   data: CspFinding[];
   total: number;
 }
-type FindingsFooRequest = estypes.SearchRequest;
 
 export interface CspFindingsRequest
   extends Required<Pick<SerializedSearchSourceFields, 'sort' | 'size' | 'from' | 'query'>> {
@@ -72,55 +69,26 @@ export const showErrorToast = (
   else toasts.addDanger(extractErrorMessage(error, TEXT.SEARCH_FAILED));
 };
 
-export const getFindingsBaseQuery = (
-  {
-    query,
-    dataView,
-    filters,
-  }: Pick<CspFindingsRequest, 'filters' | 'query'> & {
-    dataView: DataView;
-  },
-  queryService: CspClientPluginStartDeps['data']['query']
-): FindingsFooRequest => {
-  if (query) queryService.queryString.setQuery(query);
-
-  queryService.filterManager.setFilters(filters);
-
-  return {
-    index: dataView.title,
-    body: {
-      query: buildEsQuery(
-        dataView,
-        queryService.queryString.getQuery(),
-        queryService.filterManager.getFilters()
-      ),
-    },
-  };
-};
-
 export const useFindings = ({
-  dataView,
+  index,
+  query,
   sort,
   from,
   size,
-  query,
-  filters,
-}: CspFindingsRequest & { dataView: DataView }) => {
+}: FindingsBaseQuery & Pick<CspFindingsRequest, 'sort' | 'size' | 'from'>) => {
   const {
     data,
     notifications: { toasts },
   } = useKibana().services;
 
-  const baseQuery = getFindingsBaseQuery({ dataView, query, filters }, data.query);
-
   return useQuery(
-    ['csp_findings3', { from, size, query, filters, sort }],
+    ['csp_findings', { from, size, query, sort }],
     () =>
       data.search
         .search({
           params: {
-            index: baseQuery.index,
-            query: baseQuery.body?.query,
+            index,
+            query,
             size,
             from,
             sort: mapEsQuerySortKey(sort),

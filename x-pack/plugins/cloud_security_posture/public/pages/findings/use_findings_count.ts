@@ -7,12 +7,12 @@
 import { useQuery } from 'react-query';
 import type * as estypes from '@elastic/elasticsearch/lib/api/typesWithBodyKey';
 import type {
-  DataView,
   IKibanaSearchRequest,
   IKibanaSearchResponse,
 } from '../../../../../../src/plugins/data/common';
 import { useKibana } from '../../common/hooks/use_kibana';
-import { getFindingsBaseQuery, showErrorToast, type CspFindingsRequest } from './use_findings';
+import { showErrorToast } from './use_findings';
+import type { FindingsBaseQuery } from './findings_container';
 
 type FindingsAggRequest = IKibanaSearchRequest<estypes.SearchRequest>;
 type FindingsAggResponse = IKibanaSearchResponse<estypes.SearchResponse<{}, FindingsAggs>>;
@@ -25,31 +25,23 @@ interface FindingsAggs extends estypes.AggregationsMultiBucketAggregateBase {
   };
 }
 
-export const useFindingsCounter = ({
-  dataView,
-  query,
-  filters,
-}: {
-  dataView: DataView;
-} & Pick<CspFindingsRequest, 'query' | 'filters'>) => {
+export const useFindingsCounter = ({ index, query }: FindingsBaseQuery) => {
   const {
     data,
     notifications: { toasts },
   } = useKibana().services;
 
-  const baseQuery = getFindingsBaseQuery({ dataView, filters, query }, data.query);
-
   return useQuery(
-    ['csp_findings_counts', { filters, query }],
+    ['csp_findings_counts', { index, query }],
     () =>
       data.search
         .search<FindingsAggRequest, FindingsAggResponse>({
           params: {
-            index: baseQuery.index,
+            index,
             size: 0,
             track_total_hits: true,
             body: {
-              query: baseQuery.body?.query,
+              query,
               aggs: {
                 count: {
                   terms: {
