@@ -25,6 +25,22 @@ interface FindingsAggs extends estypes.AggregationsMultiBucketAggregateBase {
   };
 }
 
+export const getFindingsCountAggQuery = ({ index, query }: FindingsBaseQuery) => ({
+  index,
+  size: 0,
+  track_total_hits: true,
+  body: {
+    query,
+    aggs: {
+      count: {
+        terms: {
+          field: 'result.evaluation',
+        },
+      },
+    },
+  },
+});
+
 export const useFindingsCounter = ({ index, query }: FindingsBaseQuery) => {
   const {
     data,
@@ -36,21 +52,7 @@ export const useFindingsCounter = ({ index, query }: FindingsBaseQuery) => {
     () =>
       data.search
         .search<FindingsAggRequest, FindingsAggResponse>({
-          params: {
-            index,
-            size: 0,
-            track_total_hits: true,
-            body: {
-              query,
-              aggs: {
-                count: {
-                  terms: {
-                    field: 'result.evaluation',
-                  },
-                },
-              },
-            },
-          },
+          params: getFindingsCountAggQuery({ index, query }),
         })
         .toPromise(),
     {

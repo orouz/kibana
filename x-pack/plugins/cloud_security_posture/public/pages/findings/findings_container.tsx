@@ -22,7 +22,7 @@ import { CspClientPluginStartDeps } from '../../types';
 import { useKibana } from '../../common/hooks/use_kibana';
 
 // TODO: define this as a schema with default values
-const getDefaultQuery = (): CspFindingsRequest => ({
+export const getDefaultQuery = (): CspFindingsRequest => ({
   query: { language: 'kuery', query: '' },
   filters: [],
   sort: [{ ['@timestamp']: SortDirection.desc }],

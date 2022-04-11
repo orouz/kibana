@@ -18,6 +18,8 @@ import type { CspFinding } from './types';
 import { useKibana } from '../../common/hooks/use_kibana';
 import type { FindingsBaseQuery } from './findings_container';
 
+type UseFindingsProps = FindingsBaseQuery & Omit<CspFindingsRequest, 'filters' | 'query'>;
+
 interface CspFindings {
   data: CspFinding[];
   total: number;
@@ -69,13 +71,15 @@ export const showErrorToast = (
   else toasts.addDanger(extractErrorMessage(error, TEXT.SEARCH_FAILED));
 };
 
-export const useFindings = ({
+export const getFindingsQuery = ({ index, query, size, from, sort }: UseFindingsProps) => ({
   index,
   query,
-  sort,
-  from,
   size,
-}: FindingsBaseQuery & Pick<CspFindingsRequest, 'sort' | 'size' | 'from'>) => {
+  from,
+  sort: mapEsQuerySortKey(sort),
+});
+
+export const useFindings = ({ index, query, sort, from, size }: UseFindingsProps) => {
   const {
     data,
     notifications: { toasts },
@@ -86,13 +90,7 @@ export const useFindings = ({
     () =>
       data.search
         .search({
-          params: {
-            index,
-            query,
-            size,
-            from,
-            sort: mapEsQuerySortKey(sort),
-          },
+          params: getFindingsQuery({ index, query, sort, from, size }),
         })
         .toPromise(),
     {
