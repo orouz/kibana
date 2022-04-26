@@ -110,7 +110,9 @@ export const useFindingsByResource = ({
       refetchOnWindowFocus: false,
       enabled,
       select: ({ rawResponse }) => ({
-        after: rawResponse.aggregations?.groupBy?.after_key as FindingsByResourceAggregationsKeys,
+        after: rawResponse.aggregations?.groupBy?.after_key as
+          | FindingsByResourceAggregationsKeys
+          | undefined,
         total: rawResponse.hits.total as number,
         page: rawResponse.aggregations?.groupBy.buckets.map(createFindingsByResource) || [],
       }),
