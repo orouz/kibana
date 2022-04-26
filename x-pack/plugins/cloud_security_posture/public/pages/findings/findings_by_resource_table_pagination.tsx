@@ -16,8 +16,8 @@ import {
   EuiPopover,
 } from '@elastic/eui';
 import { i18n } from '@kbn/i18n';
-import * as TEST_SUBJECTS from './test_subjects';
 import { FormattedMessage } from '@kbn/i18n-react';
+import * as TEST_SUBJECTS from './test_subjects';
 
 interface Props {
   pageSize: number;
