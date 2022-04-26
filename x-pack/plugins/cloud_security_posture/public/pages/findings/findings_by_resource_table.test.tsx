@@ -64,7 +64,7 @@ const assertTableDataExists = (data: Array<ReturnType<typeof getFakeFindingsByRe
 };
 
 describe('<FindingsByResourceTable />', () => {
-  it('renders the error state', () => {
+  it('renders the error state with the given error message', () => {
     const error = new Error('some error');
 
     const props: TableProps = {
