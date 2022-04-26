@@ -13,6 +13,8 @@ import {
   EuiFlexGroup,
   EuiFlexItem,
   EuiLink,
+  PropsOf,
+  EuiSpacer,
 } from '@elastic/eui';
 import { FormattedMessage } from '@kbn/i18n-react';
 import numeral from '@elastic/numeral';
@@ -20,11 +22,15 @@ import { extractErrorMessage } from '../../../common/utils/helpers';
 import * as TEST_SUBJECTS from './test_subjects';
 import * as TEXT from './translations';
 import type { CspFindingsByResourceResult } from './use_findings_by_resource';
+import { FindingsByResourceTablePagination } from './findings_by_resource_table_pagination';
 
 export const formatNumber = (value: number) =>
   value < 1000 ? value : numeral(value).format('0.0a');
 
-type FindingsGroupByResourceProps = CspFindingsByResourceResult;
+type FindingsGroupByResourceProps = CspFindingsByResourceResult & {
+  pagination: PropsOf<typeof FindingsByResourceTablePagination>;
+};
+
 type CspFindingsByResource = NonNullable<CspFindingsByResourceResult['data']>['page'][number];
 
 export const getResourceId = (resource: CspFindingsByResource) =>
@@ -34,22 +40,28 @@ const FindingsByResourceTableComponent = ({
   error,
   data,
   loading,
+  pagination,
 }: FindingsGroupByResourceProps) => {
   const getRowProps = (row: CspFindingsByResource) => ({
     'data-test-subj': TEST_SUBJECTS.getFindingsByResourceTableRowTestId(getResourceId(row)),
   });
 
-  if (!loading && !data?.page.length)
+  if (!loading && !error && !data?.page.length)
     return <EuiEmptyPrompt iconType="logoKibana" title={<h2>{TEXT.NO_FINDINGS}</h2>} />;
 
   return (
-    <EuiBasicTable
-      loading={loading}
-      error={error ? extractErrorMessage(error) : undefined}
-      items={data?.page || []}
-      columns={columns}
-      rowProps={getRowProps}
-    />
+    <div>
+      <EuiBasicTable
+        data-test-subj="findingsByResourceTable"
+        loading={loading}
+        error={error ? extractErrorMessage(error) : undefined}
+        items={data?.page || []}
+        columns={columns}
+        rowProps={getRowProps}
+      />
+      <EuiSpacer size="m" />
+      <FindingsByResourceTablePagination {...pagination} />
+    </div>
   );
 };
 

@@ -11,3 +11,6 @@ export const FINDINGS_CONTAINER = 'findings_container';
 export const FINDINGS_TABLE_ZERO_STATE = 'findings_table_zero_state';
 export const getFindingsByResourceTableRowTestId = (id: string) =>
   `findings_resource_table_row_${id}`;
+
+export const FINDINGS_PAGINATION_NEXT_PAGE = 'findings_pagination_next_page';
+export const FINDINGS_PAGINATION_PREV_PAGE = 'findings_pagination_prev_page';

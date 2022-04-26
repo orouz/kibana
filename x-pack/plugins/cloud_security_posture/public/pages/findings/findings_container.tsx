@@ -19,21 +19,24 @@ import { useUrlQuery } from '../../common/hooks/use_url_query';
 import { useFindings } from './use_findings';
 import type { FindingsGroupByNoneQuery } from './use_findings';
 import type { FindingsBaseURLQuery } from './types';
-import { useFindingsByResource } from './use_findings_by_resource';
+import { FindingsByResourceQuery, useFindingsByResource } from './use_findings_by_resource';
 import { FindingsGroupBySelector } from './findings_group_by_selector';
 import { INTERNAL_FEATURE_FLAGS } from '../../../common/constants';
 import { useFindingsCounter } from './use_findings_count';
 import { FindingsDistributionBar } from './findings_distribution_bar';
 import { FindingsByResourceTable } from './findings_by_resource_table';
 
-// TODO: define this as a schema with default values
-export const getDefaultQuery = (): FindingsBaseURLQuery & FindingsGroupByNoneQuery => ({
+// TODO: separate queries
+export const getDefaultQuery = (): FindingsBaseURLQuery &
+  FindingsGroupByNoneQuery &
+  FindingsByResourceQuery => ({
   query: { language: 'kuery', query: '' },
   filters: [],
   sort: [{ ['@timestamp']: SortDirection.desc }],
   from: 0,
   size: 10,
   groupBy: 'none',
+  after: undefined,
 });
 
 const getGroupByOptions = (): Array<EuiComboBoxOptionOption<FindingsBaseURLQuery['groupBy']>> => [
@@ -50,6 +53,8 @@ const getGroupByOptions = (): Array<EuiComboBoxOptionOption<FindingsBaseURLQuery
     }),
   },
 ];
+
+const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
 
 export const FindingsContainer = ({ dataView }: { dataView: DataView }) => {
   const { euiTheme } = useEuiTheme();
@@ -70,6 +75,8 @@ export const FindingsContainer = ({ dataView }: { dataView: DataView }) => {
   const findingsGroupByResource = useFindingsByResource({
     ...baseEsQuery,
     enabled: urlQuery.groupBy === 'resource',
+    size: urlQuery.size,
+    after: urlQuery.after,
   });
 
   const findingsCount = useFindingsCounter({
@@ -129,14 +136,21 @@ export const FindingsContainer = ({ dataView }: { dataView: DataView }) => {
           </>
         )}
         {urlQuery.groupBy === 'resource' && (
-          <>
-            <FindingsByResourceTable
-              {...urlQuery}
-              data={findingsGroupByResource.data}
-              error={findingsGroupByResource.error}
-              loading={findingsGroupByResource.isLoading}
-            />
-          </>
+          <FindingsByResourceTable
+            {...urlQuery}
+            data={findingsGroupByResource.data}
+            error={findingsGroupByResource.error}
+            loading={findingsGroupByResource.isLoading}
+            pagination={{
+              hasNextPage: findingsGroupByResource.hasNextPage,
+              hasPrevPage: findingsGroupByResource.hasPrevPage,
+              options: PAGE_SIZE_OPTIONS,
+              pageSize: urlQuery.size,
+              setPageSize: (size) => setUrlQuery({ size }),
+              fetchNext: () => setUrlQuery({ after: findingsGroupByResource.getNextKey() }),
+              fetchPrev: () => setUrlQuery({ after: findingsGroupByResource.getPreviousKey() }),
+            }}
+          />
         )}
       </div>
     </div>

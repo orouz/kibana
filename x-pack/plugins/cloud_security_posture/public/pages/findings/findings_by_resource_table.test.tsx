@@ -5,13 +5,14 @@
  * 2.0.
  */
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import * as TEST_SUBJECTS from './test_subjects';
 import { FindingsByResourceTable, formatNumber, getResourceId } from './findings_by_resource_table';
 import * as TEXT from './translations';
 import type { PropsOf } from '@elastic/eui';
 import Chance from 'chance';
 import numeral from '@elastic/numeral';
+import { TestProvider } from '../../test/test_provider';
 
 const chance = new Chance();
 
@@ -27,42 +28,140 @@ const getFakeFindingsByResource = () => ({
 
 type TableProps = PropsOf<typeof FindingsByResourceTable>;
 
+const getPaginationMock = ({
+  hasNextPage = false,
+  hasPrevPage = false,
+}: {
+  hasNextPage?: boolean;
+  hasPrevPage?: boolean;
+} = {}) => ({
+  pagination: {
+    pageSize: 10,
+    options: [5, 10, 25],
+    hasNextPage,
+    hasPrevPage,
+    fetchNext: jest.fn(),
+    fetchPrev: jest.fn(),
+    setPageSize: jest.fn(),
+  },
+});
+
+const assertTableDataExists = (data: Array<ReturnType<typeof getFakeFindingsByResource>>) => {
+  data.forEach((item, i) => {
+    const row = screen.getByTestId(
+      TEST_SUBJECTS.getFindingsByResourceTableRowTestId(getResourceId(item))
+    );
+    expect(row).toBeInTheDocument();
+
+    expect(within(row).getByText(item.resource_id)).toBeInTheDocument();
+    expect(within(row).getByText(item.cluster_id)).toBeInTheDocument();
+    expect(within(row).getByText(item.cis_section)).toBeInTheDocument();
+    expect(within(row).getByText(formatNumber(item.failed_findings.total))).toBeInTheDocument();
+    expect(
+      within(row).getByText(new RegExp(numeral(item.failed_findings.normalized).format('0%')))
+    ).toBeInTheDocument();
+  });
+};
+
 describe('<FindingsByResourceTable />', () => {
+  it('renders the error state', () => {
+    const error = new Error('some error');
+
+    const props: TableProps = {
+      loading: false,
+      data: undefined,
+      error,
+      ...getPaginationMock(),
+    };
+
+    render(
+      <TestProvider>
+        <FindingsByResourceTable {...props} />
+      </TestProvider>
+    );
+
+    expect(screen.getByText(error.message)).toBeInTheDocument();
+  });
+
   it('renders the zero state when status success and data has a length of zero ', async () => {
     const props: TableProps = {
       loading: false,
-      data: { page: [] },
+      data: { page: [], after: undefined, total: 0 },
       error: null,
+      ...getPaginationMock(),
     };
 
-    render(<FindingsByResourceTable {...props} />);
+    render(
+      <TestProvider>
+        <FindingsByResourceTable {...props} />
+      </TestProvider>
+    );
 
     expect(screen.getByText(TEXT.NO_FINDINGS)).toBeInTheDocument();
   });
 
-  it('renders the table with provided items', () => {
+  it('renders the success state with a table and its provided items', () => {
     const data = Array.from({ length: 10 }, getFakeFindingsByResource);
 
     const props: TableProps = {
       loading: false,
-      data: { page: data },
+      data: { page: data, after: undefined, total: data.length },
       error: null,
+      ...getPaginationMock(),
     };
 
-    render(<FindingsByResourceTable {...props} />);
+    render(
+      <TestProvider>
+        <FindingsByResourceTable {...props} />
+      </TestProvider>
+    );
 
-    data.forEach((item, i) => {
-      const row = screen.getByTestId(
-        TEST_SUBJECTS.getFindingsByResourceTableRowTestId(getResourceId(item))
-      );
-      expect(row).toBeInTheDocument();
-      expect(within(row).getByText(item.resource_id)).toBeInTheDocument();
-      expect(within(row).getByText(item.cluster_id)).toBeInTheDocument();
-      expect(within(row).getByText(item.cis_section)).toBeInTheDocument();
-      expect(within(row).getByText(formatNumber(item.failed_findings.total))).toBeInTheDocument();
-      expect(
-        within(row).getByText(new RegExp(numeral(item.failed_findings.normalized).format('0%')))
-      ).toBeInTheDocument();
-    });
+    assertTableDataExists(data);
+  });
+
+  it('calls fetchNext when "next" button is clicked', () => {
+    const data = Array.from({ length: 10 }, getFakeFindingsByResource);
+
+    const props: TableProps = {
+      loading: false,
+      data: { page: data, after: undefined, total: data.length },
+      error: null,
+      ...getPaginationMock({ hasNextPage: true }),
+    };
+
+    render(
+      <TestProvider>
+        <FindingsByResourceTable {...props} />
+      </TestProvider>
+    );
+
+    const nextButton = screen.getByTestId(TEST_SUBJECTS.FINDINGS_PAGINATION_NEXT_PAGE);
+    expect(nextButton).toBeInTheDocument();
+
+    fireEvent.click(nextButton);
+    expect(props.pagination.fetchNext).toHaveBeenCalled();
+  });
+
+  it('calls fetchPrev when "prev" button is clicked', () => {
+    const data = Array.from({ length: 10 }, getFakeFindingsByResource);
+
+    const props: TableProps = {
+      loading: false,
+      data: { page: data, after: undefined, total: data.length },
+      error: null,
+      ...getPaginationMock({ hasPrevPage: true }),
+    };
+
+    render(
+      <TestProvider>
+        <FindingsByResourceTable {...props} />
+      </TestProvider>
+    );
+
+    const prevButton = screen.getByTestId(TEST_SUBJECTS.FINDINGS_PAGINATION_PREV_PAGE);
+    expect(prevButton).toBeInTheDocument();
+
+    fireEvent.click(prevButton);
+    expect(props.pagination.fetchPrev).toHaveBeenCalled();
   });
 });
