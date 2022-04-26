@@ -108,7 +108,7 @@ const ArrowButton = ({
         ? i18n.translate('xpack.csp.findingsByResourceTable.pagination.prevButtonLabel', {
             defaultMessage: 'Previous Page',
           })
-        : i18n.translate('xpack.csp.findingsByResourceTable.pagination.prevButtonLabel', {
+        : i18n.translate('xpack.csp.findingsByResourceTable.pagination.nextButtonLabel', {
             defaultMessage: 'Next page',
           })
     }

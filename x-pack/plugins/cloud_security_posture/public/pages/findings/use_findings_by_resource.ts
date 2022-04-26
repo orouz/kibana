@@ -14,13 +14,6 @@ import { useKibana } from '../../common/hooks/use_kibana';
 import { showErrorToast } from './use_findings';
 import type { FindingsBaseEsQuery, FindingsQueryResult, FindingsQueryStatus } from './types';
 
-// TODO: what happens if user lands with an after key that is
-// OLD - ?
-// doesn't exist - ?
-// in the middle - previous available from the start, goes to first after
-
-// when moving from one page to the next, we need to remove the previous page query from the url
-
 export interface UseFindingsByResourceOptions
   extends FindingsBaseEsQuery,
     FindingsQueryStatus,
@@ -101,7 +94,40 @@ export const useFindingsByResource = ({
     notifications: { toasts },
   } = useKibana().services;
 
+  const [hasNextPage, setHasNextPage] = useState<boolean>(false);
   const [afterKeys, setAfterKeys] = useState<FindingsByResourceAggregationsKeys[]>([]);
+
+  const queryResult = useQuery(
+    ['csp_findings_resource', { index, query, size, after }],
+    () =>
+      lastValueFrom(
+        data.search.search<FindingsAggRequest, FindingsAggResponse>({
+          params: getFindingsByResourceAggQuery({ index, query, size, after }),
+        })
+      ),
+    {
+      keepPreviousData: true,
+      refetchOnWindowFocus: false,
+      enabled,
+      select: ({ rawResponse }) => ({
+        after: rawResponse.aggregations?.groupBy?.after_key as FindingsByResourceAggregationsKeys,
+        total: rawResponse.hits.total as number,
+        page: rawResponse.aggregations?.groupBy.buckets.map(createFindingsByResource) || [],
+      }),
+      onError: (err) => showErrorToast(toasts, err),
+    }
+  );
+
+  const getNextKey = () => queryResult.data?.after;
+
+  const getPreviousKey = () => {
+    // when length is 0, we're on the 1st page, so no previous key
+    // when length is 1, we're on the 2nd page, so previous key is 'undefined'
+    if (afterKeys.length < 2) return undefined;
+
+    // We need the 'after_key' from the page that points to the previous page
+    return afterKeys[afterKeys.length - 2];
+  };
 
   /**
    * Keeps track of pages we can go back to
@@ -117,50 +143,33 @@ export const useFindingsByResource = ({
     });
   }, [after]);
 
-  const queryResult = useQuery(
-    ['csp_findings_resource', { index, query, size, after }],
-    () =>
-      lastValueFrom(
-        data.search.search<FindingsAggRequest, FindingsAggResponse>({
-          params: getFindingsByResourceAggQuery({ index, query, size, after }),
-        })
-      ),
-    {
-      keepPreviousData: true,
-      refetchOnWindowFocus: false,
-      enabled,
-      select: ({ rawResponse }) => ({
-        after: rawResponse.aggregations?.groupBy?.after_key,
-        total: rawResponse.hits.total as number,
-        page: rawResponse.aggregations?.groupBy.buckets.map(createFindingsByResource) || [],
-      }),
-      onError: (err) => showErrorToast(toasts, err),
-    }
-  );
-
-  const getNextKey = () => {
-    // TODO: account for last page
-    // the last 'after' key we get back leads to an empty page
-    // so we check if this key is the same as the last item in the array
-    // ???????
-    return queryResult.data?.after as FindingsByResourceAggregationsKeys;
-  };
-
-  const getPreviousKey = () => {
-    // when afterKeys.length is 0, we're on the 1st page, so no previous key
-    // when afterKeys.length is 1, we're at 2nd page, previous key is 'undefined'
-    if (afterKeys.length < 2) return undefined;
-
-    // We need the 'after_key' from the page that points to the previous page
-    return afterKeys[afterKeys.length - 2];
-  };
+  /**
+   * Keeps track of whether we have a next page
+   * checks if the next response has an `after_key`
+   * if it doesn't, then we already have the last page with data, and we disable the 'next' button
+   * NOTE: this is wasteful, but makes a better UX
+   */
+  useEffect(() => {
+    lastValueFrom(
+      data.search.search<FindingsAggRequest, FindingsAggResponse>({
+        params: getFindingsByResourceAggQuery({
+          index,
+          query,
+          size,
+          after: queryResult.data?.after,
+        }),
+      })
+    ).then((nextResult) =>
+      setHasNextPage(!!nextResult?.rawResponse?.aggregations?.groupBy?.after_key)
+    );
+  }, [data.search, index, query, queryResult.data, size]);
 
   return {
     ...queryResult,
     getNextKey,
     getPreviousKey,
     hasPrevPage: afterKeys.length >= 1,
-    hasNextPage: queryResult.data?.after !== undefined, // TODO: check if there is a next page
+    hasNextPage,
   };
 };
 
