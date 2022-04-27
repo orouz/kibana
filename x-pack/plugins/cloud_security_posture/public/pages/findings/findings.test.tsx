@@ -44,12 +44,22 @@ describe('<Findings />', () => {
   it("renders the success state component when 'kubebeat' DataView exists and request status is 'success'", async () => {
     const data = dataPluginMock.createStartContract();
     const unifiedSearch = unifiedSearchPluginMock.createStartContract();
-    const source = await data.search.searchSource.create();
 
     (useCisKubernetesIntegration as jest.Mock).mockImplementation(() => ({
       data: { item: { status: 'installed' } },
     }));
-    (source.fetch$ as jest.Mock).mockReturnValue(of({ rawResponse: { hits: { hits: [] } } }));
+
+    (data.search.search as jest.Mock).mockReturnValue(
+      of({
+        rawResponse: {
+          aggregations: {
+            groupBy: { buckets: [] },
+            count: { buckets: [] },
+          },
+          hits: { hits: [] },
+        },
+      })
+    );
 
     (useKubebeatDataView as jest.Mock).mockReturnValue({
       status: 'success',

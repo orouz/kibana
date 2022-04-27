@@ -135,6 +135,7 @@ export const useFindingsByResource = ({
    * Keeps track of pages we can go back to
    */
   useEffect(() => {
+    if (!enabled) return;
     setAfterKeys((keys) => {
       if (!after) return [];
       const hasKeyBeenSeen = keys.some((key) => isEqual(key, after));
@@ -143,7 +144,7 @@ export const useFindingsByResource = ({
         ? keys.slice(0, -1) // We go back one at a time
         : [...keys, after];
     });
-  }, [after]);
+  }, [enabled, after]);
 
   /**
    * Keeps track of whether we have a next page
@@ -152,6 +153,7 @@ export const useFindingsByResource = ({
    * NOTE: this is wasteful, but makes a better UX
    */
   useEffect(() => {
+    if (!enabled) return;
     lastValueFrom(
       data.search.search<FindingsAggRequest, FindingsAggResponse>({
         params: getFindingsByResourceAggQuery({
@@ -164,7 +166,7 @@ export const useFindingsByResource = ({
     ).then((nextResult) =>
       setHasNextPage(!!nextResult?.rawResponse?.aggregations?.groupBy?.after_key)
     );
-  }, [data.search, index, query, queryResult.data, size]);
+  }, [enabled, data.search, index, query, queryResult.data, size]);
 
   return {
     ...queryResult,
