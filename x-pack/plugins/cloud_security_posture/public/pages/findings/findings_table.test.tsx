@@ -12,6 +12,7 @@ import type { PropsOf } from '@elastic/eui';
 import Chance from 'chance';
 import type { CspFinding } from './types';
 import { TestProvider } from '../../test/test_provider';
+import { PAGE_SIZE_OPTIONS } from './findings_container';
 
 const chance = new Chance();
 
@@ -64,6 +65,7 @@ describe('<FindingsTable />', () => {
       sort: [],
       from: 1,
       size: 10,
+      pageSizeOptions: PAGE_SIZE_OPTIONS,
       setQuery: jest.fn,
     };
 
@@ -87,6 +89,7 @@ describe('<FindingsTable />', () => {
       sort: [],
       from: 0,
       size: 10,
+      pageSizeOptions: PAGE_SIZE_OPTIONS,
       setQuery: jest.fn,
     };
 
