@@ -27,6 +27,7 @@ import { FindingsRuleFlyout } from './findings_flyout';
 
 interface BaseFindingsTableProps extends FindingsGroupByNoneQuery {
   setQuery(query: Partial<FindingsGroupByNoneQuery>): void;
+  pageSizeOptions: number[];
 }
 
 type FindingsTableProps = CspFindingsResult & BaseFindingsTableProps;
@@ -39,6 +40,7 @@ const FindingsTableComponent = ({
   error,
   data,
   loading,
+  pageSizeOptions,
 }: FindingsTableProps) => {
   const [selectedFinding, setSelectedFinding] = useState<CspFinding>();
 
@@ -48,8 +50,9 @@ const FindingsTableComponent = ({
         from,
         size,
         total: data?.total,
+        pageSizeOptions,
       }),
-    [from, size, data]
+    [from, size, data, pageSizeOptions]
   );
 
   const sorting = useMemo(() => getEuiSortFromEsSearchSource(sort), [sort]);
@@ -106,13 +109,14 @@ const getEuiPaginationFromEsSearchSource = ({
   from: pageIndex,
   size: pageSize,
   total,
-}: Pick<FindingsTableProps, 'from' | 'size'> & {
+  pageSizeOptions,
+}: Pick<FindingsTableProps, 'from' | 'size' | 'pageSizeOptions'> & {
   total: number | undefined;
 }): EuiBasicTableProps<CspFinding>['pagination'] => ({
   pageSize,
   pageIndex: Math.ceil(pageIndex / pageSize),
   totalItemCount: total || 0,
-  pageSizeOptions: [10, 25, 100],
+  pageSizeOptions,
   showPerPageOptions: true,
 });
 

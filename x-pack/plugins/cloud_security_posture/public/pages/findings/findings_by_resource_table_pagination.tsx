@@ -71,7 +71,7 @@ export const FindingsByResourceTablePagination = ({
             items={options.map((size) => (
               <EuiContextMenuItem
                 key={size}
-                color={size === pageSize ? 'primary' : undefined}
+                icon={pageSize === size ? 'check' : 'empty'}
                 onClick={() => {
                   closePopover();
                   setPageSize(size);

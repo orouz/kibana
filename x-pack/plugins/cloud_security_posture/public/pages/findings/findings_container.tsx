@@ -54,7 +54,7 @@ const getGroupByOptions = (): Array<EuiComboBoxOptionOption<FindingsBaseURLQuery
   },
 ];
 
-const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 export const FindingsContainer = ({ dataView }: { dataView: DataView }) => {
   const { euiTheme } = useEuiTheme();
@@ -132,6 +132,7 @@ export const FindingsContainer = ({ dataView }: { dataView: DataView }) => {
               data={findingsGroupByNone.data}
               error={findingsGroupByNone.error}
               loading={findingsGroupByNone.isLoading}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
             />
           </>
         )}
