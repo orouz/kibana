@@ -18,10 +18,11 @@ import type { FindingsBaseEsQuery, FindingsQueryStatus } from './types';
 
 interface UseFindingsOptions
   extends FindingsBaseEsQuery,
-    FindingsGroupByNoneQuery,
-    FindingsQueryStatus {}
+    FindingsQueryStatus,
+    Omit<FindingsGroupByNoneQuery, 'groupBy'> {}
 
 export interface FindingsGroupByNoneQuery {
+  groupBy: 'none';
   from: NonNullable<estypes.SearchRequest['from']>;
   size: NonNullable<estypes.SearchRequest['size']>;
   sort: EsQuerySortValue[];

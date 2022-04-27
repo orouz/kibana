@@ -10,7 +10,7 @@ import { UseQueryResult } from 'react-query';
 export type FindingsGroupByKind = 'none' | 'resource';
 
 export interface FindingsBaseURLQuery {
-  groupBy: FindingsGroupByKind;
+  groupBy: string;
   query: Query;
   filters: Filter[];
 }

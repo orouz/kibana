@@ -15,23 +15,31 @@ import {
   EuiLink,
   PropsOf,
   EuiSpacer,
+  Criteria,
 } from '@elastic/eui';
 import { FormattedMessage } from '@kbn/i18n-react';
 import numeral from '@elastic/numeral';
 import { extractErrorMessage } from '../../../common/utils/helpers';
 import * as TEST_SUBJECTS from './test_subjects';
 import * as TEXT from './translations';
-import type { CspFindingsByResourceResult } from './use_findings_by_resource';
+import type {
+  CspFindingsByResourceResult,
+  FindingsByResourceQuery,
+} from './use_findings_by_resource';
 import { FindingsByResourceTablePagination } from './findings_by_resource_table_pagination';
+import { getEuiSortFromEsSearchSource } from './findings_table';
 
 export const formatNumber = (value: number) =>
   value < 1000 ? value : numeral(value).format('0.0a');
 
 type FindingsGroupByResourceProps = CspFindingsByResourceResult & {
   pagination: PropsOf<typeof FindingsByResourceTablePagination>;
-};
+  setSort: (criteria?: Criteria<CspFindingsByResource>['sort']) => void;
+} & Pick<FindingsByResourceQuery, 'sort'>;
 
-type CspFindingsByResource = NonNullable<CspFindingsByResourceResult['data']>['page'][number];
+export type CspFindingsByResource = NonNullable<
+  CspFindingsByResourceResult['data']
+>['page'][number];
 
 export const getResourceId = (resource: CspFindingsByResource) =>
   [resource.resource_id, resource.cluster_id, resource.cis_section].join('/');
@@ -41,6 +49,8 @@ const FindingsByResourceTableComponent = ({
   data,
   loading,
   pagination,
+  setSort,
+  sort,
 }: FindingsGroupByResourceProps) => {
   const getRowProps = (row: CspFindingsByResource) => ({
     'data-test-subj': TEST_SUBJECTS.getFindingsByResourceTableRowTestId(getResourceId(row)),
@@ -57,6 +67,13 @@ const FindingsByResourceTableComponent = ({
         error={error ? extractErrorMessage(error) : undefined}
         items={data?.page || []}
         columns={columns}
+        onChange={(params) =>
+          setSort({
+            field: params.sort?.field!,
+            direction: params.sort?.direction!,
+          })
+        }
+        sorting={getEuiSortFromEsSearchSource<CspFindingsByResource>(sort)}
         rowProps={getRowProps}
       />
       <EuiSpacer size="m" />
@@ -68,6 +85,7 @@ const FindingsByResourceTableComponent = ({
 const columns: Array<EuiTableFieldDataColumnType<CspFindingsByResource>> = [
   {
     field: 'resource_id',
+    sortable: true,
     name: (
       <FormattedMessage
         id="xpack.csp.findings.groupByResourceTable.resourceIdColumnLabel"

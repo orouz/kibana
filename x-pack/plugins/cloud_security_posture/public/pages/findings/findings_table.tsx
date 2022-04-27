@@ -120,16 +120,16 @@ const getEuiPaginationFromEsSearchSource = ({
   showPerPageOptions: true,
 });
 
-const getEuiSortFromEsSearchSource = (
+export const getEuiSortFromEsSearchSource = <T extends unknown>(
   sort: FindingsGroupByNoneQuery['sort']
-): EuiBasicTableProps<CspFinding>['sorting'] => {
+): EuiBasicTableProps<T>['sorting'] => {
   if (!sort.length) return;
 
   const entry = Object.entries(sort[0])?.[0];
   if (!entry) return;
 
   const [field, direction] = entry;
-  return { sort: { field: field as keyof CspFinding, direction: direction as SortDirection } };
+  return { sort: { field: field as keyof T, direction: direction as SortDirection } };
 };
 
 const getEsSearchQueryFromEuiTableParams = ({

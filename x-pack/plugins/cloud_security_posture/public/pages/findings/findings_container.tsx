@@ -18,7 +18,7 @@ import * as TEST_SUBJECTS from './test_subjects';
 import { useUrlQuery } from '../../common/hooks/use_url_query';
 import { useFindings } from './use_findings';
 import type { FindingsGroupByNoneQuery } from './use_findings';
-import type { FindingsBaseURLQuery } from './types';
+import type { FindingsBaseURLQuery, FindingsGroupByKind } from './types';
 import { FindingsByResourceQuery, useFindingsByResource } from './use_findings_by_resource';
 import { FindingsGroupBySelector } from './findings_group_by_selector';
 import { INTERNAL_FEATURE_FLAGS } from '../../../common/constants';
@@ -26,20 +26,45 @@ import { useFindingsCounter } from './use_findings_count';
 import { FindingsDistributionBar } from './findings_distribution_bar';
 import { FindingsByResourceTable } from './findings_by_resource_table';
 
-// TODO: separate queries
-export const getDefaultQuery = (): FindingsBaseURLQuery &
-  FindingsGroupByNoneQuery &
-  FindingsByResourceQuery => ({
+type PageQuery = FindingsBaseURLQuery & (FindingsGroupByNoneQuery | FindingsByResourceQuery);
+
+/**
+ * Merges the default group query with the next partial group query
+ */
+export const getDefaultQuery = (query?: Partial<PageQuery>): PageQuery => {
+  switch (query?.groupBy) {
+    case 'resource':
+      return {
+        ...getFindingsByResourceQuery(),
+        ...query,
+      };
+    case 'none':
+    default:
+      return {
+        ...getFindingsGroupByNoneQuery(),
+        ...query,
+      };
+  }
+};
+
+const getFindingsGroupByNoneQuery = (): FindingsBaseURLQuery & FindingsGroupByNoneQuery => ({
   query: { language: 'kuery', query: '' },
   filters: [],
   sort: [{ ['@timestamp']: SortDirection.desc }],
   from: 0,
   size: 10,
   groupBy: 'none',
-  after: undefined,
 });
 
-const getGroupByOptions = (): Array<EuiComboBoxOptionOption<FindingsBaseURLQuery['groupBy']>> => [
+const getFindingsByResourceQuery = (): FindingsBaseURLQuery & FindingsByResourceQuery => ({
+  query: { language: 'kuery', query: '' },
+  filters: [],
+  sort: [{ ['resource_id']: SortDirection.desc }],
+  size: 10,
+  groupBy: 'resource',
+});
+
+const getGroupByOptions = (): Array<EuiComboBoxOptionOption<FindingsGroupByKind>> => [
   {
     value: 'none',
     label: i18n.translate('xpack.csp.findings.groupBySelector.groupByNoneLabel', {
@@ -59,7 +84,21 @@ export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 export const FindingsContainer = ({ dataView }: { dataView: DataView }) => {
   const { euiTheme } = useEuiTheme();
   const groupByOptions = useMemo(getGroupByOptions, []);
-  const { urlQuery, setUrlQuery } = useUrlQuery(getDefaultQuery);
+  const { urlQuery, setUrlQuery } = useUrlQuery<
+    FindingsBaseURLQuery & (FindingsGroupByNoneQuery | FindingsByResourceQuery)
+  >(getDefaultQuery);
+
+  /**
+   * Sets the URL query with values persisted from previous query, if relevant.
+   *
+   * when groupBy is specified, the URL query is reset to its matching default query
+   * when it's not, the current query is persisted to the URL query
+   */
+  const setQuery: typeof setUrlQuery = (nextQuery) =>
+    setUrlQuery({
+      ...getDefaultQuery(nextQuery.groupBy ? nextQuery : urlQuery),
+      ...nextQuery,
+    });
 
   const baseEsQuery = useMemo(
     () => ({
@@ -76,7 +115,8 @@ export const FindingsContainer = ({ dataView }: { dataView: DataView }) => {
     ...baseEsQuery,
     enabled: urlQuery.groupBy === 'resource',
     size: urlQuery.size,
-    after: urlQuery.after,
+    after: (urlQuery as FindingsByResourceQuery).after,
+    sort: urlQuery.sort,
   });
 
   const findingsCount = useFindingsCounter({
@@ -88,7 +128,7 @@ export const FindingsContainer = ({ dataView }: { dataView: DataView }) => {
     ...baseEsQuery,
     enabled: urlQuery.groupBy === 'none',
     size: urlQuery.size,
-    from: urlQuery.from,
+    from: (urlQuery as FindingsGroupByNoneQuery).from,
     sort: urlQuery.sort,
   });
 
@@ -96,7 +136,7 @@ export const FindingsContainer = ({ dataView }: { dataView: DataView }) => {
     <div data-test-subj={TEST_SUBJECTS.FINDINGS_CONTAINER}>
       <FindingsSearchBar
         dataView={dataView}
-        setQuery={setUrlQuery}
+        setQuery={setQuery}
         query={urlQuery.query}
         filters={urlQuery.filters}
         loading={findingsGroupByNone.isLoading}
@@ -111,7 +151,7 @@ export const FindingsContainer = ({ dataView }: { dataView: DataView }) => {
         {INTERNAL_FEATURE_FLAGS.showFindingsGroupBy && (
           <FindingsGroupBySelector
             type={urlQuery.groupBy}
-            onChange={(type) => setUrlQuery({ groupBy: type[0]?.value })}
+            onChange={(type) => setQuery({ groupBy: type[0]?.value })}
             options={groupByOptions}
           />
         )}
@@ -128,7 +168,7 @@ export const FindingsContainer = ({ dataView }: { dataView: DataView }) => {
             <EuiSpacer />
             <FindingsTable
               {...urlQuery}
-              setQuery={setUrlQuery}
+              setQuery={setQuery}
               data={findingsGroupByNone.data}
               error={findingsGroupByNone.error}
               loading={findingsGroupByNone.isLoading}
@@ -142,14 +182,17 @@ export const FindingsContainer = ({ dataView }: { dataView: DataView }) => {
             data={findingsGroupByResource.data}
             error={findingsGroupByResource.error}
             loading={findingsGroupByResource.isLoading}
+            setSort={(sort) =>
+              sort && setQuery({ sort: [{ [sort.field]: sort.direction as SortDirection }] })
+            }
             pagination={{
               hasNextPage: findingsGroupByResource.hasNextPage,
               hasPrevPage: findingsGroupByResource.hasPrevPage,
               options: PAGE_SIZE_OPTIONS,
               pageSize: urlQuery.size,
-              setPageSize: (size) => setUrlQuery({ size }),
-              fetchNext: () => setUrlQuery({ after: findingsGroupByResource.getNextKey() }),
-              fetchPrev: () => setUrlQuery({ after: findingsGroupByResource.getPreviousKey() }),
+              setPageSize: (size) => setQuery({ size }),
+              fetchNext: () => setQuery({ after: findingsGroupByResource.getNextKey() }),
+              fetchPrev: () => setQuery({ after: findingsGroupByResource.getPreviousKey() }),
             }}
           />
         )}

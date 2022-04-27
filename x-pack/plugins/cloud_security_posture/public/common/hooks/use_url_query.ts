@@ -6,33 +6,28 @@
  */
 import { useEffect, useCallback, useMemo } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
+import { RisonObject } from 'rison-node';
 import { decodeQuery, encodeQuery } from '../navigation/query_utils';
 
 /**
  * @description uses 'rison' to encode/decode a url query
- * @todo replace getDefaultQuery with schema. validate after decoded from URL, use defaultValues
- * @note shallow-merges default, current and next query
  */
-export const useUrlQuery = <T extends object>(getDefaultQuery: () => T) => {
+export const useUrlQuery = <T extends object>(getDefaultQuery: (nextQuery?: Partial<T>) => T) => {
   const { push } = useHistory();
   const { search, key } = useLocation();
 
-  const urlQuery = useMemo(
-    () => ({ ...getDefaultQuery(), ...decodeQuery<T>(search) }),
+  const urlQuery: T = useMemo(
+    () => getDefaultQuery(decodeQuery<T>(search)),
     [getDefaultQuery, search]
   );
 
   const setUrlQuery = useCallback(
-    (query: Partial<T>) =>
-      push({
-        search: encodeQuery({ ...getDefaultQuery(), ...urlQuery, ...query }),
-      }),
-    [getDefaultQuery, urlQuery, push]
+    (query: Partial<T>) => push({ search: encodeQuery(query as RisonObject) }),
+    [push]
   );
 
   // Set initial query
   useEffect(() => {
-    // TODO: condition should be if decoding failed
     if (search) return;
 
     setUrlQuery(getDefaultQuery());

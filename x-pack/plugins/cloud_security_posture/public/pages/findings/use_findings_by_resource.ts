@@ -6,7 +6,11 @@
  */
 import { useQuery } from 'react-query';
 import { lastValueFrom } from 'rxjs';
-import { IKibanaSearchRequest, IKibanaSearchResponse } from '@kbn/data-plugin/common';
+import type {
+  EsQuerySortValue,
+  IKibanaSearchRequest,
+  IKibanaSearchResponse,
+} from '@kbn/data-plugin/common';
 import type * as estypes from '@elastic/elasticsearch/lib/api/typesWithBodyKey';
 import { useEffect, useState } from 'react';
 import { isEqual } from 'lodash';
@@ -17,11 +21,13 @@ import type { FindingsBaseEsQuery, FindingsQueryResult, FindingsQueryStatus } fr
 export interface UseFindingsByResourceOptions
   extends FindingsBaseEsQuery,
     FindingsQueryStatus,
-    FindingsByResourceQuery {}
+    Omit<FindingsByResourceQuery, 'groupBy'> {}
 
 export interface FindingsByResourceQuery {
+  groupBy: 'resource';
   size: number;
   after?: FindingsByResourceAggregationsKeys;
+  sort: EsQuerySortValue[];
 }
 
 type FindingsAggRequest = IKibanaSearchRequest<estypes.SearchRequest>;
@@ -51,11 +57,17 @@ export interface FindingsAggBucket {
   key: FindingsByResourceAggregationsKeys;
 }
 
+const getSortKey = (sort: UseFindingsByResourceOptions['sort']) => {
+  const [, direction] = Object.entries(sort[0])?.[0];
+  return direction;
+};
+
 export const getFindingsByResourceAggQuery = ({
   index,
   query,
   size,
   after,
+  sort,
 }: Omit<UseFindingsByResourceOptions, 'enabled'>): estypes.SearchRequest => ({
   index,
   size: 0,
@@ -67,7 +79,8 @@ export const getFindingsByResourceAggQuery = ({
           size,
           after,
           sources: [
-            { resource_id: { terms: { field: 'resource_id.keyword' } } },
+            // @ts-expect-error
+            { resource_id: { terms: { field: 'resource_id.keyword', order: getSortKey(sort) } } },
             { cluster_id: { terms: { field: 'cluster_id.keyword' } } },
             { cis_section: { terms: { field: 'rule.section' } } },
           ],
@@ -88,6 +101,7 @@ export const useFindingsByResource = ({
   query,
   size,
   after,
+  sort,
 }: UseFindingsByResourceOptions) => {
   const {
     data,
@@ -98,11 +112,11 @@ export const useFindingsByResource = ({
   const [afterKeys, setAfterKeys] = useState<FindingsByResourceAggregationsKeys[]>([]);
 
   const queryResult = useQuery(
-    ['csp_findings_resource', { index, query, size, after }],
+    ['csp_findings_resource', { index, query, size, after, sort }],
     () =>
       lastValueFrom(
         data.search.search<FindingsAggRequest, FindingsAggResponse>({
-          params: getFindingsByResourceAggQuery({ index, query, size, after }),
+          params: getFindingsByResourceAggQuery({ index, query, size, after, sort }),
         })
       ),
     {
@@ -161,12 +175,13 @@ export const useFindingsByResource = ({
           query,
           size,
           after: queryResult.data?.after,
+          sort,
         }),
       })
     ).then((nextResult) =>
       setHasNextPage(!!nextResult?.rawResponse?.aggregations?.groupBy?.after_key)
     );
-  }, [enabled, data.search, index, query, queryResult.data, size]);
+  }, [enabled, data.search, index, query, queryResult.data, size, sort]);
 
   return {
     ...queryResult,
