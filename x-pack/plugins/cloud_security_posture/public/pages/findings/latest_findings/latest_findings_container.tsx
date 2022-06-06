@@ -76,10 +76,10 @@ export const LatestFindingsContainer = ({ dataView }: FindingsBaseProps) => {
       />
       <PageWrapper>
         <LatestFindingsPageTitle />
-        <FindingsGroupBySelector type="default" />
         {error && <ErrorCallout error={error} />}
         {!error && (
           <>
+            <FindingsGroupBySelector type="default" />
             {findingsGroupByNone.isSuccess && (
               <FindingsDistributionBar
                 {...{
