@@ -8,7 +8,6 @@
 import { transformError } from '@kbn/securitysolution-es-utils';
 import { ElasticsearchClient } from '@kbn/core/server';
 import { INFO_ROUTE_PATH, LATEST_FINDINGS_INDEX_DEFAULT_NS } from '../../../common/constants';
-import { CspAppContext } from '../../plugin';
 import { CspRouter } from '../../types';
 import { CspSetupStatus } from '../../../common/types';
 
@@ -31,13 +30,14 @@ const getLatestFindingsStatus = async (
   }
 };
 
-export const defineGetCspSetupStatusRoute = (router: CspRouter, cspContext: CspAppContext): void =>
+export const defineGetCspSetupStatusRoute = (router: CspRouter): void =>
   router.get(
     {
       path: INFO_ROUTE_PATH,
       validate: false,
     },
     async (context, _, response) => {
+      const cspContext = await context.csp;
       try {
         const esClient = (await context.core).elasticsearch.client.asCurrentUser;
         const latestFindingsIndexStatus = await getLatestFindingsStatus(esClient);

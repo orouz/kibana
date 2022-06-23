@@ -20,17 +20,14 @@ import {
   TaskManagerSetupContract,
   TaskManagerStartContract,
 } from '@kbn/task-manager-plugin/server';
-import type { SecurityPluginSetup } from '@kbn/security-plugin/server';
-import { CspAppService } from './lib/csp_app_services';
 import type {
   CspServerPluginSetup,
   CspServerPluginStart,
   CspServerPluginSetupDeps,
   CspServerPluginStartDeps,
-  CspRequestHandlerContext,
   CspServerPluginStartServices,
 } from './types';
-import { defineRoutes } from './routes';
+import { setupRoutes } from './routes';
 import { cspRuleTemplateAssetType } from './saved_objects/csp_rule_template';
 import { cspRuleAssetType } from './saved_objects/csp_rule_type';
 import { initializeCspIndices } from './create_indices/create_indices';
@@ -49,12 +46,6 @@ import {
   setupFindingsStatsTask,
 } from './tasks/findings_stats_task';
 
-export interface CspAppContext {
-  logger: Logger;
-  service: CspAppService;
-  security: SecurityPluginSetup;
-}
-
 export class CspPlugin
   implements
     Plugin<
@@ -70,25 +61,17 @@ export class CspPlugin
     this.logger = initializerContext.logger.get();
   }
 
-  private readonly CspAppService = new CspAppService();
-
   public setup(
     core: CoreSetup<CspServerPluginStartDeps, CspServerPluginStart>,
     plugins: CspServerPluginSetupDeps
   ): CspServerPluginSetup {
-    const cspAppContext: CspAppContext = {
-      logger: this.logger,
-      service: this.CspAppService,
-      security: plugins.security,
-    };
-
     core.savedObjects.registerType(cspRuleAssetType);
     core.savedObjects.registerType(cspRuleTemplateAssetType);
 
-    const router = core.http.createRouter<CspRequestHandlerContext>();
-
-    // Register server side APIs
-    defineRoutes(router, cspAppContext);
+    setupRoutes({
+      core,
+      logger: this.logger,
+    });
 
     const coreStartServices = core.getStartServices();
     this.setupCspTasks(plugins.taskManager, coreStartServices, this.logger);
@@ -97,10 +80,6 @@ export class CspPlugin
   }
 
   public start(core: CoreStart, plugins: CspServerPluginStartDeps): CspServerPluginStart {
-    this.CspAppService.start({
-      ...plugins.fleet,
-    });
-
     plugins.fleet.fleetSetupCompleted().then(async () => {
       const packageInfo = await plugins.fleet.packageService.asInternalUser.getInstallation(
         CLOUD_SECURITY_POSTURE_PACKAGE_NAME

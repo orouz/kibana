@@ -5,48 +5,39 @@
  * 2.0.
  */
 
-import { CspAppService } from '../../lib/csp_app_services';
-import { CspAppContext } from '../../plugin';
 import { defineGetCspSetupStatusRoute } from './setup_status';
-import { httpServerMock, httpServiceMock, loggingSystemMock } from '@kbn/core/server/mocks';
-// eslint-disable-next-line @kbn/eslint/no-restricted-paths
-import { elasticsearchClientMock } from '@kbn/core/server/elasticsearch/client/mocks';
+import { httpServerMock, httpServiceMock } from '@kbn/core/server/mocks';
+import {
+  type ElasticsearchClientMock,
+  elasticsearchClientMock,
+  // eslint-disable-next-line @kbn/eslint/no-restricted-paths
+} from '@kbn/core/server/elasticsearch/client/mocks';
 import { ESSearchResponse } from '@kbn/core/types/elasticsearch';
-import { securityMock } from '@kbn/security-plugin/server/mocks';
+import { createCspRequestHandlerContextMock } from '../../mocks';
 
 describe('CspSetupStatus route', () => {
-  const logger: ReturnType<typeof loggingSystemMock.createLogger> =
-    loggingSystemMock.createLogger();
   const mockResponse = httpServerMock.createResponseFactory();
   const mockRequest = httpServerMock.createKibanaRequest();
   const mockEsClient = elasticsearchClientMock.createElasticsearchClient();
-  const mockContext = {
-    core: {
-      elasticsearch: { client: { asCurrentUser: mockEsClient } },
-    },
-  };
-  const router = httpServiceMock.createRouter();
-  const cspAppContextService = new CspAppService();
 
-  const cspContext: CspAppContext = {
-    logger,
-    service: cspAppContextService,
-    security: securityMock.createSetup(),
-  };
+  const mockContext = createCspRequestHandlerContextMock();
+  mockContext.core.elasticsearch.client.asCurrentUser = mockEsClient as ElasticsearchClientMock;
+
+  const router = httpServiceMock.createRouter();
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('validate the API route path', async () => {
-    defineGetCspSetupStatusRoute(router, cspContext);
+    defineGetCspSetupStatusRoute(router);
     const [config] = router.get.mock.calls[0];
 
     expect(config.path).toEqual('/internal/cloud_security_posture/setup_status');
   });
 
   it('validate the API result when there are no findings in latest findings index', async () => {
-    defineGetCspSetupStatusRoute(router, cspContext);
+    defineGetCspSetupStatusRoute(router);
     mockEsClient.search.mockResponse({
       hits: {
         hits: [],
@@ -64,7 +55,7 @@ describe('CspSetupStatus route', () => {
   });
 
   it('validate the API result when there are findings in latest findings index', async () => {
-    defineGetCspSetupStatusRoute(router, cspContext);
+    defineGetCspSetupStatusRoute(router);
     mockEsClient.search.mockResponse({
       hits: {
         hits: [{}],

@@ -30,7 +30,6 @@ import {
   benchmarksInputSchema,
   BenchmarksQuerySchema,
 } from '../../../common/schemas/benchmark';
-import { CspAppContext } from '../../plugin';
 import type { Benchmark, CspRulesStatus } from '../../../common/types';
 import { isNonNullable } from '../../../common/utils/helpers';
 import { CspRouter } from '../../types';
@@ -190,7 +189,7 @@ const createBenchmarks = (
   );
 };
 
-export const defineGetBenchmarksRoute = (router: CspRouter, cspContext: CspAppContext): void =>
+export const defineGetBenchmarksRoute = (router: CspRouter): void =>
   router.get(
     {
       path: BENCHMARKS_ROUTE_PATH,
@@ -201,21 +200,16 @@ export const defineGetBenchmarksRoute = (router: CspRouter, cspContext: CspAppCo
         return response.forbidden();
       }
 
+      const cspContext = await context.csp;
+      const fleetServices = cspContext.fleet;
+
       try {
         const soClient = (await context.core).savedObjects.client;
         const { query } = request;
 
-        const agentService = cspContext.service.agentService;
-        const agentPolicyService = cspContext.service.agentPolicyService;
-        const packagePolicyService = cspContext.service.packagePolicyService;
-
-        if (!agentPolicyService || !agentService || !packagePolicyService) {
-          throw new Error(`Failed to get Fleet services`);
-        }
-
         const cspPackagePolicies = await getCspPackagePolicies(
           soClient,
-          packagePolicyService,
+          fleetServices.packagePolicyService,
           CLOUD_SECURITY_POSTURE_PACKAGE_NAME,
           query
         );
@@ -223,10 +217,14 @@ export const defineGetBenchmarksRoute = (router: CspRouter, cspContext: CspAppCo
         const agentPolicies = await getAgentPolicies(
           soClient,
           cspPackagePolicies.items,
-          agentPolicyService
+          fleetServices.agentPolicyService
         );
 
-        const enrichAgentPolicies = await addRunningAgentToAgentPolicy(agentService, agentPolicies);
+        const enrichAgentPolicies = await addRunningAgentToAgentPolicy(
+          fleetServices.agentService,
+          agentPolicies
+        );
+
         const benchmarks = await createBenchmarks(
           soClient,
           enrichAgentPolicies,
