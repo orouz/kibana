@@ -6,6 +6,7 @@
  */
 import type { DataView } from '@kbn/data-views-plugin/common';
 import type { BoolQuery, Filter, Query } from '@kbn/es-query';
+import { CspFindingsDataFields } from './utils';
 
 export type FindingsGroupByKind = 'default' | 'resource';
 
@@ -25,18 +26,19 @@ export interface FindingsBaseEsQuery {
 }
 
 // TODO: this needs to be defined in a versioned schema
-export interface CspFinding {
-  '@timestamp': string;
-  cycle_id: string;
-  result: CspFindingResult;
-  resource: CspFindingResource;
-  rule: CspRule;
-  host: CspFindingHost;
-  agent: CspFindingAgent;
-  ecs: {
-    version: string;
-  };
-}
+export type CspFinding = CspFindingsDataFields;
+// export interface CspFinding {
+//   '@timestamp': string;
+//   cycle_id: string;
+//   result: CspFindingResult;
+//   resource: CspFindingResource;
+//   rule: CspRule;
+//   host: CspFindingHost;
+//   agent: CspFindingAgent;
+//   ecs: {
+//     version: string;
+//   };
+// }
 
 interface CspRule {
   benchmark: { name: string; version: string };

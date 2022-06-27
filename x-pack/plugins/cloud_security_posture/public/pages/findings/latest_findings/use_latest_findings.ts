@@ -19,6 +19,7 @@ import type { CspFinding } from '../types';
 import { useKibana } from '../../../common/hooks/use_kibana';
 import type { FindingsBaseEsQuery } from '../types';
 import { FINDINGS_REFETCH_INTERVAL_MS } from '../constants';
+import { findingsDataFields, getDocValuesFields, getDocValuesFieldsData } from '../utils';
 
 interface UseFindingsOptions extends FindingsBaseEsQuery {
   from: NonNullable<estypes.SearchRequest['from']>;
@@ -44,18 +45,6 @@ interface FindingsAggs {
   count: estypes.AggregationsMultiBucketAggregateBase<estypes.AggregationsStringRareTermsBucketKeys>;
 }
 
-const FIELDS_WITHOUT_KEYWORD_MAPPING = new Set([
-  '@timestamp',
-  'resource.sub_type',
-  'resource.name',
-  'resource.id',
-  'rule.name',
-]);
-
-// NOTE: .keyword comes from the mapping we defined for the Findings index
-const getSortKey = (key: string): string =>
-  FIELDS_WITHOUT_KEYWORD_MAPPING.has(key) ? key : `${key}.keyword`;
-
 export const showErrorToast = (
   toasts: CoreStart['notifications']['toasts'],
   error: unknown
@@ -73,11 +62,12 @@ export const getFindingsQuery = ({
 }: UseFindingsOptions & { pitId: string }) => ({
   body: {
     query,
-    sort: [{ [getSortKey(sort.field)]: sort.direction }],
+    sort: [{ [sort.field]: sort.direction }],
     size,
     from,
     aggs: { count: { terms: { field: 'result.evaluation.keyword' } } },
   },
+  ...getDocValuesFields(findingsDataFields),
   pit: { id: pitId },
   ignore_unavailable: false,
 });
@@ -106,8 +96,10 @@ export const useLatestFindings = (options: UseFindingsOptions) => {
       if (!Array.isArray(aggregations.count.buckets))
         throw new Error('expected buckets to be an array');
 
+      console.log({ h: hits.hits });
+
       return {
-        page: hits.hits.map((hit) => hit._source!),
+        page: hits.hits.map((hit) => getDocValuesFieldsData<CspFinding>(hit)),
         total: number.is(hits.total) ? hits.total : 0,
         count: getAggregationCount(aggregations.count.buckets),
         newPitId: newPitId!,

@@ -19,7 +19,7 @@ type Accordion = Pick<EuiAccordionProps, 'title' | 'id' | 'initialIsOpen'> &
 const getDetailsList = (data: CspFinding) => [
   {
     title: TEXT.RULE_NAME,
-    description: data.rule.name,
+    description: data['rule.name'],
   },
   {
     title: TEXT.EVALUATED_AT,
@@ -27,7 +27,7 @@ const getDetailsList = (data: CspFinding) => [
   },
   {
     title: TEXT.RESOURCE_NAME,
-    description: data.resource.name,
+    description: data['resource.name'],
   },
   {
     title: TEXT.FRAMEWORK_SOURCES,
@@ -35,11 +35,11 @@ const getDetailsList = (data: CspFinding) => [
   },
   {
     title: TEXT.CIS_SECTION,
-    description: data.rule.section,
+    description: data['rule.section.keyword'],
   },
 ];
 
-export const getRemediationList = (rule: CspFinding['rule']) => [
+export const getRemediationList = (rule: CspFinding) => [
   {
     title: '',
     description: <Markdown>{rule.remediation}</Markdown>,
@@ -58,15 +58,15 @@ export const getRemediationList = (rule: CspFinding['rule']) => [
   },
 ];
 
-const getEvidenceList = ({ result }: CspFinding) =>
+const getEvidenceList = (data: CspFinding) =>
   [
-    result.expected && {
+    data['result.expected'] && {
       title: TEXT.EXPECTED,
-      description: <CodeBlock>{JSON.stringify(result.expected, null, 2)}</CodeBlock>,
+      description: <CodeBlock>{JSON.stringify(data['result.expected'], null, 2)}</CodeBlock>,
     },
     {
       title: TEXT.ACTUAL,
-      description: <CodeBlock>{JSON.stringify(result.evidence, null, 2)}</CodeBlock>,
+      description: <CodeBlock>{JSON.stringify(data['result.evidence'], null, 2)}</CodeBlock>,
     },
   ].filter(Boolean) as EuiDescriptionListProps['listItems'];
 
@@ -83,7 +83,7 @@ export const OverviewTab = ({ data }: { data: CspFinding }) => {
         initialIsOpen: true,
         title: TEXT.REMEDIATION,
         id: 'remediationAccordion',
-        listItems: getRemediationList(data.rule),
+        listItems: getRemediationList(data),
       },
       {
         initialIsOpen: false,

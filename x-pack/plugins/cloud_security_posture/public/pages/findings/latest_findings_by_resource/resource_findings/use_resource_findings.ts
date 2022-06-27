@@ -16,6 +16,7 @@ import { FINDINGS_REFETCH_INTERVAL_MS } from '../../constants';
 import { useKibana } from '../../../../common/hooks/use_kibana';
 import { showErrorToast } from '../../latest_findings/use_latest_findings';
 import type { CspFinding, FindingsBaseEsQuery } from '../../types';
+import { getDocValuesFields, findingsDataFields, getDocValuesFieldsData } from '../../utils';
 
 interface UseResourceFindingsOptions extends FindingsBaseEsQuery {
   resourceId: string;
@@ -48,6 +49,7 @@ const getResourceFindingsQuery = ({
     },
     pit: { id: pitId },
   },
+  ...getDocValuesFields(findingsDataFields),
   ignore_unavailable: false,
 });
 
@@ -72,7 +74,7 @@ export const useResourceFindings = (options: UseResourceFindingsOptions) => {
       enabled: options.enabled,
       keepPreviousData: true,
       select: ({ rawResponse: { hits, pit_id: newPitId } }: IEsSearchResponse<CspFinding>) => ({
-        page: hits.hits.map((hit) => hit._source!),
+        page: hits.hits.map((hit) => getDocValuesFieldsData<CspFinding>(hit)),
         total: number.is(hits.total) ? hits.total : 0,
         newPitId: newPitId!,
       }),

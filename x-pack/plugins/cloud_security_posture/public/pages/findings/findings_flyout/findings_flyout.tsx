@@ -88,12 +88,14 @@ export const FindingsRuleFlyout = ({ onClose, findings }: FindingFlyoutProps) =>
       <EuiFlyoutHeader>
         <EuiFlexGroup alignItems="center">
           <EuiFlexItem grow={false}>
-            <CspEvaluationBadge type={findings.result.evaluation} />
+            <CspEvaluationBadge
+              type={findings['result.evaluation.keyword'] as 'passed' | 'failed'}
+            />
           </EuiFlexItem>
           <EuiFlexItem grow style={{ minWidth: 0 }}>
             <EuiTitle size="m" className="eui-textTruncate">
-              <EuiTextColor color="primary" title={findings.rule.name}>
-                {findings.rule.name}
+              <EuiTextColor color="primary" title={findings['rule.name']}>
+                {findings['rule.name']}
               </EuiTextColor>
             </EuiTitle>
           </EuiFlexItem>

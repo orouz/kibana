@@ -89,7 +89,7 @@ export const getFindingsColumns = (): Array<EuiBasicTableColumn<CspFinding>> => 
     ),
   },
   {
-    field: 'result.evaluation',
+    field: 'result.evaluation.keyword',
     name: TEXT.RESULT,
     width: '100px',
     sortable: true,
@@ -114,13 +114,13 @@ export const getFindingsColumns = (): Array<EuiBasicTableColumn<CspFinding>> => 
     sortable: true,
   },
   {
-    field: 'rule.section',
+    field: 'rule.section.keyword',
     name: TEXT.CIS_SECTION,
     sortable: true,
     truncateText: true,
   },
   {
-    field: 'cluster_id',
+    field: 'cluster_id.keyword',
     name: (
       <ColumnNameWithTooltip
         columnName={TEXT.CLUSTER_ID}

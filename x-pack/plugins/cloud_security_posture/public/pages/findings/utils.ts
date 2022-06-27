@@ -9,8 +9,66 @@ import { buildEsQuery } from '@kbn/es-query';
 import { EuiBasicTableProps, Pagination } from '@elastic/eui';
 import { useCallback, useEffect, useMemo } from 'react';
 import { i18n } from '@kbn/i18n';
+import { estypes } from '@elastic/elasticsearch';
 import type { FindingsBaseProps, FindingsBaseURLQuery } from './types';
 import { useKibana } from '../../common/hooks/use_kibana';
+
+export const findingsDataFields = new Set([
+  '@timestamp',
+
+  'resource.id',
+  'resource.sub_type',
+  'resource.name',
+
+  'result.evaluation.keyword',
+
+  'rule.name',
+  'rule.section.keyword',
+
+  'cluster_id.keyword',
+
+  // flyout
+  'remediation',
+  'impact',
+  'default_value',
+  'rationale',
+
+  'result.expected',
+  'result.evidence',
+
+  'host.architecture.keyword',
+  'host.hostname.keyword',
+  'host.ip.keyword',
+  'host.mac.keyword',
+  'host.name.keyword',
+  'host.os.codename.keyword',
+  'host.os.family.keyword',
+  'host.os.kernel.keyword',
+  'host.os.name.keyword',
+  'host.os.type.keyword',
+] as const);
+
+export type CspFindingsDataFields = Record<
+  typeof findingsDataFields extends Set<infer U> ? U : never,
+  string
+>;
+
+export const getDocValuesFields = (fields: Set<string>) => ({
+  docvalue_fields: Array.from(fields),
+  // '_source' is Disabled by default in order to only get fields we need.
+  // enable to get the full document.
+  _source: false,
+});
+
+export const getDocValuesFieldsData = <T>(
+  hit: estypes.SearchResponse<T>['hits']['hits'][number]
+) => {
+  if (!hit.fields) throw new Error('expected fields to exists');
+
+  return Object.fromEntries(
+    Object.entries(hit.fields).map(([fieldKey, fieldValues]) => [fieldKey, fieldValues[0]])
+  );
+};
 
 const getBaseQuery = ({ dataView, query, filters }: FindingsBaseURLQuery & FindingsBaseProps) => {
   try {
