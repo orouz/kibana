@@ -26,22 +26,66 @@ type ArrayElement<ArrayType extends readonly unknown[]> = ArrayType extends Read
   ? ElementType
   : never;
 
+export const cisIntegrationEksKey = 'cloudbeat/eks';
+export const cisIntegrationVanillaKey = 'cloudbeat/vanilla';
+const cloudbeatInputs = [cisIntegrationVanillaKey, cisIntegrationEksKey] as const;
+
+// Keys are defined by integrations stream inputs
+// Values are defined in integrations rule template
+export const integrations = {
+  [cisIntegrationEksKey]: 'cis_eks',
+  [cisIntegrationVanillaKey]: 'cis_k8s',
+} as const;
+
+type IntegrationBenchmarkInputKey = typeof cloudbeatInputs[number];
+type IntegrationBenchmarkInputValue = typeof integrations[IntegrationBenchmarkInputKey];
+
+const getBenchmarkTypeFilter = (type: IntegrationBenchmarkInputValue): string =>
+  `${CSP_RULE_TEMPLATE_SAVED_OBJECT_TYPE}.attributes.metadata.benchmark.id: "${type}"`;
+
+export const getSelectedBenchmarkType = (
+  inputs: PackagePolicy['inputs']
+): IntegrationBenchmarkInputValue => {
+  const enabledInputs = inputs.filter(
+    (input) => cloudbeatInputs.includes(input.type as IntegrationBenchmarkInputKey) && input.enabled
+  );
+
+  // This is the value from the integration config for the input stream key
+  const key =
+    enabledInputs.length === 1
+      ? // use the key from the only input enabled.
+        (enabledInputs[0].type as IntegrationBenchmarkInputKey) // casted as PackagePolicyInput["type"] is string
+      : // use the default vanilla key if both are disabled or disabled
+        cisIntegrationVanillaKey;
+
+  const type = integrations[key];
+
+  if (!type) throw new Error(`unknown cloudbeat integration type - ${key}`);
+
+  return type;
+};
+
 /**
- * Callback to handle creation of PackagePolicies in Fleet
+ * Callback to handle creation of PackagePolicies in fleet
  */
 export const onPackagePolicyPostCreateCallback = async (
   logger: Logger,
   packagePolicy: PackagePolicy,
   savedObjectsClient: SavedObjectsClientContract
 ): Promise<void> => {
+  const benchmarkType = getSelectedBenchmarkType(packagePolicy.inputs);
+
   // Create csp-rules from the generic asset
   const existingRuleTemplates: SavedObjectsFindResponse<CspRuleTemplate> =
     await savedObjectsClient.find({
       type: CSP_RULE_TEMPLATE_SAVED_OBJECT_TYPE,
       perPage: 10000,
+      filter: getBenchmarkTypeFilter(benchmarkType),
     });
 
   if (existingRuleTemplates.total === 0) {
+    // TODO: is logging legit? ${benchmarkType}
+    logger.warn(`expected CSP rule templates to exists for type: ${benchmarkType}`);
     return;
   }
 
