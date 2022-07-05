@@ -29,6 +29,14 @@ export const cspRuleSavedObjectMapping: SavedObjectsTypeMappingDefinition = {
     policy_id: {
       type: 'keyword',
     },
+    benchmark: {
+      type: 'object',
+      properties: {
+        id: {
+          type: 'keyword',
+        },
+      },
+    },
     enabled: {
       type: 'boolean',
       fields: {
@@ -42,5 +50,19 @@ export const cspRuleSavedObjectMapping: SavedObjectsTypeMappingDefinition = {
 
 export const cspRuleTemplateSavedObjectMapping: SavedObjectsTypeMappingDefinition = {
   dynamic: false,
-  properties: {},
+  properties: {
+    metadata: {
+      type: 'object',
+      properties: {
+        benchmark: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'keyword',
+            },
+          },
+        },
+      },
+    },
+  },
 };

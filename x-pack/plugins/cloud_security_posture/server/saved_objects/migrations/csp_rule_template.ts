@@ -18,8 +18,8 @@ import {
 function migrateCspRuleMetadata(
   doc: SavedObjectUnsanitizedDoc<CspRuleTemplateV830>,
   context: SavedObjectMigrationContext
-): SavedObjectUnsanitizedDoc<CspRuleTemplateV840> {
-  const { enabled, muted, ...metadata } = doc.attributes;
+): SavedObjectUnsanitizedDoc<CspRuleTemplateTypeV840> {
+  const { enabled, muted, benchmark, ...metadata } = doc.attributes;
   return {
     ...doc,
     attributes: {
@@ -27,6 +27,7 @@ function migrateCspRuleMetadata(
       muted,
       metadata: {
         ...metadata,
+        benchmark: { ...benchmark, id: 'cis_k8s' },
         impact: metadata.impact || undefined,
         default_value: metadata.default_value || undefined,
         references: metadata.references || undefined,
