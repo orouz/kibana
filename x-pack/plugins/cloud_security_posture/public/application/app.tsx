@@ -12,6 +12,7 @@ import React from 'react';
 import { Router } from 'react-router-dom';
 import { cloudPosturePages } from '../common/navigation/constants';
 import type { CspClientPluginStartDeps } from '../types';
+import { AppContextProvider } from './app_state_context';
 import { pageToComponentMapping } from './constants';
 import { CspRouter, getRoutesFromMapping } from './csp_router';
 
@@ -28,9 +29,11 @@ export const CspApp = ({ core, deps, params }: CspAppDeps) => (
     <KibanaContextProvider services={{ ...deps, ...core }}>
       <EuiErrorBoundary>
         <Router history={params.history}>
-          <I18nProvider>
-            <CspRouter routes={cspPluginRoutes} />
-          </I18nProvider>
+          <AppContextProvider history={params.history}>
+            <I18nProvider>
+              <CspRouter routes={cspPluginRoutes} />
+            </I18nProvider>
+          </AppContextProvider>
         </Router>
       </EuiErrorBoundary>
     </KibanaContextProvider>

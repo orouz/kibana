@@ -1,0 +1,756 @@
+Analyzed /Users/orouz/Documents/projects/kibana/src/core/tsconfig.json (trace.10638-1.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/src/core/server/saved_objects/service/lib/[36mpreflight_check_for_create.test.ts[39m[35m[39m (3542ms)
+   └─ Check deferred node from (line 36, char 37) to (line 246, char 2) (3537ms)
+      └─ Check expression from (line 41, char 5) to (line 41, char 65) (3532ms)
+         └─ Compare types 113746 and 195693 (3520ms)
+            └─ Compare types 113746 and 195691 (3517ms)
+               └─ Compare types 113744 and 195691 (3517ms)
+                  └─ Compare types 114699 and 195844 (753ms)
+                     └─ Compare types 114699 and 195842 (459ms)
+                        ├─ {"id":114699,"kind":"AliasedIntersection","name":"DeeplyMockedApi","aliasTypeArguments":[114695],"count":2,"types":[114697,114695],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/kbn__core-elasticsearch-client-server-mocks[39m[35m/index.d.ts[39m","line":31,"char":1}}
+                        │  ├─ {"id":114695,"kind":"Object","name":"default","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/elasticsearch[39m[35m/lib/api/api/ml.d.ts[39m","line":7,"char":1}}
+                        │  └─ {"id":114697,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/kbn__core-elasticsearch-client-server-mocks[39m[35m/index.d.ts[39m","line":31,"char":42}}
+                        └─ {"id":195842,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/kbn__utility-types-jest[39m[35m/index.d.ts[39m","line":2,"char":43}}
+
+Duplicate packages
+└─ globby
+   ├─ Version 10.0.2 from /Users/orouz/Documents/projects/kibana/node_modules/del/node_modules/globby
+   └─ Version 11.1.0 from /Users/orouz/Documents/projects/kibana/node_modules/globby
+
+Analyzed /Users/orouz/Documents/projects/kibana/src/plugins/unified_search/tsconfig.json (trace.10638-30.json)
+Hot Spots
+├─ Check file [35m/users/orouz/documents/projects/kibana/src/plugins/unified_search/server/autocomplete/[36mterms_agg.test.ts[39m[35m[39m (3342ms)
+│  └─ Check deferred node from (line 40, char 14) to (line 45, char 4) (3223ms)
+│     └─ Check expression from (line 43, char 5) to (line 43, char 76) (3219ms)
+│        └─ Compare types 191365 and 188902 (3211ms)
+│           └─ Compare types 191365 and 188900 (3208ms)
+│              └─ Compare types 191363 and 188900 (3208ms)
+│                 └─ Compare types 191562 and 190704 (674ms)
+│                    ├─ {"id":191562,"kind":"AliasedIntersection","name":"DeeplyMockedApi","aliasTypeArguments":[190700],"count":2,"types":[191560,190700],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/kbn__core-elasticsearch-client-server-mocks[39m[35m/index.d.ts[39m","line":31,"char":1}}
+│                    │  ├─ {"id":190700,"kind":"Object","name":"default","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/elasticsearch[39m[35m/lib/api/api/ml.d.ts[39m","line":7,"char":1}}
+│                    │  └─ {"id":191560,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/kbn__core-elasticsearch-client-server-mocks[39m[35m/index.d.ts[39m","line":31,"char":42}}
+│                    └─ {"id":190704,"kind":"AliasedIntersection","name":"DeeplyMockedKeys","aliasTypeArguments":[190700],"count":2,"types":[190702,190700],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/kbn__utility-types-jest[39m[35m/index.d.ts[39m","line":2,"char":1}}
+│                       ├─ {"id":190700,"kind":"Object","name":"default","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/elasticsearch[39m[35m/lib/api/api/ml.d.ts[39m","line":7,"char":1}}
+│                       └─ {"id":190702,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/kbn__utility-types-jest[39m[35m/index.d.ts[39m","line":2,"char":43}}
+└─ Check file [35m/users/orouz/documents/projects/kibana/src/plugins/unified_search/public/dataview_picker/[36mdataview_list.test.tsx[39m[35m[39m (745ms)
+   └─ Check expression from (line 17, char 10) to (line 17, char 46) (742ms)
+      └─ Check expression from (line 17, char 10) to (line 17, char 44) (742ms)
+         └─ Check expression from (line 17, char 10) to (line 17, char 38) (742ms)
+            └─ Compare types 26627 and 41116 (739ms)
+               └─ Compare types 26627 and 41114 (739ms)
+                  └─ Determine variance of type 26608 (702ms)
+                     └─ Compare types 88604 and 41128 (437ms)
+                        └─ Compare types 88602 and 41126 (437ms)
+                           ├─ {"id":88602,"kind":"Intersection","count":5,"types":[792,26576,88594,88593,88601]}
+                           │  ├─ {"id":792,"kind":"Object","name":"CommonProps","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":195,"char":2}}
+                           │  ├─ {"id":26576,"kind":"GenericTypeAlias","name":"Omit","aliasTypeArguments":[813,26574],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.es5.d.ts[39m","line":1576,"char":1}}
+                           │  │  ├─ {"id":813,"kind":"GenericInstantiation","name":"HTMLAttributes","instantiatedType":793,"typeArguments":[796],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+                           │  │  │  ├─ {"id":793,"kind":"GenericType","name":"HTMLAttributes","typeArguments":[794],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+                           │  │  │  │  └─ {"id":794,"kind":"TypeParameter","name":"T","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":30}}
+                           │  │  │  └─ {"id":796,"kind":"Object","name":"HTMLDivElement","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.dom.d.ts[39m","line":6187,"char":1}}
+                           │  │  └─ {"id":26574,"kind":"Union","count":2,"types":[814,962]}
+                           │  │     ├─ {"id":814,"kind":"StringLiteral","value":"\"onChange\""}
+                           │  │     └─ {"id":962,"kind":"StringLiteral","value":"\"children\""}
+                           │  ├─ {"id":88594,"kind":"GenericTypeAlias","name":"DisambiguateSet","aliasTypeArguments":[26578,88593],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":251,"char":2}}
+                           │  │  ├─ {"id":26578,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15673,"char":519}}
+                           │  │  └─ {"id":88593,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15675,"char":5}}
+                           │  ├─ {"id":88593,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15675,"char":5}}
+                           │  └─ {"id":88601,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15687,"char":155}}
+                           └─ {"id":41126,"kind":"Intersection","count":5,"types":[792,26576,41118,41117,41125]}
+                              ├─ {"id":792,"kind":"Object","name":"CommonProps","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":195,"char":2}}
+                              ├─ {"id":26576,"kind":"GenericTypeAlias","name":"Omit","aliasTypeArguments":[813,26574],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.es5.d.ts[39m","line":1576,"char":1}}
+                              │  ├─ {"id":813,"kind":"GenericInstantiation","name":"HTMLAttributes","instantiatedType":793,"typeArguments":[796],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+                              │  │  ├─ {"id":793,"kind":"GenericType","name":"HTMLAttributes","typeArguments":[794],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+                              │  │  │  └─ {"id":794,"kind":"TypeParameter","name":"T","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":30}}
+                              │  │  └─ {"id":796,"kind":"Object","name":"HTMLDivElement","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.dom.d.ts[39m","line":6187,"char":1}}
+                              │  └─ {"id":26574,"kind":"Union","count":2,"types":[814,962]}
+                              │     ├─ {"id":814,"kind":"StringLiteral","value":"\"onChange\""}
+                              │     └─ {"id":962,"kind":"StringLiteral","value":"\"children\""}
+                              ├─ {"id":41118,"kind":"GenericTypeAlias","name":"DisambiguateSet","aliasTypeArguments":[26578,
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/security_solution/tsconfig.json (trace.10638-187.json)
+Hot Spots
+├─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/security_solution/server/search_strategy/security_solution/factory/matrix_histogram/__mocks__/[36mindex.ts[39m[35m[39m (3198ms)
+│  ├─ Check variable declaration from (line 515, char 14) to (line 944, char 2) (2106ms)
+│  │  └─ Check expression from (line 515, char 77) to (line 944, char 2) (2105ms)
+│  │     └─ Check expression from (line 518, char 16) to (line 941, char 4) (2105ms)
+│  │        └─ Check expression from (line 523, char 19) to (line 940, char 6) (2105ms)
+│  │           └─ Check expression from (line 524, char 25) to (line 939, char 8) (2105ms)
+│  │              └─ Check expression from (line 527, char 18) to (line 938, char 10) (2104ms)
+│  └─ Check variable declaration from (line 1353, char 14) to (line 1930, char 2) (656ms)
+│     └─ Check expression from (line 1353, char 74) to (line 1930, char 2) (655ms)
+│        └─ Check expression from (line 1356, char 16) to (line 1927, char 4) (655ms)
+│           └─ Check expression from (line 1370, char 19) to (line 1926, char 6) (655ms)
+│              └─ Check expression from (line 1374, char 29) to (line 1925, char 8) (655ms)
+│                 └─ Check expression from (line 1377, char 18) to (line 1924, char 10) (654ms)
+├─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/security_solution/server/search_strategy/security_solution/factory/network/top_n_flow/__mocks__/[36mindex.ts[39m[35m[39m (994ms)
+│  └─ Check variable declaration from (line 40, char 14) to (line 572, char 2) (983ms)
+│     └─ Check expression from (line 40, char 71) to (line 572, char 2) (978ms)
+│        └─ Check expression from (line 43, char 16) to (line 569, char 4) (978ms)
+│           └─ Check expression from (line 48, char 19) to (line 568, char 6) (978ms)
+│              └─ Check expression from (line 49, char 15) to (line 566, char 8) (978ms)
+│                 └─ Check expression from (line 53, char 18) to (line 565, char 10) (977ms)
+├─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/security_solution/server/search_strategy/security_solution/factory/network/http/__mocks__/[36mindex.ts[39m[35m[39m (773ms)
+│  └─ Check variable declaration from (line 35, char 14) to (line 456, char 2) (771ms)
+│     └─ Check expression from (line 35, char 71) to (line 456, char 2) (770ms)
+│        └─ Check expression from (line 38, char 16) to (line 453, char 4) (770ms)
+│           └─ Check expression from (line 43, char 19) to (line 452, char 6) (770ms)
+│              └─ Check expression from (line 45, char 12) to (line 451, char 8) (770ms)
+│                 └─ Check expression from (line 48, char 18) to (line 450, char 10) (769ms)
+├─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/security_solution/server/search_strategy/security_solution/factory/hosts/details/__mocks__/[36mindex.ts[39m[35m[39m (688ms)
+│  └─ Check variable declaration from (line 49, char 14) to (line 423, char 2) (685ms)
+│     └─ Check expression from (line 49, char 71) to (line 423, char 2) (682ms)
+│        └─ Check expression from (line 52, char 16) to (line 420, char 4) (682ms)
+│           └─ Check expression from (line 57, char 19) to (line 419, char 6) (682ms)
+│              └─ Check expression from (line 58, char 23) to (line 417, char 8) (681ms)
+│                 └─ Check expression from (line 61, char 18) to (line 416, char 10) (681ms)
+├─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/security_solution/public/common/components/toasters/[36mmodal_all_errors.tsx[39m[35m[39m (654ms)
+│  └─ Check variable declaration from (line 83, char 7) to (line 85, char 2) (551ms)
+│     └─ Check expression from (line 83, char 24) to (line 85, char 2) (551ms)
+│        └─ Check expression from (line 83, char 24) to (line 83, char 44) (551ms)
+├─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/security_solution/public/timelines/components/timeline/selectable_timeline/[36mindex.tsx[39m[35m[39m (557ms)
+│  └─ Check deferred node from (line 267, char 5) to (line 287, char 21) (522ms)
+│     └─ Determine variance of type 163351 (481ms)
+│        └─ {"id":163351,"kind":"AliasedIntersection","name":"EuiSelectableSearchProps","aliasTypeArguments":[163350],"count":3,"types":[51924,163347,163349],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15426,"char":2}}
+│           ├─ {"id":163350,"kind":"TypeParameter","name":"T","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15426,"char":39}}
+│           ├─ {"id":51924,"kind":"Object","name":"CommonProps","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":195,"char":2}}
+│           ├─ {"id":163347,"kind":"GenericTypeAlias","name":"Omit","aliasTypeArguments":[114916,163345],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.es5.d.ts[39m","line":1576,"char":1}}
+│           │  ├─ {"id":114916,"kind":"Object","name":"EuiFieldSearchProps","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":3722,"char":2}}
+│           │  └─ {"id":163345,"kind":"Union","count":3,"types":[52974,114941,114942]}
+│           │     ├─ {"id":52974,"kind":"StringLiteral","value":"\"onChange\""}
+│           │     ├─ {"id":114941,"kind":"StringLiteral","value":"\"onSearch\""}
+│           │     └─ {"id":114942,"kind":"StringLiteral","value":"\"incremental\""}
+│           └─ {"id":163349,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15426,"char":127}}
+├─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/security_solution/server/search_strategy/security_solution/factory/users/authentications/__mocks__/[36mindex.ts[39m[35m[39m (534ms)
+│  └─ Check variable declaration from (line 51, char 14) to (line 377, char 2) (529ms)
+│     └─ Check expression from (line 51, char 71) to (line 377, char 2) (525ms)
+│        └─ Check expression from (line 54, char 16) to (line 374, char 4) (525ms)
+│           └─ Check expression from (line 59, char 19) to (line 373, char 6) (525ms)
+│              └─ Check expression from (line 60, char 17) to (line 371, char 8) (525ms)
+│                 └─ Check expression from (line 63, char 18) to (line 370, char 10) (524ms)
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/security_solution/public/network/components/source_destination/[36msource_destination_ip.test.tsx[39m[35m[39m (510ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/timelines/tsconfig.json (trace.10638-152.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/timelines/public/components/t_grid/event_rendered_view/selector/[36mindex.tsx[39m[35m[39m (2077ms)
+   ├─ Check deferred node from (line 143, char 7) to (line 155, char 32) (899ms)
+   └─ Check deferred node from (line 144, char 9) to (line 154, char 25) (842ms)
+      └─ Determine variance of type 27159 (753ms)
+         └─ {"id":27159,"kind":"AliasedUnion","name":"EuiSelectableListProps","aliasTypeArguments":[27156],"count":2,"types":[27157,27158],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":2}}
+            ├─ {"id":27156,"kind":"TypeParameter","name":"T","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":37}}
+            ├─ {"id":27157,"kind":"Intersection","count":6,"types":[13787,12412,26028,26035,26030,27155]}
+            │  ├─ {"id":13787,"kind":"Object","name":"CommonProps","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":195,"char":2}}
+            │  ├─ {"id":12412,"kind":"GenericInstantiation","name":"HTMLAttributes","instantiatedType":12409,"typeArguments":[10531],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+            │  │  ├─ {"id":12409,"kind":"GenericType","name":"HTMLAttributes","typeArguments":[12410],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+            │  │  │  └─ {"id":12410,"kind":"TypeParameter","name":"T","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":30}}
+            │  │  └─ {"id":10531,"kind":"Object","name":"HTMLDivElement","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.dom.d.ts[39m","line":6187,"char":1}}
+            │  ├─ {"id":26028,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15558,"char":93}}
+            │  ├─ {"id":26035,"kind":"GenericTypeAlias","name":"DisambiguateSet","aliasTypeArguments":[26029,26030],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":251,"char":2}}
+            │  │  ├─ {"id":26029,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15544,"char":72}}
+            │  │  └─ {"id":26030,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15555,"char":5}}
+            │  ├─ {"id":26030,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15555,"char":5}}
+            │  └─ {"id":27155,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+            └─ {"id":27158,"kind":"Intersection","count":6,"types":[13787,12412,26028,26038,26029,27155]}
+               ├─ {"id":13787,"kind":"Object","name":"CommonProps","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":195,"char":2}}
+               ├─ {"id":12412,"kind":"GenericInstantiation","name":"HTMLAttributes","instantiatedType":12409,"typeArguments":[10531],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+               │  ├─ {"id":12409,"kind":"GenericType","name":"HTMLAttributes","typeArguments":[12410],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+               │  │  └─ {"id":12410,"kind":"TypeParameter","name":"T","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":30}}
+               │  └─ {"id":10531,"kind":"Object","name":"HTMLDivElement","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.dom.d.ts[39m","line":6187,"char":1}}
+               ├─ {"id":26028,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15558,"char":93}}
+               ├─ {"id":26038,"kind":"GenericTypeAlias","name":"DisambiguateSet","aliasTypeArguments":[26030,26029],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":251,"char":2}}
+               │  ├─ {"id":26030,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15555,"char":5}}
+               │  └─ {"id":26029,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15544,"char":72}}
+               ├─ {"id":26029,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15544,"char":72}}
+               └─ {"id":27155,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/snapshot_restore/tsconfig.json (trace.10638-188.json)
+Hot Spots
+├─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/snapshot_restore/public/application/sections/home/repository_list/repository_details/[36mrepository_details.tsx[39m[35m[39m (1964ms)
+│  └─ Check deferred node from (line 457, char 5) to (line 475, char 17) (1881ms)
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/snapshot_restore/public/application/components/restore_snapshot_form/steps/step_logistics/[36mstep_logistics.tsx[39m[35m[39m (1467ms)
+   └─ Check deferred node from (line 354, char 52) to (line 381, char 37) (1352ms)
+      └─ Determine variance of type 15938 (1267ms)
+         └─ Compare types 63417 and 15954 (945ms)
+            └─ Compare types 63415 and 15952 (942ms)
+               └─ Compare types 63415 and 15951 (556ms)
+                  └─ Compare types 63414 and 15951 (555ms)
+                     └─ Compare types 110311 and 16757 (379ms)
+                        └─ Compare types 15969 and 63425 (379ms)
+                           └─ Compare types 15968 and 63424 (379ms)
+                              └─ Compare types 15968 and 63701 (378ms)
+                                 ├─ {"id":15968,"kind":"AliasedConditionalType","name":"ExclusiveUnion","aliasTypeArguments":[15303,15311],"conditionalCheckType":15967,"conditionalExtendsType":28,"conditionalTrueType":16524,"conditionalFalseType":15967,"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":257,"char":2}}
+                                 │  ├─ {"id":15303,"kind":"AliasedIntersection","name":"EuiSelectableGroupLabelOption","aliasTypeArguments":[41],"count":4,"types":[14030,721,14032,41],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15409,"char":2}}
+                                 │  │  ├─ {"id":41,"kind":"TypeParameter"}
+                                 │  │  ├─ {"id":14030,"kind":"GenericTypeAlias","name":"Omit","aliasTypeArguments":[14023,14024],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.es5.d.ts[39m","line":1576,"char":1}}
+                                 │  │  │  ├─ {"id":14023,"kind":"AliasedIntersection","name":"EuiSelectableOptionBase","count":2,"types":[2697,14022],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15357,"char":2}}
+                                 │  │  │  │  ├─ {"id":2697,"kind":"Object","name":"CommonProps","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":195,"char":2}}
+                                 │  │  │  │  └─ {"id":14022,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15357,"char":54}}
+                                 │  │  │  └─ {"id":14024,"kind":"StringLiteral","value":"\"isGroupLabel\""}
+                                 │  │  ├─ {"id":721,"kind":"GenericInstantiation","name":"HTMLAttributes","instantiatedType":701,"typeArguments":[704],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+                                 │  │  │  ├─ {"id":701,"kind":"GenericType","name":"HTMLAttributes","typeArguments":[702],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+                                 │  │  │  │  └─ {"id":702,"kind":"TypeParameter","name":"T","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":30}}
+                                 │  │  │  └─ {"id":704,"kind":"Object","name":"HTMLDivElement","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.dom.d.ts[39m","line":6187,"char":1}}
+                                 │  │  └─ {"id":14032,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15406,"char":139}}
+                                 │  ├─ {"id":15311,"kind":"AliasedIntersection","name":"EuiSelectableLIOption","aliasTypeArguments":[41],"count":4,"types":[2697,14022,4300,41],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15410,"char":2}}
+                                 │  │  ├─ {"id":41,"kind":"TypeParameter"}
+                                 │  │  ├─ {"id":2697,"kind":"Object","name":"CommonProps","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":195,"char":2}}
+                                 │  │  ├─ {"id":14022,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15357,"char":54}}
+                                 │  │  └─ {"id":4300,"kind":"GenericInstantiation","name":"HTMLAttributes","instantiatedType":701,"typeArguments":[4295],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+                                 │  │     ├─ {"id":701,"kind":"GenericType","name":"HTMLAttributes","typeArguments":[702],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+                                 │  │     │  └─ {"id":702,"kind":"TypeParameter","name":"T","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":30}}
+                                 │  │     └─ {"id":4295,"kind":"Object","name":"HTMLLIElement","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.dom.d.ts[39m","line":6914,"char":1}}
+                                 │  ├─ {"id":15967,"kind":"Union","count":2,"types":[15303,15311]}
+                                 │  │  ├─ {"id":15303,"kind":"AliasedIntersection","name":"EuiSelectableGroupLabelOption","aliasTypeArguments":[41],"count":4,"types":[14030,721,14032,41],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15409,"char":2}}
+                                 │  │  │  ├─ {"id":41,"kind":"TypeParameter"}
+                                 │  │  │  ├─ {"id":14030,"kind":"GenericTypeAlias","name":"Omit","aliasTypeArguments":[14023,14024],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.es5.d.ts[39m","line":1576,"char":1}}
+                                 │  │  │  │  ├─ {"id":14023,"kind":"AliasedIntersection","name":"EuiSelectableOptionBase","count":2,"types":[2697,14022],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15357,"char":2}}
+                                 │  │  │  │  │  ├─ {"id":2697,"kind":"Object","name":"CommonProps","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":195,"char":2}}
+                                 │  │  │  │  │  └─ {"id":14022,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15357,"char":54}}
+                                 │  │  │  │  └─ {"id":14024,"kind":"StringLiteral"
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/enterprise_search/tsconfig.json (trace.10638-170.json)
+Hot Spots
+├─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/enterprise_search/public/applications/shared/simplified_selectable/[36msimplified_selectable.tsx[39m[35m[39m (1664ms)
+│  └─ Check deferred node from (line 77, char 7) to (line 94, char 23) (1654ms)
+│     └─ Determine variance of type 30510 (1594ms)
+│        └─ Compare types 78012 and 30526 (1331ms)
+│           └─ Compare types 78010 and 30524 (1329ms)
+│              └─ Compare types 78010 and 30523 (941ms)
+│                 └─ Compare types 78009 and 30523 (941ms)
+│                    └─ Compare types 124906 and 31334 (502ms)
+│                       └─ Compare types 30542 and 78020 (502ms)
+│                          └─ Compare types 30541 and 78019 (502ms)
+│                             └─ Compare types 30541 and 78296 (500ms)
+│                                └─ Compare types 32152 and 78296 (443ms)
+│                                   ├─ {"id":32152,"kind":"Union","count":4,"types":[30308,30539,31094,31097]}
+│                                   │  ├─ {"id":30308,"kind":"AliasedIntersection","name":"EuiSelectableLIOption","aliasTypeArguments":[41],"count":4,"types":[1804,29292,11201,41],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15410,"char":2}}
+│                                   │  │  ├─ {"id":41,"kind":"TypeParameter"}
+│                                   │  │  ├─ {"id":1804,"kind":"Object","name":"CommonProps","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":195,"char":2}}
+│                                   │  │  ├─ {"id":29292,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15357,"char":54}}
+│                                   │  │  └─ {"id":11201,"kind":"GenericInstantiation","name":"HTMLAttributes","instantiatedType":2584,"typeArguments":[11196],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+│                                   │  │     ├─ {"id":2584,"kind":"GenericType","name":"HTMLAttributes","typeArguments":[2585],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+│                                   │  │     │  └─ {"id":2585,"kind":"TypeParameter","name":"T","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":30}}
+│                                   │  │     └─ {"id":11196,"kind":"Object","name":"HTMLLIElement","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.dom.d.ts[39m","line":6914,"char":1}}
+│                                   │  ├─ {"id":30539,"kind":"AliasedIntersection","name":"EuiSelectableGroupLabelOption","aliasTypeArguments":[41],"count":4,"types":[29466,3089,29468,41],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15409,"char":2}}
+│                                   │  │  ├─ {"id":41,"kind":"TypeParameter"}
+│                                   │  │  ├─ {"id":29466,"kind":"GenericTypeAlias","name":"Omit","aliasTypeArguments":[29293,29459],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.es5.d.ts[39m","line":1576,"char":1}}
+│                                   │  │  │  ├─ {"id":29293,"kind":"AliasedIntersection","name":"EuiSelectableOptionBase","count":2,"types":[1804,29292],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15357,"char":2}}
+│                                   │  │  │  │  ├─ {"id":1804,"kind":"Object","name":"CommonProps","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":195,"char":2}}
+│                                   │  │  │  │  └─ {"id":29292,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15357,"char":54}}
+│                                   │  │  │  └─ {"id":29459,"kind":"StringLiteral","value":"\"isGroupLabel\""}
+│                                   │  │  ├─ {"id":3089,"kind":"GenericInstantiation","name":"HTMLAttributes","instantiatedType":2584,"typeArguments":[3088],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+│                                   │  │  │  ├─ {"id":2584,"kind":"GenericType","name":"HTMLAttributes","typeArguments":[2585],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+│                                   │  │  │  │  └─ {"id":2585,"kind":"TypeParameter","name":"T","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":30}}
+│                                   │  │  │  └─ {"id":3088,"kind":"Object","name":"HTMLDivElement","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.dom.d.ts[39m","line":6187,"char":1}}
+│                                   │  │  └─ {"id":29468,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15406,"char":139}}
+│                                   │  ├─ {"id":31094,"kind":"Intersection","count":5,"types":[31092,1804,29292,11201,41]}
+│                                   │  │  ├─ {"id":31092,"kind":"GenericTypeAlias","name":"DisambiguateSet","aliasTypeArguments":[30539,30308],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":251,"char":2}}
+│                                   │  │  │  ├─ {"id":30539,"kind":"AliasedIntersection","name":"EuiSelectableGroupLabelOption","aliasTypeArguments":[41],"count":4,"types":[29466,3089,29468,41],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15409,"char":2}}
+│                                   │  │  │  │  ├─ {"id":41,"kind":"TypeParameter"}
+│                                   │  │  │  │  ├─ {"id":29466,"kind":"GenericTypeAlias","name":"Omit","aliasTypeArguments":[29293,29459],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.es5.d.ts[39m","line":1576,"char":1}}
+│                                   │  │  │  │  │  ├─ {"id":29293,"kind":"AliasedIntersection","name":"EuiSelectableOptionBase","count":2,"types":[1804,29292],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15357,"char":2}}
+│                                   │  │  │  │  │  │  ├─ {"id":1804,"kind":"Object","name":"CommonProps","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":195,"char":2}}
+│                                   │  │  │  │  │  │  └─ {"id":29292,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15357,"char":54}}
+│                                   │  │  │  │  │  └─ {"id":29459,"kind":"StringL
+
+Analyzed /Users/orouz/Documents/projects/kibana/src/plugins/ui_actions_enhanced/tsconfig.json (trace.10638-146.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/src/plugins/ui_actions_enhanced/public/drilldowns/url_drilldown/components/variable_popover/[36mindex.tsx[39m[35m[39m (1470ms)
+   └─ Check deferred node from (line 57, char 7) to (line 88, char 23) (1414ms)
+      └─ Determine variance of type 22617 (1360ms)
+         └─ Compare types 70096 and 22633 (1135ms)
+            └─ Compare types 70094 and 22631 (1134ms)
+               └─ Compare types 70094 and 22630 (986ms)
+                  └─ Compare types 70093 and 22630 (986ms)
+                     └─ Compare types 116990 and 23436 (516ms)
+                        └─ Compare types 22648 and 70104 (516ms)
+                           └─ Compare types 22647 and 70103 (516ms)
+                              └─ Compare types 22647 and 70380 (514ms)
+                                 ├─ {"id":22647,"kind":"AliasedConditionalType","name":"ExclusiveUnion","aliasTypeArguments":[21973,21981],"conditionalCheckType":22646,"conditionalExtendsType":28,"conditionalTrueType":23203,"conditionalFalseType":22646,"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":257,"char":2}}
+                                 │  ├─ {"id":21973,"kind":"AliasedIntersection","name":"EuiSelectableGroupLabelOption","aliasTypeArguments":[41],"count":4,"types":[21175,2856,21177,41],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15409,"char":2}}
+                                 │  │  ├─ {"id":41,"kind":"TypeParameter"}
+                                 │  │  ├─ {"id":21175,"kind":"GenericTypeAlias","name":"Omit","aliasTypeArguments":[21166,21167],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.es5.d.ts[39m","line":1576,"char":1}}
+                                 │  │  │  ├─ {"id":21166,"kind":"AliasedIntersection","name":"EuiSelectableOptionBase","count":2,"types":[2857,21165],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15357,"char":2}}
+                                 │  │  │  │  ├─ {"id":2857,"kind":"Object","name":"CommonProps","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":195,"char":2}}
+                                 │  │  │  │  └─ {"id":21165,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15357,"char":54}}
+                                 │  │  │  └─ {"id":21167,"kind":"StringLiteral","value":"\"isGroupLabel\""}
+                                 │  │  ├─ {"id":2856,"kind":"GenericInstantiation","name":"HTMLAttributes","instantiatedType":2852,"typeArguments":[2855],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+                                 │  │  │  ├─ {"id":2852,"kind":"GenericType","name":"HTMLAttributes","typeArguments":[2853],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+                                 │  │  │  │  └─ {"id":2853,"kind":"TypeParameter","name":"T","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":30}}
+                                 │  │  │  └─ {"id":2855,"kind":"Object","name":"HTMLDivElement","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.dom.d.ts[39m","line":6187,"char":1}}
+                                 │  │  └─ {"id":21177,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15406,"char":139}}
+                                 │  ├─ {"id":21981,"kind":"AliasedIntersection","name":"EuiSelectableLIOption","aliasTypeArguments":[41],"count":4,"types":[2857,21165,15077,41],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15410,"char":2}}
+                                 │  │  ├─ {"id":41,"kind":"TypeParameter"}
+                                 │  │  ├─ {"id":2857,"kind":"Object","name":"CommonProps","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":195,"char":2}}
+                                 │  │  ├─ {"id":21165,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15357,"char":54}}
+                                 │  │  └─ {"id":15077,"kind":"GenericInstantiation","name":"HTMLAttributes","instantiatedType":2852,"typeArguments":[14670],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+                                 │  │     ├─ {"id":2852,"kind":"GenericType","name":"HTMLAttributes","typeArguments":[2853],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+                                 │  │     │  └─ {"id":2853,"kind":"TypeParameter","name":"T","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":30}}
+                                 │  │     └─ {"id":14670,"kind":"Object","name":"HTMLLIElement","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.dom.d.ts[39m","line":6914,"char":1}}
+                                 │  ├─ {"id":22646,"kind":"Union","count":2,"types":[21973,21981]}
+                                 │  │  ├─ {"id":21973,"kind":"AliasedIntersection","name":"EuiSelectableGroupLabelOption","aliasTypeArguments":[41],"count":4,"types":[21175,2856,21177,41],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15409,"char":2}}
+                                 │  │  │  ├─ {"id":41,"kind":"TypeParameter"}
+                                 │  │  │  ├─ {"id":21175,"kind":"GenericTypeAlias","name":"Omit","aliasTypeArguments":[21166,21167],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.es5.d.ts[39m","line":1576,"char":1}}
+                                 │  │  │  │  ├─ {"id":21166,"kind":"AliasedIntersection","name":"EuiSelectableOptionBase","count":2,"types":[2857,21165],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15357,"char":2}}
+                                 │  │  │  │  │  ├─ {"id":2857,"kind":"Object","name":"CommonProps","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":195,"char":2}}
+                                 │  │  │  │  │  └─ {"id":21165,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15357,"char":54}}
+                                 │  │  │  │  └─ {"id":21167,"kind":"StringLiteral","value":"\"isGroupLabel\""}
+                                 │  │  │  ├─ {"id":2856,"kind":"GenericInstantiation","name":"HTMLAttributes","instantiatedType":2852,"typeArguments":[2855],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/monitoring/tsconfig.json (trace.10638-180.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/monitoring/public/components/kuery_bar/[36msuggestion_item.tsx[39m[35m[39m (953ms)
+   └─ Check variable declaration from (line 39, char 6) to (line 49, char 2) (877ms)
+      └─ Check expression from (line 39, char 32) to (line 49, char 2) (877ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/ingest_pipelines/tsconfig.json (trace.10638-177.json)
+Hot Spots
+├─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/ingest_pipelines/public/application/components/pipeline_editor/components/test_pipeline/documents_dropdown/[36mdocuments_dropdown.tsx[39m[35m[39m (877ms)
+│  └─ Check deferred node from (line 87, char 7) to (line 116, char 23) (869ms)
+│     └─ Determine variance of type 36266 (817ms)
+│        └─ {"id":36266,"kind":"AliasedUnion","name":"EuiSelectableListProps","aliasTypeArguments":[36263],"count":2,"types":[36264,36265],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":2}}
+│           ├─ {"id":36263,"kind":"TypeParameter","name":"T","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":37}}
+│           ├─ {"id":36264,"kind":"Intersection","count":6,"types":[815,858,35644,35649,35646,36262]}
+│           │  ├─ {"id":815,"kind":"Object","name":"CommonProps","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":195,"char":2}}
+│           │  ├─ {"id":858,"kind":"GenericInstantiation","name":"HTMLAttributes","instantiatedType":838,"typeArguments":[841],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+│           │  │  ├─ {"id":838,"kind":"GenericType","name":"HTMLAttributes","typeArguments":[839],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+│           │  │  │  └─ {"id":839,"kind":"TypeParameter","name":"T","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":30}}
+│           │  │  └─ {"id":841,"kind":"Object","name":"HTMLDivElement","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.dom.d.ts[39m","line":6187,"char":1}}
+│           │  ├─ {"id":35644,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15558,"char":93}}
+│           │  ├─ {"id":35649,"kind":"GenericTypeAlias","name":"DisambiguateSet","aliasTypeArguments":[35645,35646],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":251,"char":2}}
+│           │  │  ├─ {"id":35645,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15544,"char":72}}
+│           │  │  └─ {"id":35646,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15555,"char":5}}
+│           │  ├─ {"id":35646,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15555,"char":5}}
+│           │  └─ {"id":36262,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+│           └─ {"id":36265,"kind":"Intersection","count":6,"types":[815,858,35644,35652,35645,36262]}
+│              ├─ {"id":815,"kind":"Object","name":"CommonProps","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":195,"char":2}}
+│              ├─ {"id":858,"kind":"GenericInstantiation","name":"HTMLAttributes","instantiatedType":838,"typeArguments":[841],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+│              │  ├─ {"id":838,"kind":"GenericType","name":"HTMLAttributes","typeArguments":[839],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":5}}
+│              │  │  └─ {"id":839,"kind":"TypeParameter","name":"T","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@types/react[39m[35m/index.d.ts[39m","line":1811,"char":30}}
+│              │  └─ {"id":841,"kind":"Object","name":"HTMLDivElement","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36mtypescript[39m[35m/lib/lib.dom.d.ts[39m","line":6187,"char":1}}
+│              ├─ {"id":35644,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15558,"char":93}}
+│              ├─ {"id":35652,"kind":"GenericTypeAlias","name":"DisambiguateSet","aliasTypeArguments":[35646,35645],"location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":251,"char":2}}
+│              │  ├─ {"id":35646,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15555,"char":5}}
+│              │  └─ {"id":35645,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15544,"char":72}}
+│              ├─ {"id":35645,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15544,"char":72}}
+│              └─ {"id":36262,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/ingest_pipelines/public/application/sections/pipelines_list/[36mdetails_flyout.tsx[39m[35m[39m (588ms)
+   └─ Check deferred node from (line 107, char 5) to (line 231, char 17) (543ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/observability/tsconfig.json (trace.10638-154.json)
+Hot Spots
+├─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/observability/public/components/shared/exploratory_view/components/url_search/[36mselectable_url_list.tsx[39m[35m[39m (855ms)
+│  └─ Check deferred node from (line 153, char 5) to (line 220, char 21) (797ms)
+│     └─ Determine variance of type 22976 (722ms)
+│        └─ Compare types 70460 and 22992 (481ms)
+│           └─ Compare types 70458 and 22990 (480ms)
+│              └─ Compare types 70458 and 22989 (344ms)
+│                 └─ Compare types 70457 and 22989 (344ms)
+│                    ├─ {"id":70457,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+│                    └─ {"id":22989,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/observability/public/components/shared/core_web_vitals/[36mpalette_legends.tsx[39m[35m[39m (560ms)
+   └─ Check variable declaration from (line 28, char 7) to (line 33, char 2) (523ms)
+      └─ Check expression from (line 28, char 23) to (line 33, char 2) (523ms)
+         └─ Check expression from (line 28, char 23) to (line 28, char 40) (523ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/infra/tsconfig.json (trace.10638-166.json)
+Hot Spots
+├─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/infra/public/components/logging/log_analysis_setup/initial_configuration_step/[36mindex_setup_dataset_filter.tsx[39m[35m[39m (841ms)
+│  └─ Check deferred node from (line 89, char 9) to (line 96, char 25) (810ms)
+│     └─ Determine variance of type 101661 (760ms)
+│        └─ Compare types 149127 and 101677 (508ms)
+│           └─ Compare types 149125 and 101675 (507ms)
+│              └─ Compare types 149125 and 101674 (378ms)
+│                 └─ Compare types 149124 and 101674 (378ms)
+│                    ├─ {"id":149124,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+│                    └─ {"id":101674,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/infra/public/pages/metrics/metric_detail/components/[36mgauges_section_vis.tsx[39m[35m[39m (566ms)
+   └─ Check deferred node from (line 59, char 7) to (line 94, char 18) (521ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/canvas/tsconfig.json (trace.10638-199.json)
+Hot Spots
+├─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/canvas/storybook/addon/src/components/[36maction_list.tsx[39m[35m[39m (833ms)
+│  └─ Check deferred node from (line 73, char 5) to (line 75, char 21) (824ms)
+│     └─ Determine variance of type 153411 (768ms)
+│        └─ Compare types 200871 and 153427 (516ms)
+│           └─ Compare types 200869 and 153425 (515ms)
+│              └─ Compare types 200869 and 153424 (361ms)
+│                 └─ Compare types 200868 and 153424 (361ms)
+│                    ├─ {"id":200868,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+│                    └─ {"id":153424,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/canvas/public/components/workpad_header/share_menu/flyout/[36mflyout.component.tsx[39m[35m[39m (593ms)
+   └─ Check deferred node from (line 187, char 11) to (line 211, char 17) (540ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/graph/tsconfig.json (trace.10638-202.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/graph/public/components/field_manager/[36mfield_picker.tsx[39m[35m[39m (821ms)
+   └─ Check deferred node from (line 78, char 17) to (line 109, char 25) (754ms)
+      └─ Determine variance of type 19181 (705ms)
+         └─ Compare types 66767 and 19197 (445ms)
+            └─ Compare types 66765 and 19195 (444ms)
+               └─ Compare types 66765 and 19194 (318ms)
+                  └─ Compare types 66764 and 19194 (318ms)
+                     ├─ {"id":66764,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+                     └─ {"id":19194,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/lens/tsconfig.json (trace.10638-149.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/lens/public/editor_frame_service/editor_frame/workspace_panel/[36mchart_switch.tsx[39m[35m[39m (789ms)
+   └─ Check deferred node from (line 433, char 9) to (line 470, char 25) (762ms)
+      └─ Determine variance of type 56803 (709ms)
+         └─ Compare types 104282 and 56819 (474ms)
+            └─ Compare types 104280 and 56817 (472ms)
+               └─ Compare types 104280 and 56816 (327ms)
+                  └─ Compare types 104279 and 56816 (327ms)
+                     ├─ {"id":104279,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+                     └─ {"id":56816,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/fleet/tsconfig.json (trace.10638-167.json)
+Hot Spots
+├─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/fleet/public/applications/fleet/sections/agents/agent_list_page/components/[36mtags_add_remove.tsx[39m[35m[39m (789ms)
+│  └─ Check deferred node from (line 141, char 9) to (line 202, char 25) (769ms)
+│     └─ Determine variance of type 51492 (736ms)
+│        └─ Compare types 99009 and 51508 (493ms)
+│           └─ Compare types 99007 and 51506 (492ms)
+│              └─ Compare types 99007 and 51505 (346ms)
+│                 └─ Compare types 99006 and 51505 (346ms)
+│                    ├─ {"id":99006,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+│                    └─ {"id":51505,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/fleet/public/components/[36mheader.tsx[39m[35m[39m (500ms)
+   └─ Check variable declaration from (line 14, char 7) to (line 23, char 2) (458ms)
+      └─ Check expression from (line 14, char 19) to (line 23, char 2) (458ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/synthetics/tsconfig.json (trace.10638-198.json)
+Hot Spots
+├─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/synthetics/public/legacy_uptime/components/overview/alerts/monitor_expressions/[36mtime_unit_selectable.tsx[39m[35m[39m (761ms)
+│  └─ Check deferred node from (line 39, char 7) to (line 50, char 23) (759ms)
+│     └─ Determine variance of type 124998 (715ms)
+│        └─ Compare types 172506 and 125014 (453ms)
+│           └─ Compare types 172504 and 125012 (452ms)
+│              └─ Compare types 172504 and 125011 (320ms)
+│                 └─ Compare types 172503 and 125011 (320ms)
+│                    ├─ {"id":172503,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+│                    └─ {"id":125011,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/synthetics/public/legacy_uptime/components/fleet_package/common/[36mdescribed_form_group_with_wrap.tsx[39m[35m[39m (546ms)
+   └─ Check variable declaration from (line 14, char 14) to (line 23, char 2) (545ms)
+      └─ Check expression from (line 14, char 43) to (line 23, char 2) (545ms)
+         └─ Check expression from (line 14, char 43) to (line 14, char 75) (540ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/apm/tsconfig.json (trace.10638-168.json)
+Hot Spots
+├─ Emit declarations file [35m/Users/orouz/Documents/projects/kibana/x-pack/plugins/apm/target/types/server/routes/apm_routes/[36mget_global_apm_server_route_repository.d.ts[39m[35m[39m (747ms)
+│  ├─ Consider adding `[36mimport [36m"io-ts"[39m[36m[39m` which is used in 1310 places
+│  ├─ Consider adding `[36mimport [36m"../typings"[39m[36m[39m` which is used in 228 places
+│  ├─ Consider adding `[36mimport [36m"@kbn/server-route-repository"[39m[36m[39m` which is used in 114 places
+│  ├─ Consider adding `[36mimport [36m"@kbn/io-ts-utils"[39m[36m[39m` which is used in 54 places
+│  ├─ Consider adding `[36mimport [36m"../../../typings/timeseries"[39m[36m[39m` which is used in 38 places
+│  ├─ Consider adding `[36mimport [36m"../../../typings/common"[39m[36m[39m` which is used in 19 places
+│  ├─ Consider adding `[36mimport [36m"../../../common/latency_aggregation_types"[39m[36m[39m` which is used in 15 places
+│  └─ Consider adding `[36mimport [36m"../.."[39m[36m[39m` which is used in 10 places
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/apm/public/components/fleet_integration/apm_agents/[36magent_instructions_accordion.tsx[39m[35m[39m (532ms)
+   └─ Check variable declaration from (line 97, char 7) to (line 103, char 2) (501ms)
+      └─ Check expression from (line 97, char 28) to (line 103, char 2) (501ms)
+         └─ Check expression from (line 97, char 28) to (line 97, char 48) (500ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/session_view/tsconfig.json (trace.10638-184.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/session_view/public/components/session_view_display_options/[36mindex.tsx[39m[35m[39m (734ms)
+   └─ Check deferred node from (line 149, char 7) to (line 161, char 23) (716ms)
+      └─ Determine variance of type 27597 (671ms)
+         └─ Compare types 75068 and 27613 (432ms)
+            └─ Compare types 75066 and 27611 (431ms)
+               └─ Compare types 75066 and 27610 (300ms)
+                  └─ Compare types 75065 and 27610 (300ms)
+                     ├─ {"id":75065,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+                     └─ {"id":27610,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/src/plugins/es_ui_shared/tsconfig.json (trace.10638-18.json)
+Hot Spots
+├─ Check file [35m/users/orouz/documents/projects/kibana/src/plugins/es_ui_shared/static/forms/components/fields/[36mmulti_select_field.tsx[39m[35m[39m (732ms)
+│  └─ Check deferred node from (line 34, char 7) to (line 50, char 23) (723ms)
+│     └─ Determine variance of type 31554 (689ms)
+│        └─ Compare types 79068 and 31570 (443ms)
+│           └─ Compare types 79066 and 31568 (441ms)
+│              └─ Compare types 79066 and 31567 (309ms)
+│                 └─ Compare types 79065 and 31567 (309ms)
+│                    ├─ {"id":79065,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+│                    └─ {"id":31567,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+└─ Check file [35m/users/orouz/documents/projects/kibana/src/plugins/es_ui_shared/__packages_do_not_import__/global_flyout/[36mglobal_flyout.tsx[39m[35m[39m (520ms)
+   └─ Check deferred node from (line 105, char 11) to (line 107, char 23) (514ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/spaces/tsconfig.json (trace.10638-24.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/spaces/public/copy_saved_objects_to_space/components/[36mselectable_spaces_control.tsx[39m[35m[39m (730ms)
+   └─ Check deferred node from (line 78, char 7) to (line 97, char 23) (719ms)
+      └─ Determine variance of type 32049 (667ms)
+         └─ Compare types 79523 and 32065 (417ms)
+            └─ Compare types 79521 and 32063 (416ms)
+               └─ Compare types 79521 and 32062 (292ms)
+                  └─ Compare types 79520 and 32062 (292ms)
+                     ├─ {"id":79520,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+                     └─ {"id":32062,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/triggers_actions_ui/tsconfig.json (trace.10638-43.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/triggers_actions_ui/public/application/sections/rules_list/components/[36mrule_tag_filter.tsx[39m[35m[39m (728ms)
+   └─ Check deferred node from (line 122, char 9) to (line 140, char 25) (707ms)
+      └─ Determine variance of type 40204 (659ms)
+         └─ Compare types 87688 and 40220 (424ms)
+            └─ Compare types 87686 and 40218 (423ms)
+               └─ Compare types 87686 and 40217 (298ms)
+                  └─ Compare types 87685 and 40217 (298ms)
+                     ├─ {"id":87685,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+                     └─ {"id":40217,"kind":"AnonymousType","location":{"path":"[35m/users/orouz/documents/projects/kibana/node_modules/[36m@elastic/eui[39m[35m/eui.d.ts[39m","line":15595,"char":74}}
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/cloud_security_posture/tsconfig.json (trace.10638-186.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/cloud_security_posture/public/pages/findings/findings_flyout/[36mfindings_flyout.tsx[39m[35m[39m (698ms)
+   └─ Check deferred node from (line 106, char 11) to (line 133, char 17) (662ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/upgrade_assistant/tsconfig.json (trace.10638-191.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/upgrade_assistant/public/application/components/es_deprecations/deprecation_types/ml_snapshots/[36mflyout.tsx[39m[35m[39m (673ms)
+   └─ Check variable declaration from (line 44, char 7) to (line 124, char 2) (639ms)
+      └─ Check expression from (line 44, char 19) to (line 124, char 2) (639ms)
+         └─ Check expression from (line 108, char 39) to (line 123, char 4) (504ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/watcher/tsconfig.json (trace.10638-193.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/watcher/public/application/sections/watch_status/components/[36mwatch_detail.tsx[39m[35m[39m (630ms)
+   └─ Check deferred node from (line 182, char 9) to (line 217, char 21) (540ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/src/plugins/presentation_util/tsconfig.json (trace.10638-29.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/src/plugins/presentation_util/public/components/labs/[36mlabs_flyout.tsx[39m[35m[39m (629ms)
+   └─ Check deferred node from (line 126, char 5) to (line 151, char 17) (561ms)
+
+Duplicate packages
+└─ @types/history
+   ├─ Version 4.7.9 from /Users/orouz/Documents/projects/kibana/node_modules/@types/history
+   └─ Version 4.7.3 from /Users/orouz/Documents/projects/kibana/node_modules/@types/react-router/node_modules/@types/history
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/index_lifecycle_management/tsconfig.json (trace.10638-197.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/index_lifecycle_management/public/application/components/[36mindex_templates_flyout.tsx[39m[35m[39m (613ms)
+   └─ Check deferred node from (line 43, char 5) to (line 88, char 17) (585ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/src/plugins/saved_objects_management/tsconfig.json (trace.10638-70.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/src/plugins/saved_objects_management/public/management_section/objects_table/components/[36mflyout.tsx[39m[35m[39m (609ms)
+   └─ Check deferred node from (line 632, char 13) to (line 653, char 19) (515ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/src/plugins/newsfeed/tsconfig.json (trace.10638-81.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/src/plugins/newsfeed/public/components/[36mflyout_list.tsx[39m[35m[39m (607ms)
+   └─ Check deferred node from (line 38, char 7) to (line 106, char 19) (493ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/transform/tsconfig.json (trace.10638-189.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/transform/public/app/sections/transform_management/components/edit_transform_flyout/[36medit_transform_flyout.tsx[39m[35m[39m (600ms)
+   └─ Check deferred node from (line 86, char 5) to (line 156, char 17) (588ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/examples/ui_actions_enhanced_examples/tsconfig.json (trace.10638-159.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/examples/ui_actions_enhanced_examples/public/containers/drilldowns_without_embeddable_example/[36mdrilldowns_without_embeddable_example.tsx[39m[35m[39m (595ms)
+   └─ Check deferred node from (line 117, char 24) to (line 126, char 21) (498ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/searchprofiler/tsconfig.json (trace.10638-204.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/searchprofiler/public/application/components/highlight_details_flyout/[36mhighlight_details_flyout.tsx[39m[35m[39m (595ms)
+   └─ Check deferred node from (line 44, char 11) to (line 121, char 17) (585ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/remote_clusters/tsconfig.json (trace.10638-195.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/remote_clusters/public/application/sections/components/remote_cluster_form/[36mrequest_flyout.tsx[39m[35m[39m (585ms)
+   └─ Check deferred node from (line 39, char 7) to (line 84, char 19) (521ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/src/plugins/discover/tsconfig.json (trace.10638-44.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/src/plugins/discover/public/components/discover_grid/[36mdiscover_grid_flyout.tsx[39m[35m[39m (584ms)
+   └─ Check deferred node from (line 109, char 7) to (line 244, char 19) (531ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/src/plugins/telemetry_management_section/tsconfig.json (trace.10638-88.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/src/plugins/telemetry_management_section/public/components/[36mopt_in_example_flyout.tsx[39m[35m[39m (582ms)
+   └─ Check deferred node from (line 127, char 9) to (line 149, char 21) (531ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/src/plugins/controls/tsconfig.json (trace.10638-31.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/src/plugins/controls/public/services/storybook/[36moverlays.tsx[39m[35m[39m (574ms)
+   └─ Check deferred node from (line 95, char 9) to (line 97, char 21) (557ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/lists/tsconfig.json (trace.10638-178.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/lists/public/exceptions/components/and_or_badge/[36mrounded_badge.tsx[39m[35m[39m (570ms)
+   └─ Check variable declaration from (line 16, char 7) to (line 34, char 32) (543ms)
+      └─ Check expression from (line 16, char 20) to (line 34, char 32) (532ms)
+         └─ Check expression from (line 16, char 20) to (line 34, char 13) (532ms)
+            └─ Check expression from (line 16, char 20) to (line 34, char 2) (532ms)
+               └─ Check expression from (line 16, char 20) to (line 16, char 36) (531ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/src/plugins/data_view_management/tsconfig.json (trace.10638-71.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/src/plugins/data_view_management/public/components/field_editor/components/scripting_help/[36mhelp_flyout.tsx[39m[35m[39m (570ms)
+   └─ Check deferred node from (line 61, char 5) to (line 65, char 17) (565ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/painless_lab/tsconfig.json (trace.10638-183.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/painless_lab/public/application/components/[36mrequest_flyout.tsx[39m[35m[39m (554ms)
+   └─ Check deferred node from (line 37, char 5) to (line 97, char 17) (543ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/index_management/tsconfig.json (trace.10638-176.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/index_management/public/application/sections/home/data_stream_list/data_stream_detail_panel/[36mdata_stream_detail_panel.tsx[39m[35m[39m (544ms)
+   └─ Check deferred node from (line 257, char 7) to (line 306, char 19) (526ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/src/plugins/console/tsconfig.json (trace.10638-69.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/src/plugins/console/public/application/components/[36mwelcome_panel.tsx[39m[35m[39m (542ms)
+   └─ Check deferred node from (line 30, char 5) to (line 121, char 17) (526ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/cases/tsconfig.json (trace.10638-151.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/cases/public/components/empty_value/[36mindex.tsx[39m[35m[39m (533ms)
+   └─ Check variable declaration from (line 14, char 7) to (line 16, char 2) (523ms)
+      └─ Check expression from (line 14, char 22) to (line 16, char 2) (523ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/src/plugins/kibana_react/tsconfig.json (trace.10638-5.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/src/plugins/kibana_react/common/[36meui_styled_components.tsx[39m[35m[39m (522ms)
+   └─ Check variable declaration from (line 48, char 7) to (line 54, char 74) (508ms)
+
+Duplicate packages
+└─ csstype
+   ├─ Version 2.6.7 from /Users/orouz/Documents/projects/kibana/node_modules/@emotion/styled-base/node_modules/csstype
+   └─ Version 2.6.7 from /Users/orouz/Documents/projects/kibana/node_modules/@types/styled-components/node_modules/csstype
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/ml/tsconfig.json (trace.10638-165.json)
+Hot Spots
+├─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/ml/public/application/data_frame_analytics/pages/analytics_management/components/action_edit/[36medit_action_flyout.tsx[39m[35m[39m (520ms)
+│  └─ Check deferred node from (line 131, char 5) to (line 305, char 17) (503ms)
+└─ Emit declarations file [35m/Users/orouz/Documents/projects/kibana/x-pack/plugins/ml/target/types/public/application/[36mapp.d.ts[39m[35m[39m (506ms)
+   ├─ Consider adding `[36mimport [36m"@elastic/elasticsearch/lib/api/typesWithBodyKey"[39m[36m[39m` which is used in 35 places
+   ├─ Consider adding `[36mimport [36m"../shared"[39m[36m[39m` which is used in 15 places
+   ├─ Consider adding `[36mimport [36m"../../common/types/saved_objects"[39m[36m[39m` which is used in 13 places
+   └─ Consider adding `[36mimport [36m"rxjs"[39m[36m[39m` which is used in 10 places
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/osquery/tsconfig.json (trace.10638-182.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/osquery/public/live_queries/form/[36mlive_query_query_field.tsx[39m[35m[39m (518ms)
+   └─ Check variable declaration from (line 16, char 7) to (line 18, char 2) (498ms)
+      └─ Check expression from (line 16, char 28) to (line 18, char 2) (498ms)
+         └─ Check expression from (line 16, char 28) to (line 16, char 48) (497ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/reporting/tsconfig.json (trace.10638-141.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/reporting/public/management/components/[36mreport_diagnostic.tsx[39m[35m[39m (513ms)
+   └─ Check deferred node from (line 204, char 15) to (line 226, char 19) (473ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/data_visualizer/tsconfig.json (trace.10638-163.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/data_visualizer/public/application/common/components/filebeat_config_flyout/[36mfilebeat_config_flyout.tsx[39m[35m[39m (509ms)
+   └─ Check deferred node from (line 65, char 5) to (line 100, char 17) (482ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/plugins/security/tsconfig.json (trace.10638-25.json)
+Hot Spots
+└─ Check file [35m/users/orouz/documents/projects/kibana/x-pack/plugins/security/public/components/[36mform_flyout.tsx[39m[35m[39m (507ms)
+   └─ Check deferred node from (line 61, char 7) to (line 97, char 19) (463ms)
+
+No duplicate packages found
+
+Analyzed /Users/orouz/Documents/projects/kibana/tsconfig.json (trace.10638-142.json)
+No hot spots found
+
+Duplicate packages
+└─ rxjs
+   ├─ Version 6.6.7 from /Users/orouz/Documents/projects/kibana/node_modules/@types/inquirer/node_modules/rxjs
+   └─ Version 7.5.5 from /Users/orouz/Documents/projects/kibana/node_modules/rxjs
+
+Analyzed /Users/orouz/Documents/projects/kibana/x-pack/examples/exploratory_view_example/tsconfig.json (trace.10638-155.json)
+No hot spots found
+
+Duplicate packages
+└─ @types/history
+   ├─ Version 4.7.9 from /Users/orouz/Documents/projects/kibana/node_modules/@types/history
+   └─ Version 4.7.3 from /Users/orouz/Documents/projects/kibana/node_modules/@types/react-router/node_modules/@types/history
+
+Found nothing in 156 other project(s)

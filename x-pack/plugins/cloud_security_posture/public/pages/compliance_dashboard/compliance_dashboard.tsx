@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { EuiSpacer, EuiIcon, EuiPageHeader } from '@elastic/eui';
+import { EuiSpacer, EuiIcon, EuiPageHeader, EuiButton } from '@elastic/eui';
 import { NoDataPage } from '@kbn/kibana-react-plugin/public';
 import { UseQueryResult } from 'react-query';
 import { i18n } from '@kbn/i18n';
@@ -20,6 +20,8 @@ import { BenchmarksSection } from './dashboard_sections/benchmarks_section';
 import { useComplianceDashboardDataApi } from '../../common/api';
 import { CspPageTemplate } from '../../components/csp_page_template';
 import { useCspSetupStatusApi } from '../../common/api/use_setup_status_api';
+import { useAppContext } from '../../application/app_state_context';
+import { useKibana } from '../../common/hooks/use_kibana';
 
 const NoData = ({ onClick }: { onClick: () => void }) => (
   <NoDataPage
@@ -63,7 +65,10 @@ export const ComplianceDashboardNoPageTemplate = () => {
   });
 
   const pageQuery: UseQueryResult = isFindingsIndexApplicable ? getDashboardData : getInfo;
+  // const {data:  { query }} =useKibana().services
+  const appState = useAppContext();
 
+  // console.log({ hey: appState.getState() });
   return (
     <CloudPosturePage query={pageQuery}>
       <EuiPageHeader
@@ -73,7 +78,14 @@ export const ComplianceDashboardNoPageTemplate = () => {
         })}
       />
       <EuiSpacer />
-      {isFindingsIndexApplicable ? (
+      <EuiButton
+        onClick={() =>
+          appState.set({ query: { language: 'kuery', query: 'foo : 1' }, filters: [] })
+        }
+      >
+        HEY
+      </EuiButton>
+      {false && isFindingsIndexApplicable ? (
         <div
           data-test-subj={DASHBOARD_CONTAINER}
           css={css`

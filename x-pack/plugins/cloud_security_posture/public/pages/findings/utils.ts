@@ -85,10 +85,10 @@ export const useBaseEsQuery = ({
   /**
    * Sync filters with the URL query
    */
-  useEffect(() => {
-    filterManager.setAppFilters(filters);
-    queryString.setQuery(query);
-  }, [filters, filterManager, queryString, query]);
+  // useEffect(() => {
+  //   filterManager.setAppFilters(filters);
+  //   queryString.setQuery(query);
+  // }, [filters, filterManager, queryString, query]);
 
   const handleMalformedQueryError = () => {
     const error = baseEsQuery.error;

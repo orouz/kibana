@@ -28,6 +28,8 @@ import { PageWrapper, PageTitle, PageTitleText } from '../layout/findings_layout
 import { FindingsGroupBySelector } from '../layout/findings_group_by_selector';
 import { useUrlQuery } from '../../../common/hooks/use_url_query';
 import { ErrorCallout } from '../layout/error_callout';
+import { useAppContext } from '../../../application/app_state_context';
+import { createStateContainer, useContainerState } from '@kbn/kibana-utils-plugin/common';
 
 export const getDefaultQuery = ({
   query,
@@ -41,25 +43,28 @@ export const getDefaultQuery = ({
 });
 
 export const LatestFindingsContainer = ({ dataView }: FindingsBaseProps) => {
-  const getPersistedDefaultQuery = usePersistedQuery(getDefaultQuery);
-  const { urlQuery, setUrlQuery } = useUrlQuery(getPersistedDefaultQuery);
+  // const getPersistedDefaultQuery = usePersistedQuery(getDefaultQuery);
+  // const { urlQuery, setUrlQuery } = useUrlQuery(getPersistedDefaultQuery);
+
+  const appContext = useAppContext();
+  const pageFoo = { pageIndex: 0, pageSize: 10 };
 
   /**
    * Page URL query to ES query
    */
   const baseEsQuery = useBaseEsQuery({
     dataView,
-    filters: urlQuery.filters,
-    query: urlQuery.query,
+    filters: appContext.state.filters,
+    query: appContext.state.query,
   });
 
   /**
    * Page ES query result
    */
   const findingsGroupByNone = useLatestFindings({
-    ...getPaginationQuery({ pageIndex: urlQuery.pageIndex, pageSize: urlQuery.pageSize }),
+    ...getPaginationQuery(pageFoo),
     query: baseEsQuery.query,
-    sort: urlQuery.sort,
+    sort: { field: '@timestamp', direction: 'desc' },
     enabled: !baseEsQuery.error,
   });
 
@@ -70,7 +75,9 @@ export const LatestFindingsContainer = ({ dataView }: FindingsBaseProps) => {
       <FindingsSearchBar
         dataView={dataView}
         setQuery={(query) => {
-          setUrlQuery({ ...query, pageIndex: 0 });
+          // setUrlQuery({ ...query, pageIndex: 0 });
+          // setUrlQuery({ ...query, pageIndex: 0 });
+          appContext.setState(query);
         }}
         loading={findingsGroupByNone.isFetching}
       />
@@ -90,8 +97,8 @@ export const LatestFindingsContainer = ({ dataView }: FindingsBaseProps) => {
                   passed: findingsGroupByNone.data.count.passed,
                   failed: findingsGroupByNone.data.count.failed,
                   ...getFindingsPageSizeInfo({
-                    pageIndex: urlQuery.pageIndex,
-                    pageSize: urlQuery.pageSize,
+                    pageIndex: pageFoo.pageIndex,
+                    pageSize: pageFoo.pageSize,
                     currentPageSize: findingsGroupByNone.data.page.length,
                   }),
                 }}
@@ -102,25 +109,27 @@ export const LatestFindingsContainer = ({ dataView }: FindingsBaseProps) => {
               loading={findingsGroupByNone.isFetching}
               items={findingsGroupByNone.data?.page || []}
               pagination={getPaginationTableParams({
-                pageSize: urlQuery.pageSize,
-                pageIndex: urlQuery.pageIndex,
+                pageSize: pageFoo.pageSize,
+                pageIndex: pageFoo.pageIndex,
                 totalItemCount: findingsGroupByNone.data?.total || 0,
               })}
               sorting={{
-                sort: { field: urlQuery.sort.field, direction: urlQuery.sort.direction },
+                sort: { field: '@timestamp', direction: 'desc' },
               }}
-              setTableOptions={({ page, sort }) =>
-                setUrlQuery({
-                  sort,
-                  pageIndex: page.index,
-                  pageSize: page.size,
-                })
-              }
+              setTableOptions={console.log}
+              // onAddFilter={console.log}
+              // setTableOptions={({ page, sort }) =>
+              //   setUrlQuery({
+              //     sort,
+              //     pageIndex: page.index,
+              //     pageSize: page.size,
+              //   })
+              // }
               onAddFilter={(field, value, negate) =>
-                setUrlQuery({
-                  pageIndex: 0,
+                appContext.setState({
+                  query: appContext.state.query,
                   filters: addFilter({
-                    filters: urlQuery.filters,
+                    filters: appContext.state.filters,
                     dataView,
                     field,
                     value,
