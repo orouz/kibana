@@ -20,6 +20,9 @@ import type {
 } from './types';
 import { PLUGIN_NAME, PLUGIN_ID } from '../common';
 
+const LazyCspCustomAssetExtension = lazy(() => import('./components/fleet/custom_assets'));
+const CspEditPolicyLazy = lazy(() => import('./components/fleet/edit_policy'));
+const CspCreatePolicyLazy = lazy(() => import('./components/fleet/create_policy'));
 const CspRouterLazy = lazy(() => import('./application/csp_router'));
 const CspRouter = (props: CspRouterProps) => (
   <Suspense
@@ -73,6 +76,24 @@ export class CspPlugin
   }
 
   public start(core: CoreStart, plugins: CspClientPluginStartDeps): CspClientPluginStart {
+    plugins.fleet.registerExtension({
+      package: 'cloud_security_posture',
+      view: 'package-policy-create',
+      Component: CspCreatePolicyLazy,
+    });
+
+    plugins.fleet.registerExtension({
+      package: 'cloud_security_posture',
+      view: 'package-policy-edit',
+      Component: CspEditPolicyLazy,
+    });
+
+    plugins.fleet.registerExtension({
+      package: 'cloud_security_posture',
+      view: 'package-detail-assets',
+      Component: LazyCspCustomAssetExtension,
+    });
+
     return {
       getCloudSecurityPostureRouter: () => (props: CspRouterProps) =>
         (

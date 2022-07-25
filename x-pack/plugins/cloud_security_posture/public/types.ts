@@ -11,6 +11,7 @@ import type { DataPublicPluginSetup, DataPublicPluginStart } from '@kbn/data-plu
 import type { ChartsPluginStart } from '@kbn/charts-plugin/public';
 import type { DiscoverStart } from '@kbn/discover-plugin/public';
 import type { BreadcrumbEntry, CloudSecurityPosturePageId } from './common/navigation/types';
+import { FleetSetup, FleetStart } from '@kbn/fleet-plugin/public';
 
 /**
  * The cloud security posture's public plugin setup interface.
@@ -31,7 +32,7 @@ export interface CspClientPluginStart {
 export interface CspClientPluginSetupDeps {
   // required
   data: DataPublicPluginSetup;
-
+  fleet: FleetSetup;
   // optional
 }
 
@@ -41,6 +42,7 @@ export interface CspClientPluginStartDeps {
   unifiedSearch: UnifiedSearchPublicPluginStart;
   charts: ChartsPluginStart;
   discover: DiscoverStart;
+  fleet: FleetStart;
   // optional
 }
 
