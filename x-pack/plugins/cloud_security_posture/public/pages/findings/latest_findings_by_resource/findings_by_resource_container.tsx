@@ -9,11 +9,11 @@ import { Route, Switch } from 'react-router-dom';
 import { FormattedMessage } from '@kbn/i18n-react';
 import { EuiSpacer } from '@elastic/eui';
 import { i18n } from '@kbn/i18n';
+import { useAppContextWithPageDefaults } from '../../../application/app_state_context';
 import { FindingsSearchBar } from '../layout/findings_search_bar';
 import * as TEST_SUBJECTS from '../test_subjects';
-import { useUrlQuery } from '../../../common/hooks/use_url_query';
-import type { FindingsBaseProps, FindingsBaseURLQuery } from '../types';
-import { FindingsByResourceQuery, useFindingsByResource } from './use_findings_by_resource';
+import type { FindingsBaseProps } from '../types';
+import { useFindingsByResource } from './use_findings_by_resource';
 import { FindingsByResourceTable } from './findings_by_resource_table';
 import {
   getFindingsPageSizeInfo,
@@ -21,7 +21,6 @@ import {
   getPaginationQuery,
   getPaginationTableParams,
   useBaseEsQuery,
-  usePersistedQuery,
 } from '../utils';
 import { PageTitle, PageTitleText, PageWrapper } from '../layout/findings_layout';
 import { FindingsGroupBySelector } from '../layout/findings_group_by_selector';
@@ -29,17 +28,6 @@ import { findingsNavigation } from '../../../common/navigation/constants';
 import { ResourceFindings } from './resource_findings/resource_findings_container';
 import { ErrorCallout } from '../layout/error_callout';
 import { FindingsDistributionBar } from '../layout/findings_distribution_bar';
-
-const getDefaultQuery = ({
-  query,
-  filters,
-}: FindingsBaseURLQuery): FindingsBaseURLQuery & FindingsByResourceQuery => ({
-  query,
-  filters,
-  pageIndex: 0,
-  pageSize: 10,
-  sortDirection: 'desc',
-});
 
 export const FindingsByResourceContainer = ({ dataView }: FindingsBaseProps) => (
   <Switch>
@@ -55,25 +43,29 @@ export const FindingsByResourceContainer = ({ dataView }: FindingsBaseProps) => 
   </Switch>
 );
 
+const pageDef = {
+  zoo: 2,
+  sort: { field: 'failed_findings', direction: 'desc' as const },
+};
+
 const LatestFindingsByResource = ({ dataView }: FindingsBaseProps) => {
-  const getPersistedDefaultQuery = usePersistedQuery(getDefaultQuery);
-  const { urlQuery, setUrlQuery } = useUrlQuery(getPersistedDefaultQuery);
+  const appContext = useAppContextWithPageDefaults(pageDef);
 
   /**
    * Page URL query to ES query
    */
   const baseEsQuery = useBaseEsQuery({
     dataView,
-    filters: urlQuery.filters,
-    query: urlQuery.query,
+    filters: appContext.state.filters,
+    query: appContext.state.query,
   });
 
   /**
    * Page ES query result
    */
   const findingsGroupByResource = useFindingsByResource({
-    ...getPaginationQuery(urlQuery),
-    sortDirection: urlQuery.sortDirection,
+    ...getPaginationQuery(appContext.state),
+    sortDirection: appContext.state.sort?.direction,
     query: baseEsQuery.query,
     enabled: !baseEsQuery.error,
   });
@@ -85,7 +77,7 @@ const LatestFindingsByResource = ({ dataView }: FindingsBaseProps) => {
       <FindingsSearchBar
         dataView={dataView}
         setQuery={(query) => {
-          setUrlQuery({ ...query, pageIndex: 0 });
+          appContext.setState({ ...query, pageIndex: 0 });
         }}
         loading={findingsGroupByResource.isFetching}
       />
@@ -114,8 +106,8 @@ const LatestFindingsByResource = ({ dataView }: FindingsBaseProps) => {
                   passed: findingsGroupByResource.data.count.passed,
                   failed: findingsGroupByResource.data.count.failed,
                   ...getFindingsPageSizeInfo({
-                    pageIndex: urlQuery.pageIndex,
-                    pageSize: urlQuery.pageSize,
+                    pageIndex: appContext.state.pageIndex,
+                    pageSize: appContext.state.pageSize,
                     currentPageSize: findingsGroupByResource.data.page.length,
                   }),
                 }}
@@ -126,25 +118,25 @@ const LatestFindingsByResource = ({ dataView }: FindingsBaseProps) => {
               loading={findingsGroupByResource.isFetching}
               items={findingsGroupByResource.data?.page || []}
               pagination={getPaginationTableParams({
-                pageSize: urlQuery.pageSize,
-                pageIndex: urlQuery.pageIndex,
+                pageSize: appContext.state.pageSize,
+                pageIndex: appContext.state.pageIndex,
                 totalItemCount: findingsGroupByResource.data?.total || 0,
               })}
               setTableOptions={({ sort, page }) =>
-                setUrlQuery({
-                  sortDirection: sort?.direction,
+                appContext.setState({
+                  sort: { field: sort?.field, direction: sort?.direction as 'desc' },
                   pageIndex: page.index,
                   pageSize: page.size,
                 })
               }
               sorting={{
-                sort: { field: 'failed_findings', direction: urlQuery.sortDirection },
+                sort: { field: 'failed_findings', direction: appContext.state.sort.direction },
               }}
               onAddFilter={(field, value, negate) =>
-                setUrlQuery({
+                appContext.setState({
                   pageIndex: 0,
                   filters: addFilter({
-                    filters: urlQuery.filters,
+                    filters: appContext.state.filters,
                     dataView,
                     field,
                     value,

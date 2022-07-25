@@ -8,7 +8,7 @@ import React from 'react';
 import { FormattedMessage } from '@kbn/i18n-react';
 import { EuiSpacer } from '@elastic/eui';
 import { i18n } from '@kbn/i18n';
-import type { FindingsBaseProps } from '../types';
+import type { CspFinding, FindingsBaseProps } from '../types';
 import { FindingsTable } from './latest_findings_table';
 import { FindingsSearchBar } from '../layout/findings_search_bar';
 import * as TEST_SUBJECTS from '../test_subjects';
@@ -22,14 +22,11 @@ import {
   getPaginationQuery,
   getPaginationTableParams,
   useBaseEsQuery,
-  usePersistedQuery,
 } from '../utils';
 import { PageWrapper, PageTitle, PageTitleText } from '../layout/findings_layout';
 import { FindingsGroupBySelector } from '../layout/findings_group_by_selector';
-import { useUrlQuery } from '../../../common/hooks/use_url_query';
 import { ErrorCallout } from '../layout/error_callout';
-import { useAppContext } from '../../../application/app_state_context';
-import { createStateContainer, useContainerState } from '@kbn/kibana-utils-plugin/common';
+import { useAppContextWithPageDefaults } from '../../../application/app_state_context';
 
 export const getDefaultQuery = ({
   query,
@@ -42,12 +39,15 @@ export const getDefaultQuery = ({
   pageSize: 10,
 });
 
+const fooDef = {
+  sort: { field: '@timestamp' as keyof CspFinding, direction: 'desc' as 'desc' | 'asc' },
+};
+
 export const LatestFindingsContainer = ({ dataView }: FindingsBaseProps) => {
   // const getPersistedDefaultQuery = usePersistedQuery(getDefaultQuery);
   // const { urlQuery, setUrlQuery } = useUrlQuery(getPersistedDefaultQuery);
 
-  const appContext = useAppContext();
-  const pageFoo = { pageIndex: 0, pageSize: 10 };
+  const appContext = useAppContextWithPageDefaults(fooDef);
 
   /**
    * Page URL query to ES query
@@ -58,16 +58,17 @@ export const LatestFindingsContainer = ({ dataView }: FindingsBaseProps) => {
     query: appContext.state.query,
   });
 
+  console.log(appContext.state);
+
   /**
    * Page ES query result
    */
   const findingsGroupByNone = useLatestFindings({
-    ...getPaginationQuery(pageFoo),
+    ...getPaginationQuery(appContext.state),
     query: baseEsQuery.query,
-    sort: { field: '@timestamp', direction: 'desc' },
+    sort: appContext.state.sort,
     enabled: !baseEsQuery.error,
   });
-
   const error = findingsGroupByNone.error || baseEsQuery.error;
 
   return (
@@ -75,9 +76,7 @@ export const LatestFindingsContainer = ({ dataView }: FindingsBaseProps) => {
       <FindingsSearchBar
         dataView={dataView}
         setQuery={(query) => {
-          // setUrlQuery({ ...query, pageIndex: 0 });
-          // setUrlQuery({ ...query, pageIndex: 0 });
-          appContext.setState(query);
+          appContext.setState({ ...query, pageIndex: 0 });
         }}
         loading={findingsGroupByNone.isFetching}
       />
@@ -97,8 +96,8 @@ export const LatestFindingsContainer = ({ dataView }: FindingsBaseProps) => {
                   passed: findingsGroupByNone.data.count.passed,
                   failed: findingsGroupByNone.data.count.failed,
                   ...getFindingsPageSizeInfo({
-                    pageIndex: pageFoo.pageIndex,
-                    pageSize: pageFoo.pageSize,
+                    pageIndex: appContext.state.pageIndex,
+                    pageSize: appContext.state.pageSize,
                     currentPageSize: findingsGroupByNone.data.page.length,
                   }),
                 }}
@@ -109,22 +108,20 @@ export const LatestFindingsContainer = ({ dataView }: FindingsBaseProps) => {
               loading={findingsGroupByNone.isFetching}
               items={findingsGroupByNone.data?.page || []}
               pagination={getPaginationTableParams({
-                pageSize: pageFoo.pageSize,
-                pageIndex: pageFoo.pageIndex,
+                pageSize: appContext.state.pageSize,
+                pageIndex: appContext.state.pageIndex,
                 totalItemCount: findingsGroupByNone.data?.total || 0,
               })}
               sorting={{
-                sort: { field: '@timestamp', direction: 'desc' },
+                sort: appContext.state.sort,
               }}
-              setTableOptions={console.log}
-              // onAddFilter={console.log}
-              // setTableOptions={({ page, sort }) =>
-              //   setUrlQuery({
-              //     sort,
-              //     pageIndex: page.index,
-              //     pageSize: page.size,
-              //   })
-              // }
+              setTableOptions={({ page, sort }) =>
+                appContext.setState({
+                  sort,
+                  pageIndex: page.index,
+                  pageSize: page.size,
+                })
+              }
               onAddFilter={(field, value, negate) =>
                 appContext.setState({
                   query: appContext.state.query,

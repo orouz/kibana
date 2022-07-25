@@ -22,17 +22,26 @@ import {
   syncStates,
   useContainerState,
 } from '@kbn/kibana-utils-plugin/public';
+import { History } from 'history';
 import { useKibana } from '../common/hooks/use_kibana';
 
 interface AppState {
   filters: Filter[];
   query: Query;
+  sort: { field: string; direction: 'desc' | 'asc' };
+  pageIndex: number;
+  pageSize: number;
 }
 
 const defaultState: AppState = {
   filters: [],
   query: { language: 'kuery', query: '' },
+  sort: { field: '@timestamp', direction: 'desc' },
+  pageIndex: 0,
+  pageSize: 10,
 };
+
+const APP_STORAGE_KEY = '_a';
 
 type AppStateContainer = ReduxLikeStateContainer<AppState, {}, {}>;
 
@@ -43,8 +52,19 @@ interface AppContext {
 
 const AppContext = React.createContext<AppContext>(null as any);
 export const useAppContext = () => React.useContext(AppContext);
+export const useAppContextWithPageDefaults = <T extends Partial<AppState>>(defaults: T) => {
+  const ctx = useAppContext();
+  const { setState } = ctx;
 
-export const AppContextProvider: React.FC = ({ children, history }) => {
+  useEffect(() => {
+    setState(defaults);
+    // setState,  infinite loop[]
+  }, [defaults]);
+
+  return ctx as { state: AppState & T; setState(v: Partial<AppState & T>): void };
+};
+
+export const AppContextProvider: React.FC<{ history: History }> = ({ children, history }) => {
   const {
     notifications: { toasts },
     data,
@@ -60,7 +80,10 @@ export const AppContextProvider: React.FC = ({ children, history }) => {
     [toasts, history]
   );
 
-  const initialStateFromUrl = useMemo(() => urlStateStorage.get<AppState>('_a'), [urlStateStorage]);
+  const initialStateFromUrl = useMemo(
+    () => urlStateStorage.get<AppState>(APP_STORAGE_KEY),
+    [urlStateStorage]
+  );
 
   const initialState = useMemo(
     () => ({
@@ -71,7 +94,6 @@ export const AppContextProvider: React.FC = ({ children, history }) => {
   );
 
   const stateContainer = useMemo(() => createStateContainer(initialState), [initialState]);
-  const pageStateContainer = useMemo(() => createStateContainer({ rows: 10 }), []);
 
   useAppGlobalStateSync({ query: data.query, urlStateStorage });
   useAppLocalStateSync({
@@ -79,12 +101,11 @@ export const AppContextProvider: React.FC = ({ children, history }) => {
     urlStateStorage,
     stateContainer,
     initialState,
-    pageStateContainer,
   });
 
   useEffect(() => {
     if (!initialStateFromUrl) {
-      urlStateStorage.set('_a', initialState, { replace: true });
+      urlStateStorage.set(APP_STORAGE_KEY, initialState, { replace: true });
     }
   }, [initialState, initialStateFromUrl, urlStateStorage]);
 
@@ -92,13 +113,16 @@ export const AppContextProvider: React.FC = ({ children, history }) => {
   const value = useMemo(
     () => ({
       state,
-      setState: stateContainer.set,
+      setState: (s: Partial<AppState>) => stateContainer.set({ ...state, ...s }),
     }),
-    [state, stateContainer.set]
+    [state, stateContainer]
   );
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
 
+/**
+ * Sync global state with URL
+ */
 const useAppGlobalStateSync = ({
   query,
   urlStateStorage,
@@ -108,13 +132,17 @@ const useAppGlobalStateSync = ({
 }) => {
   useEffect(() => {
     const { stop } = syncGlobalQueryStateWithUrl(query, urlStateStorage);
-    return () => stop();
+    return () => {
+      stop();
+    };
   }, [query, urlStateStorage]);
 };
 
+/**
+ * Sync local state with URL
+ */
 const useAppLocalStateSync = ({
   stateContainer,
-  pageStateContaine,
   urlStateStorage,
   query,
 }: {
@@ -133,26 +161,18 @@ const useAppLocalStateSync = ({
     // sets up syncing app state container with url
     const { start: startAppStateUrlSync, stop: stopAppStateUrlSync } = syncStates([
       {
-        storageKey: '_a',
+        storageKey: APP_STORAGE_KEY,
         stateContainer: {
           ...stateContainer,
           set: (state) => {
             //   stateContainer.set({ ...defaultState, ...stateContainer.getState(), ...state });
 
             urlStateStorage.set(
-              '_a',
+              APP_STORAGE_KEY,
               { ...defaultState, ...stateContainer.getState(), ...state },
               { replace: true }
             );
           },
-        },
-        stateStorage: urlStateStorage,
-      },
-      {
-        storageKey: '_p',
-        stateContainer: {
-          ...pageStateContainer,
-          set: (s) => s && pageStateContainer.set(s),
         },
         stateStorage: urlStateStorage,
       },
