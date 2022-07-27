@@ -22,44 +22,42 @@ export const defaultConfig: PolicyConfig = DEFAULT_FIELDS;
  * Exports Synthetics-specific package policy instructions
  * for use in the Ingest app create / edit package policy
  */
-export const SyntheticsPolicyCreateExtension = memo<PackagePolicyCreateExtensionComponentProps>(
-  ({ newPolicy, onChange }) => {
-    useTrackPageview({ app: 'fleet', path: 'syntheticsCreate' });
-    useTrackPageview({ app: 'fleet', path: 'syntheticsCreate', delay: 15000 });
+export const SyntheticsPolicyCreateExtension = newPolicy(({ newPolicy, onChange }) => {
+  useTrackPageview({ app: 'fleet', path: 'syntheticsCreate' });
+  useTrackPageview({ app: 'fleet', path: 'syntheticsCreate', delay: 15000 });
 
-    const { monitorType } = usePolicyConfigContext();
-    const policyConfig: PolicyConfig = usePolicy(newPolicy.name);
+  const { monitorType } = usePolicyConfigContext();
+  const policyConfig: PolicyConfig = usePolicy(newPolicy.name);
 
-    const dataStreams: DataStream[] = useMemo(() => {
-      return newPolicy.inputs.map((input) => {
-        return input.type.replace(/synthetics\//g, '') as DataStream;
-      });
-    }, [newPolicy]);
-
-    useUpdatePolicy({
-      monitorType,
-      defaultConfig: defaultConfig[monitorType] as Partial<MonitorFields>,
-      config: policyConfig[monitorType] as Partial<MonitorFields>,
-      newPolicy,
-      onChange,
-      validate,
+  const dataStreams: DataStream[] = useMemo(() => {
+    return newPolicy.inputs.map((input) => {
+      return input.type.replace(/synthetics\//g, '') as DataStream;
     });
+  }, [newPolicy]);
 
-    // Fleet will initialize the create form with a default name for the integratin policy, however,
-    // for synthetics, we want the user to explicitely type in a name to use as the monitor name,
-    // so we blank it out only during 1st component render (thus why the eslint disabled rule below).
-    useEffect(() => {
-      onChange({
-        isValid: false,
-        updatedPolicy: {
-          ...newPolicy,
-          name: '',
-        },
-      });
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+  useUpdatePolicy({
+    monitorType,
+    defaultConfig: defaultConfig[monitorType] as Partial<MonitorFields>,
+    config: policyConfig[monitorType] as Partial<MonitorFields>,
+    newPolicy,
+    onChange,
+    validate,
+  });
 
-    return <CustomFields validate={validate[monitorType]} dataStreams={dataStreams} />;
-  }
-);
+  // Fleet will initialize the create form with a default name for the integratin policy, however,
+  // for synthetics, we want the user to explicitely type in a name to use as the monitor name,
+  // so we blank it out only during 1st component render (thus why the eslint disabled rule below).
+  useEffect(() => {
+    onChange({
+      isValid: false,
+      updatedPolicy: {
+        ...newPolicy,
+        name: '',
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return <CustomFields validate={validate[monitorType]} dataStreams={dataStreams} />;
+});
 SyntheticsPolicyCreateExtension.displayName = 'SyntheticsPolicyCreateExtension';
