@@ -32,7 +32,6 @@ interface Props {
 
 const kubeDeployOptions: Array<EuiComboBoxOptionOption<InputType>> = [
   {
-    'data-test-subj': 'cloudbeat_vanilla_option',
     value: 'cloudbeat/vanilla',
     label: i18n.translate(
       'xpack.csp.createPackagePolicy.stepConfigure.integrationSettingsSection.vanillaKubernetesDeploymentOption',
@@ -40,7 +39,6 @@ const kubeDeployOptions: Array<EuiComboBoxOptionOption<InputType>> = [
     ),
   },
   {
-    'data-test-subj': 'cloudbeat_eks_option',
     value: 'cloudbeat/eks',
     label: i18n.translate(
       'xpack.csp.createPackagePolicy.stepConfigure.integrationSettingsSection.eksKubernetesDeploymentOption',
@@ -49,7 +47,6 @@ const kubeDeployOptions: Array<EuiComboBoxOptionOption<InputType>> = [
   },
 ];
 
-// TODO: this breaks in responsive,, ends up in a column not a row with aligned with text
 const KubernetesDeploymentFieldLabel = () => (
   <EuiToolTip
     content={
@@ -59,14 +56,13 @@ const KubernetesDeploymentFieldLabel = () => (
       />
     }
   >
-    <EuiFlexGroup gutterSize="xs" alignItems="center">
-      <EuiFlexItem grow={2} style={{ whiteSpace: 'nowrap' }}>
+    <EuiFlexGroup gutterSize="none" alignItems="center" responsive={false}>
+      <EuiFlexItem grow style={{ flexDirection: 'row' }}>
         <FormattedMessage
           id="xpack.csp.createPackagePolicy.stepConfigure.integrationSettingsSection.kubernetesDeploymentLabel"
           defaultMessage="Kubernetes Deployment"
         />
-      </EuiFlexItem>
-      <EuiFlexItem grow={1}>
+        &nbsp;
         <EuiIcon size="m" color="subdued" type="questionInCircle" />
       </EuiFlexItem>
     </EuiFlexGroup>

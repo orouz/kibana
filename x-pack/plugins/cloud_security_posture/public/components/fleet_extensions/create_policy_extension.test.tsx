@@ -8,7 +8,7 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react';
 import type { NewPackagePolicy } from '@kbn/fleet-plugin/public';
-import { CspCreatePolicyExtension, CSP_CREATE_POLICY_FORM } from './create_policy_extension';
+import { CspCreatePolicyExtension } from './create_policy_extension';
 import { eksVars } from './eks_form';
 import Chance from 'chance';
 import { CLOUDBEAT_EKS } from '../../../common/constants';
@@ -92,9 +92,8 @@ describe('<CspCreatePolicyExtension />', () => {
   });
 
   it('renders <DeploymentTypeSelect/>', async () => {
-    const { getByLabelText, getByTestId } = render(<WrappedComponent />);
+    const { getByLabelText } = render(<WrappedComponent />);
 
-    expect(getByTestId(CSP_CREATE_POLICY_FORM)).toBeInTheDocument();
     expect(getByLabelText('Kubernetes Deployment')).toBeInTheDocument();
   });
 

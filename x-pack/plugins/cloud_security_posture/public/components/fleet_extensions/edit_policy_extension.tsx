@@ -6,7 +6,7 @@
  */
 
 import React, { memo } from 'react';
-import { EuiFlexGroup, EuiFlexItem, EuiForm } from '@elastic/eui';
+import { EuiDescribedFormGroup, EuiForm } from '@elastic/eui';
 import type { PackagePolicyCreateExtensionComponentProps } from '@kbn/fleet-plugin/public';
 import { DeploymentTypeSelect, getEnabledInputType } from './deployment_type_select';
 
@@ -16,12 +16,9 @@ export const CspEditPolicyExtension = memo<PackagePolicyCreateExtensionComponent
 
     return (
       <EuiForm style={{ paddingBottom: 40 }}>
-        <EuiFlexGroup>
-          <EuiFlexItem grow={1}>&nbsp;</EuiFlexItem>
-          <EuiFlexItem grow={1}>
-            <DeploymentTypeSelect type={selectedDeploymentType} />
-          </EuiFlexItem>
-        </EuiFlexGroup>
+        <EuiDescribedFormGroup title={<div />}>
+          <DeploymentTypeSelect type={selectedDeploymentType} />
+        </EuiDescribedFormGroup>
       </EuiForm>
     );
   }
