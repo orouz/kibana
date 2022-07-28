@@ -6,15 +6,22 @@
  */
 import type { NewPackagePolicy } from '@kbn/fleet-plugin/public';
 import type { PackagePolicy } from '@kbn/fleet-plugin/common';
-import { BenchmarkId } from '../../../common/types';
+import { createNewPackagePolicyMock } from '@kbn/fleet-plugin/common/mocks';
+import type { BenchmarkId } from '../../../common/types';
 
 export const getCspNewPolicyMock = (type: BenchmarkId = 'cis_k8s'): NewPackagePolicy => ({
+  ...createNewPackagePolicyMock(),
   name: 'some-cloud_security_posture-policy',
-  description: '',
-  namespace: 'default',
-  policy_id: '',
-  enabled: true,
-  output_id: '',
+  package: {
+    name: 'cloud_security_posture',
+    title: 'Kubernetes Security Posture Management',
+    version: '0.0.21',
+  },
+  vars: {
+    dataYaml: {
+      type: 'yaml',
+    },
+  },
   inputs: [
     {
       type: 'cloudbeat/vanilla',
@@ -56,16 +63,6 @@ export const getCspNewPolicyMock = (type: BenchmarkId = 'cis_k8s'): NewPackagePo
       ],
     },
   ],
-  package: {
-    name: 'cloud_security_posture',
-    title: 'Kubernetes Security Posture Management',
-    version: '0.0.21',
-  },
-  vars: {
-    dataYaml: {
-      type: 'yaml',
-    },
-  },
 });
 
 export const getCspPolicyMock = (type: BenchmarkId = 'cis_k8s'): PackagePolicy => ({
@@ -130,10 +127,4 @@ export const getCspPolicyMock = (type: BenchmarkId = 'cis_k8s'): PackagePolicy =
       enabled: type === 'cis_eks',
     },
   ],
-  vars: {
-    dataYaml: {
-      type: 'yaml',
-      value: 'data_yaml:\n  activated_rules:\n    cis_k8s: []\n    cis_eks:\n      - cis_3_1_4\n ',
-    },
-  },
 });
