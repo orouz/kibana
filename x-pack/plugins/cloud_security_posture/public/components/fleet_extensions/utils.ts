@@ -4,38 +4,13 @@
  * 2.0; you may not use this file except in compliance with the Elastic License
  * 2.0.
  */
-import type { NewPackagePolicy, NewPackagePolicyInput } from '@kbn/fleet-plugin/common';
-import { CLOUDBEAT_EKS, CLOUDBEAT_VANILLA } from '../../../common/constants';
-import { InputType } from './deployment_type_select';
+import type { NewPackagePolicyInput } from '@kbn/fleet-plugin/common';
+import { CLOUDBEAT_EKS } from '../../../common/constants';
 
 export const isEksInput = (input: NewPackagePolicyInput) => input.type === CLOUDBEAT_EKS;
 
-export const getEnabledInputType = (inputs: NewPackagePolicy['inputs']): InputType =>
-  (inputs.find((input) => input.enabled)?.type as InputType) || CLOUDBEAT_VANILLA;
-
-export const getUpdatedDeploymentType = (newPolicy: NewPackagePolicy, inputType: InputType) => ({
-  isValid: true, // TODO: add validations
-  updatedPolicy: {
-    ...newPolicy,
-    inputs: newPolicy.inputs.map((item) => ({
-      ...item,
-      enabled: item.type === inputType,
-    })),
-  },
-});
-
-export const getUpdatedEksVar = (newPolicy: NewPackagePolicy, key: string, value: string) => ({
-  isValid: true, // TODO: add validations
-  updatedPolicy: {
-    ...newPolicy,
-    inputs: newPolicy.inputs.map((item) =>
-      isEksInput(item) ? getUpdatedStreamVars(item, key, value) : item
-    ),
-  },
-});
-
 // TODO: remove access to first stream
-const getUpdatedStreamVars = (item: NewPackagePolicyInput, key: string, value: string) => {
+export const getUpdatedStreamVars = (item: NewPackagePolicyInput, key: string, value: string) => {
   if (!item.streams[0]) return item;
 
   return {
