@@ -25,7 +25,8 @@ export default async function ({ readConfigFile }: FtrConfigProviderContext) {
       cloudPosture: (ctx) => {
         const kibanaServer = ctx.getService('kibanaServer');
         const supertest = ctx.getService('supertest');
-
+        // node scripts/kbn_archiver.js save x-pack/test/functional/fixtures/kbn_archiver/csp --config x-pack/test/cloud_posture_api_integration/config.ts --type csp_rule  --kibana-url=http://elastic:changeme@localhost:5601/ogv
+        // kibanaServer.importExport.load('x-pack/test/functional/fixtures/kbn_archiver/csp/csp_rule.json');
         return {
           createAgentPolicy() {
             return supertest
