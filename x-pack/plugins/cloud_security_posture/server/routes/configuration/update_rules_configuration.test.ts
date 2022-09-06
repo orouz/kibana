@@ -11,8 +11,8 @@ import {
   getUpdatedPackagePolicy,
   updatePackagePolicyRuntimeCfgVar,
   updatePackagePolicyCspRules,
-  UpdateRulesConfigBodySchema,
   updateRulesConfigurationHandler,
+  type UpdateRulesConfigBodySchema,
   type PackagePolicyRuleUpdatePayload,
 } from './update_rules_configuration';
 import { createPackagePolicyMock } from '@kbn/fleet-plugin/common/mocks';
@@ -390,7 +390,7 @@ describe('Update rules configuration API', () => {
     } catch (e) {
       expect(responseMock.customError).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: `Saved object [ingest-package-policies/${requestMock.body.package_policy_id}] not found`,
+          statusCode: 404,
         })
       );
     }

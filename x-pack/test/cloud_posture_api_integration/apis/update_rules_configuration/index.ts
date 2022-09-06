@@ -6,30 +6,19 @@
  */
 import expect from '@kbn/expect';
 import Chance from 'chance';
-import { FtrProviderContext } from '../../ftr_provider_context';
+// import { FtrProviderContext } from '../../ftr_provider_context';
 
-export default function ({ getService }: FtrProviderContext) {
+export default function ({ getService }) {
   const supertest = getService('supertest');
   const esArchiver = getService('esArchiver');
   const chance = new Chance();
   const kibanaServer = getService('kibanaServer');
+  const cloudPosture = getService('cloudPosture');
 
-  // Failing: See https://github.com/elastic/kibana/issues/139683
   describe('POST /internal/cloud_security_posture/update_rules_config', () => {
-    let agentPolicyId: string;
-
     before(async () => {
       await kibanaServer.savedObjects.cleanStandardList();
       await esArchiver.load('x-pack/test/functional/es_archives/fleet/empty_fleet_server');
-
-      const { body: agentPolicyResponse } = await supertest
-        .post(`/api/fleet/agent_policies`)
-        .set('kbn-xsrf', 'xxxx')
-        .send({
-          name: 'Test policy',
-          namespace: 'default',
-        });
-      agentPolicyId = agentPolicyResponse.item.id;
     });
 
     after(async () => {
@@ -49,25 +38,26 @@ export default function ({ getService }: FtrProviderContext) {
       expect(response.error).to.be('Not Found');
     });
 
-    it(`Should return 200 for existing package policy id`, async () => {
-      const { body: postPackageResponse } = await supertest
-        .post(`/api/fleet/package_policies`)
+    it('updates rules in package policy vars', async () => {
+      const packagePolicy = await cloudPosture.createPackagePolicy();
+      const { body: currentRules } = await supertest
+        .get(`/api/saved_objects/_find?type=csp_rule`)
+        .expect(200);
+
+      const ruleToToggle = currentRules.saved_objects[0];
+
+      const { body: updatedPackagePolicy } = await supertest
+        .post(`/internal/cloud_security_posture/update_rules_config`)
         .set('kbn-xsrf', 'xxxx')
         .send({
-          force: true,
-          name: 'cloud_security_posture-1',
-          description: '',
-          namespace: 'default',
-          policy_id: agentPolicyId,
-          enabled: true,
-          inputs: [],
-          package: {
-            name: 'cloud_security_posture',
-            title: 'Kubernetes Security Posture Management',
-            version: '0.0.27', // TODO: Find a method of maintaining the most recent version of the package
-          },
+          package_policy_id: packagePolicy.id,
+          rules: [{ id: ruleToToggle.id, enabled: !ruleToToggle.attributes.enabled }],
         })
         .expect(200);
+
+      const packageRulesRegoIds: string[] = updatedPackagePolicy.vars.runtimeCfg.value.split('\n');
+      const result = packageRulesRegoIds.includes(ruleToToggle.attributes.rego_rule_id);
+      expect(result).to.be(!ruleToToggle.attributes.enabled);
     });
   });
 }

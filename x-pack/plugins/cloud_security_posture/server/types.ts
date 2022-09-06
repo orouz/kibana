@@ -74,6 +74,12 @@ export type CspRequestHandlerContext = CustomRequestHandlerContext<{
 }>;
 
 /**
+ * Convenience type for routers in Csp that includes the CspRequestHandlerContext type
+ * @internal
+ */
+export type CspRouter = IRouter<CspRequestHandlerContext>;
+
+/**
  * Convenience type for request handlers in CSP that includes the CspRequestHandlerContext type
  * @internal
  */
@@ -84,9 +90,3 @@ export type CspRequestHandler<
   Method extends RouteMethod = any,
   ResponseFactory extends KibanaResponseFactory = KibanaResponseFactory
 > = RequestHandler<P, Q, B, CspRequestHandlerContext, Method, ResponseFactory>;
-
-/**
- * Convenience type for routers in Csp that includes the CspRequestHandlerContext type
- * @internal
- */
-export type CspRouter = IRouter<CspRequestHandlerContext>;
