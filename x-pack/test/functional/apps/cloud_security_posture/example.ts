@@ -23,6 +23,14 @@ export default function ({ getService }: FtrProviderContext) {
       await esArchiver.unload('x-pack/test/functional/es_archives/fleet/agents');
     });
 
+    /**
+     * await esArchiver.load('x-pack/test/functional/es_archives/csp/k8s_eks');
+     * await esArchiver.load('x-pack/test/functional/es_archives/csp/k8s_managed');
+     * await esArchiver.load('x-pack/test/functional/es_archives/csp/findings');
+     *
+     * kibanaServer.importExport.load();
+     */
+
     it('navigates to CSP Benchmarks page', async () => {
       await cloudPosture.benchmarks.goToBenchmarksPage();
     });
