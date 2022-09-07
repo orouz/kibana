@@ -103,6 +103,7 @@ const FindingsTableComponent = ({
         onChange={setTableOptions}
         rowProps={getRowProps}
         cellProps={getCellProps}
+        itemId={(item) => item.resource.id}
         hasActions
       />
       {selectedFinding && (

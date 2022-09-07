@@ -65,7 +65,7 @@ const renderFindingsPage = () => {
 };
 
 describe('<Findings />', () => {
-  it('no findings state: not-deployed - shows NotDeployed instead of findings', () => {
+  it.only('no findings state: not-deployed - shows NotDeployed instead of findings', () => {
     (useCspSetupStatusApi as jest.Mock).mockImplementation(() =>
       createReactQueryResponse({
         status: 'success',

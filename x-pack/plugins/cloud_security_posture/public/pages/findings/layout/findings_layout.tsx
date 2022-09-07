@@ -140,7 +140,9 @@ const baseColumns = [
     truncateText: true,
     render: (tags: string[]) => {
       const { benchmark, version } = getPrimaryRuleTags(tags);
-      return [benchmark, version].map((tag) => <EuiBadge>{tag}</EuiBadge>);
+      return [benchmark, version]
+        .filter(Boolean)
+        .map((tag) => <EuiBadge key={tag}>{tag}</EuiBadge>);
     },
   },
   {

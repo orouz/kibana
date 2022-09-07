@@ -9,7 +9,6 @@ import React from 'react';
 import Chance from 'chance';
 import { Rules } from '.';
 import { render, screen } from '@testing-library/react';
-import { QueryClient } from '@tanstack/react-query';
 import { TestProvider } from '../../test/test_provider';
 import { useCspIntegrationInfo } from './use_csp_integration';
 import { type RouteComponentProps } from 'react-router-dom';
@@ -26,12 +25,6 @@ jest.mock('./use_csp_integration', () => ({
 jest.mock('../../common/api/use_setup_status_api');
 jest.mock('../../common/navigation/use_navigate_to_cis_integration');
 const chance = new Chance();
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: false },
-  },
-});
 
 const getTestComponent =
   (params: PageUrlParams): React.FC =>
@@ -60,7 +53,6 @@ const getTestComponent =
 
 describe('<Rules />', () => {
   beforeEach(() => {
-    queryClient.clear();
     jest.clearAllMocks();
     (useCspSetupStatusApi as jest.Mock).mockImplementation(() =>
       createReactQueryResponse({
@@ -85,7 +77,7 @@ describe('<Rules />', () => {
     expect(useCspIntegrationInfo).toHaveBeenCalledWith(params);
   });
 
-  it('displays success state when result request is resolved', async () => {
+  it.only('displays success state when result request is resolved', async () => {
     const Component = getTestComponent({ packagePolicyId: '21', policyId: '22' });
     const response = createReactQueryResponse({
       status: 'success',

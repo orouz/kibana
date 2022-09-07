@@ -61,7 +61,7 @@ export const useBulkUpdateCspRules = () => {
           attributes: savedObjectRule.attributes,
         }))
       );
-      await http.post(UPDATE_RULES_CONFIG_ROUTE_PATH, {
+      return await http.post(UPDATE_RULES_CONFIG_ROUTE_PATH, {
         body: JSON.stringify({
           package_policy_id: packagePolicyId,
         }),
