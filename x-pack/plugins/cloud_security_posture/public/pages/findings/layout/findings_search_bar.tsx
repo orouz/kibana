@@ -42,7 +42,7 @@ export const FindingsSearchBar = ({
     <div css={getContainerStyle(euiTheme)}>
       <SearchBar
         appName={PLUGIN_NAME}
-        dataTestSubj={TEST_SUBJECTS.FINDINGS_SEARCH_BAR}
+        // dataTestSubj={TEST_SUBJECTS.FINDINGS_SEARCH_BAR}
         showFilterBar={true}
         showQueryInput={true}
         showDatePicker={false}
