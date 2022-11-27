@@ -12,23 +12,20 @@ import type { DataView } from '@kbn/data-plugin/common';
 import { i18n } from '@kbn/i18n';
 import type { Filter } from '@kbn/es-query';
 import { SecuritySolutionContext } from '../../../application/security_solution_context';
-import * as TEST_SUBJECTS from '../test_subjects';
+// import * as TEST_SUBJECTS from '../test_subjects';
 import type { FindingsBaseURLQuery } from '../types';
 import type { CspClientPluginStartDeps } from '../../../types';
 import { PLUGIN_NAME } from '../../../../common';
 
 type SearchBarQueryProps = Pick<FindingsBaseURLQuery, 'query' | 'filters'>;
 
-interface FindingsSearchBarProps {
+export interface FindingsSearchBarProps {
   setQuery(v: Partial<SearchBarQueryProps>): void;
   loading: boolean;
+  dataView: DataView;
 }
 
-export const FindingsSearchBar = ({
-  dataView,
-  loading,
-  setQuery,
-}: FindingsSearchBarProps & { dataView: DataView }) => {
+export const FindingsSearchBar = ({ dataView, loading, setQuery }: FindingsSearchBarProps) => {
   const { euiTheme } = useEuiTheme();
   const {
     unifiedSearch: {

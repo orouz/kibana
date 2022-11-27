@@ -14,7 +14,7 @@ import { decodeQuery, encodeQuery } from '../navigation/query_utils';
  * @todo replace getDefaultQuery with schema. validate after decoded from URL, use defaultValues
  * @note shallow-merges default, current and next query
  */
-export const useUrlQuery = <T extends object>(getDefaultQuery: () => T) => {
+export const useUrlQuery = <T extends {}>(getDefaultQuery: () => T) => {
   const { push, replace } = useHistory();
   const { search, key } = useLocation();
 

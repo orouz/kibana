@@ -4,52 +4,43 @@
  * 2.0; you may not use this file except in compliance with the Elastic License
  * 2.0.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  EuiSpacer,
   EuiButtonEmpty,
   EuiPageHeader,
   type EuiDescriptionListProps,
+  EuiTableActionsColumnType,
+  EuiTableFieldDataColumnType,
+  useEuiTheme,
 } from '@elastic/eui';
 import { Link, useParams } from 'react-router-dom';
 import { FormattedMessage } from '@kbn/i18n-react';
 import { generatePath } from 'react-router-dom';
 import { i18n } from '@kbn/i18n';
 import { CspInlineDescriptionList } from '../../../../components/csp_inline_description_list';
-import type { Evaluation } from '../../../../../common/types';
 import { CspFinding } from '../../../../../common/schemas/csp_finding';
 import { CloudPosturePageTitle } from '../../../../components/cloud_posture_page_title';
 import * as TEST_SUBJECTS from '../../test_subjects';
-import { LimitedResultsBar, PageTitle, PageTitleText } from '../../layout/findings_layout';
-import { findingsNavigation } from '../../../../common/navigation/constants';
-import { ResourceFindingsQuery, useResourceFindings } from './use_resource_findings';
-import { useUrlQuery } from '../../../../common/hooks/use_url_query';
-import { usePageSlice } from '../../../../common/hooks/use_page_slice';
-import { usePageSize } from '../../../../common/hooks/use_page_size';
-import type { FindingsBaseURLQuery, FindingsBaseProps } from '../../types';
 import {
-  getFindingsPageSizeInfo,
-  getFilters,
-  getPaginationTableParams,
-  useBaseEsQuery,
-  usePersistedQuery,
-} from '../../utils/utils';
-import { ResourceFindingsTable } from './resource_findings_table';
+  baseFindingsColumns,
+  createColumnWithFilters,
+  getExpandColumn,
+  LimitedResultsBar,
+  PageTitle,
+  PageTitleText,
+} from '../../layout/findings_layout';
+import { findingsNavigation } from '../../../../common/navigation/constants';
+import { usePageSize } from '../../../../common/hooks/use_page_size';
+import type { FindingsBaseProps } from '../../types';
+import { getSelectedRowStyle } from '../../utils/utils';
 import { FindingsSearchBar } from '../../layout/findings_search_bar';
-import { ErrorCallout } from '../../layout/error_callout';
-import { FindingsDistributionBar } from '../../layout/findings_distribution_bar';
 import { LOCAL_STORAGE_PAGE_SIZE_FINDINGS_KEY } from '../../../../common/constants';
-import { useLimitProperties } from '../../utils/get_limit_properties';
-
-const getDefaultQuery = ({
-  query,
-  filters,
-}: FindingsBaseURLQuery): FindingsBaseURLQuery & ResourceFindingsQuery => ({
-  query,
-  filters,
-  sort: { field: 'result.evaluation' as keyof CspFinding, direction: 'asc' },
-  pageIndex: 0,
-});
+import { FindingsTable } from '../../layout/findings_table';
+import { useFindingsPageComputedProps } from '../../layout/use_findings_page_props';
+import { FindingsRuleFlyout } from '../../findings_flyout/findings_flyout';
+import { FindingsPageHeader } from '../../layout/findings_page_header';
+import { useFindings } from '../../use_findings';
+import { getEsResult, getEsRequest, getDefaultQuery } from './resource_findings_config';
 
 const BackToResourcesButton = () => (
   <Link to={generatePath(findingsNavigation.findings_by_resource.path)}>
@@ -90,145 +81,131 @@ const getResourceFindingSharedValues = (sharedValues: {
 
 export const ResourceFindings = ({ dataView }: FindingsBaseProps) => {
   const params = useParams<{ resourceId: string }>();
-  const getPersistedDefaultQuery = usePersistedQuery(getDefaultQuery);
-  const { urlQuery, setUrlQuery } = useUrlQuery(getPersistedDefaultQuery);
   const { pageSize, setPageSize } = usePageSize(LOCAL_STORAGE_PAGE_SIZE_FINDINGS_KEY);
+  const [selectedFinding, setSelectedFinding] = useState<CspFinding>();
 
-  /**
-   * Page URL query to ES query
-   */
-  const baseEsQuery = useBaseEsQuery({
+  const findings = useFindings({
     dataView,
-    filters: urlQuery.filters,
-    query: urlQuery.query,
+    urlParams: params,
+    getDefaultUrlQuery: getDefaultQuery,
+    getEsRequest,
+    getEsResult,
   });
 
-  /**
-   * Page ES query result
-   */
-  const resourceFindings = useResourceFindings({
-    sort: urlQuery.sort,
-    query: baseEsQuery.query,
-    resourceId: params.resourceId,
-    enabled: !baseEsQuery.error,
-  });
+  const error = findings.result.error;
 
-  const error = resourceFindings.error || baseEsQuery.error;
-
-  const slicedPage = usePageSlice(resourceFindings.data?.page, urlQuery.pageIndex, pageSize);
-
-  const { isLastLimitedPage, limitedTotalItemCount } = useLimitProperties({
-    total: resourceFindings.data?.total,
-    pageIndex: urlQuery.pageIndex,
+  const pageProps = useFindingsPageComputedProps<
+    CspFinding,
+    ReturnType<typeof getDefaultQuery>,
+    ReturnType<typeof getEsResult>
+  >({
+    setUrlQuery: findings.setUrlQuery,
+    setPageSize,
+    result: findings.result,
+    urlQuery: findings.urlQuery,
     pageSize,
+    dataView,
   });
 
-  const handleDistributionClick = (evaluation: Evaluation) => {
-    setUrlQuery({
-      pageIndex: 0,
-      filters: getFilters({
-        filters: urlQuery.filters,
-        dataView,
-        field: 'result.evaluation',
-        value: evaluation,
-        negate: false,
-      }),
-    });
-  };
+  const onAddFilter = pageProps.tableFiltersProps.onAddFilter;
+
+  const { euiTheme } = useEuiTheme();
+
+  const getRowProps = (row: CspFinding) => ({
+    style: selectedFinding ? getSelectedRowStyle(euiTheme, row, selectedFinding) : undefined,
+  });
+
+  const columns: [
+    EuiTableActionsColumnType<CspFinding>,
+    ...Array<EuiTableFieldDataColumnType<CspFinding>>
+  ] = [
+    getExpandColumn<CspFinding>({ onClick: setSelectedFinding }),
+    createColumnWithFilters(baseFindingsColumns['result.evaluation'], { onAddFilter }),
+    createColumnWithFilters(baseFindingsColumns['rule.name'], { onAddFilter }),
+    createColumnWithFilters(baseFindingsColumns['rule.benchmark.name'], { onAddFilter }),
+    baseFindingsColumns['rule.section'],
+    baseFindingsColumns['@timestamp'],
+  ];
 
   return (
     <div data-test-subj={TEST_SUBJECTS.FINDINGS_CONTAINER}>
-      <FindingsSearchBar
-        dataView={dataView}
-        setQuery={(query) => {
-          setUrlQuery({ ...query, pageIndex: 0 });
-        }}
-        loading={resourceFindings.isFetching}
-      />
-      <PageTitle>
-        <BackToResourcesButton />
-        <PageTitleText
-          title={
-            <CloudPosturePageTitle
-              title={i18n.translate(
-                'xpack.csp.findings.resourceFindings.resourceFindingsPageTitle',
-                {
-                  defaultMessage: '{resourceName} - Findings',
-                  values: { resourceName: resourceFindings.data?.resourceName },
-                }
-              )}
-            />
-          }
-        />
-      </PageTitle>
-      <EuiPageHeader
-        description={
-          resourceFindings.data && (
-            <CspInlineDescriptionList
-              listItems={getResourceFindingSharedValues({
-                resourceId: params.resourceId,
-                resourceName: resourceFindings.data.resourceName,
-                resourceSubType: resourceFindings.data.resourceSubType,
-                clusterId: resourceFindings.data.clusterId,
-              })}
-            />
-          )
-        }
-      />
-      <EuiSpacer />
-      {error && <ErrorCallout error={error} />}
-      {!error && (
-        <>
-          {resourceFindings.isSuccess && !!resourceFindings.data.page.length && (
-            <FindingsDistributionBar
-              {...{
-                distributionOnClick: handleDistributionClick,
-                type: i18n.translate('xpack.csp.findings.resourceFindings.tableRowTypeLabel', {
-                  defaultMessage: 'Findings',
-                }),
-                total: resourceFindings.data.total,
-                passed: resourceFindings.data.count.passed,
-                failed: resourceFindings.data.count.failed,
-                ...getFindingsPageSizeInfo({
-                  pageIndex: urlQuery.pageIndex,
-                  pageSize,
-                  currentPageSize: slicedPage.length,
-                }),
-              }}
-            />
-          )}
-          <EuiSpacer />
-          <ResourceFindingsTable
-            loading={resourceFindings.isFetching}
-            items={slicedPage}
-            pagination={getPaginationTableParams({
-              pageSize,
-              pageIndex: urlQuery.pageIndex,
-              totalItemCount: limitedTotalItemCount,
-            })}
-            sorting={{
-              sort: { field: urlQuery.sort.field, direction: urlQuery.sort.direction },
-            }}
-            setTableOptions={({ page, sort }) => {
-              setPageSize(page.size);
-              setUrlQuery({ pageIndex: page.index, sort });
-            }}
-            onAddFilter={(field, value, negate) =>
-              setUrlQuery({
-                pageIndex: 0,
-                filters: getFilters({
-                  filters: urlQuery.filters,
-                  dataView,
-                  field,
-                  value,
-                  negate,
-                }),
-              })
-            }
+      <FindingsSearchBar {...pageProps.searchBarProps} />
+      <FindingsPageHeader
+        title={
+          <ResourceFindingsPageTitle
+            resourceId={params.resourceId}
+            resourceName={findings.result.data?.resourceName}
+            resourceSubType={findings.result.data?.resourceSubType}
+            clusterId={findings.result.data?.clusterId}
           />
-        </>
+        }
+        groupBy="resource"
+        error={error}
+      />
+      <FindingsTable
+        error={error}
+        distributionBarProps={pageProps.distributionBarProps}
+        tableProps={{
+          ...pageProps.tableProps,
+          rowProps: getRowProps,
+          columns,
+          sorting: {
+            sort: {
+              field: findings.urlQuery.sort.field,
+              direction: findings.urlQuery.sort.direction,
+            },
+          },
+        }}
+      />
+      {selectedFinding && (
+        <FindingsRuleFlyout
+          findings={selectedFinding}
+          onClose={() => setSelectedFinding(undefined)}
+        />
       )}
-      {isLastLimitedPage && <LimitedResultsBar />}
+      {pageProps.limitedTableProps.isLastLimitedPage && <LimitedResultsBar />}
     </div>
   );
 };
+
+const ResourceFindingsPageTitle = ({
+  resourceId,
+  resourceName,
+  resourceSubType,
+  clusterId,
+}: {
+  resourceId?: string;
+  resourceName?: string;
+  resourceSubType?: string;
+  clusterId?: string;
+}) => (
+  <>
+    <PageTitle>
+      <BackToResourcesButton />
+      <PageTitleText
+        title={
+          <CloudPosturePageTitle
+            title={i18n.translate('xpack.csp.findings.resourceFindings.resourceFindingsPageTitle', {
+              defaultMessage: '{resourceName} - Findings',
+              values: { resourceName },
+            })}
+          />
+        }
+      />
+    </PageTitle>
+    {resourceId && resourceName && resourceSubType && clusterId && (
+      <EuiPageHeader
+        description={
+          <CspInlineDescriptionList
+            listItems={getResourceFindingSharedValues({
+              resourceId,
+              resourceName,
+              resourceSubType,
+              clusterId,
+            })}
+          />
+        }
+      />
+    )}
+  </>
+);

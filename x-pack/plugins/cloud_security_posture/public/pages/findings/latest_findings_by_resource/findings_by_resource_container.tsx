@@ -5,45 +5,37 @@
  * 2.0.
  */
 import React from 'react';
-import { Route, Switch } from 'react-router-dom';
-import { EuiFlexGroup, EuiFlexItem, EuiSpacer } from '@elastic/eui';
-import { i18n } from '@kbn/i18n';
+import { generatePath, Link, Route, Switch } from 'react-router-dom';
 import { TrackApplicationView } from '@kbn/usage-collection-plugin/public';
-import type { Evaluation } from '../../../../common/types';
-import { CloudPosturePageTitle } from '../../../components/cloud_posture_page_title';
+import { EuiTableFieldDataColumnType, EuiToolTip, EuiTextColor } from '@elastic/eui';
+import { i18n } from '@kbn/i18n';
+import { FormattedMessage } from '@kbn/i18n-react';
+import numeral from '@elastic/numeral';
 import { FindingsSearchBar } from '../layout/findings_search_bar';
 import * as TEST_SUBJECTS from '../test_subjects';
-import { useUrlQuery } from '../../../common/hooks/use_url_query';
-import { usePageSlice } from '../../../common/hooks/use_page_slice';
 import { usePageSize } from '../../../common/hooks/use_page_size';
-import type { FindingsBaseProps, FindingsBaseURLQuery } from '../types';
-import { FindingsByResourceQuery, useFindingsByResource } from './use_findings_by_resource';
-import { FindingsByResourceTable } from './findings_by_resource_table';
+import type { FindingsBaseProps } from '../types';
 import {
-  getFindingsPageSizeInfo,
-  getFilters,
-  getPaginationTableParams,
-  useBaseEsQuery,
-  usePersistedQuery,
-} from '../utils/utils';
-import { LimitedResultsBar, PageTitle, PageTitleText } from '../layout/findings_layout';
-import { FindingsGroupBySelector } from '../layout/findings_group_by_selector';
+  baseFindingsColumns,
+  createColumnWithFilters,
+  LimitedResultsBar,
+} from '../layout/findings_layout';
 import { findingsNavigation } from '../../../common/navigation/constants';
 import { ResourceFindings } from './resource_findings/resource_findings_container';
-import { ErrorCallout } from '../layout/error_callout';
-import { FindingsDistributionBar } from '../layout/findings_distribution_bar';
 import { LOCAL_STORAGE_PAGE_SIZE_FINDINGS_KEY } from '../../../common/constants';
-import { useLimitProperties } from '../utils/get_limit_properties';
+import { FindingsTable } from '../layout/findings_table';
+import { useFindingsPageComputedProps } from '../layout/use_findings_page_props';
+import { FindingsPageHeader, FindingsPageTitle } from '../layout/findings_page_header';
+import { useFindings } from '../use_findings';
+import {
+  getEsRequest,
+  getEsResult,
+  getDefaultQuery,
+  type FindingsByResourcePage,
+} from './findings_by_resource_config';
 
-const getDefaultQuery = ({
-  query,
-  filters,
-}: FindingsBaseURLQuery): FindingsBaseURLQuery & FindingsByResourceQuery => ({
-  query,
-  filters,
-  pageIndex: 0,
-  sortDirection: 'desc',
-});
+export const formatNumber = (value: number) =>
+  value < 1000 ? value : numeral(value).format('0.0a');
 
 export const FindingsByResourceContainer = ({ dataView }: FindingsBaseProps) => (
   <Switch>
@@ -67,136 +59,137 @@ export const FindingsByResourceContainer = ({ dataView }: FindingsBaseProps) => 
   </Switch>
 );
 
+const baseColumns: Array<EuiTableFieldDataColumnType<FindingsByResourcePage>> = [
+  {
+    ...baseFindingsColumns['resource.id'],
+    field: 'resource_id',
+    render: (resourceId: FindingsByResourcePage['resource_id']) => (
+      <Link
+        to={generatePath(findingsNavigation.resource_findings.path, { resourceId })}
+        className="eui-textTruncate"
+        title={resourceId}
+      >
+        {resourceId}
+      </Link>
+    ),
+  },
+  baseFindingsColumns['resource.sub_type'],
+  baseFindingsColumns['resource.name'],
+  baseFindingsColumns['rule.benchmark.name'],
+  {
+    field: 'rule.section',
+    truncateText: true,
+    name: (
+      <FormattedMessage
+        id="xpack.csp.findings.findingsByResourceTable.cisSectionsColumnLabel"
+        defaultMessage="CIS Sections"
+      />
+    ),
+    render: (sections: string[]) => {
+      const items = sections.join(', ');
+      return (
+        <EuiToolTip content={items} anchorClassName="eui-textTruncate">
+          <>{items}</>
+        </EuiToolTip>
+      );
+    },
+  },
+  baseFindingsColumns.cluster_id,
+  {
+    field: 'failed_findings',
+    width: '150px',
+    truncateText: true,
+    sortable: true,
+    name: (
+      <FormattedMessage
+        id="xpack.csp.findings.findingsByResourceTable.failedFindingsColumnLabel"
+        defaultMessage="Failed Findings"
+      />
+    ),
+    render: (failedFindings: FindingsByResourcePage['failed_findings']) => (
+      <EuiToolTip
+        content={i18n.translate(
+          'xpack.csp.findings.findingsByResourceTable.failedFindingsToolTip',
+          {
+            defaultMessage: '{failed} out of {total}',
+            values: {
+              failed: failedFindings.count,
+              total: failedFindings.total_findings,
+            },
+          }
+        )}
+      >
+        <>
+          <EuiTextColor color={failedFindings.count === 0 ? '' : 'danger'}>
+            {formatNumber(failedFindings.count)}
+          </EuiTextColor>
+          <span> ({numeral(failedFindings.normalized).format('0%')})</span>
+        </>
+      </EuiToolTip>
+    ),
+    dataType: 'number',
+  },
+];
+
+type BaseFindingColumnName = typeof baseColumns[number]['field'];
+
+const findingsByResourceColumns = Object.fromEntries(
+  baseColumns.map((column) => [column.field, column])
+) as Record<BaseFindingColumnName, typeof baseColumns[number]>;
+
 const LatestFindingsByResource = ({ dataView }: FindingsBaseProps) => {
-  const getPersistedDefaultQuery = usePersistedQuery(getDefaultQuery);
-  const { urlQuery, setUrlQuery } = useUrlQuery(getPersistedDefaultQuery);
   const { pageSize, setPageSize } = usePageSize(LOCAL_STORAGE_PAGE_SIZE_FINDINGS_KEY);
 
-  /**
-   * Page URL query to ES query
-   */
-  const baseEsQuery = useBaseEsQuery({
+  const findings = useFindings({
     dataView,
-    filters: urlQuery.filters,
-    query: urlQuery.query,
+    getDefaultUrlQuery: getDefaultQuery,
+    getEsRequest,
+    getEsResult,
   });
 
-  /**
-   * Page ES query result
-   */
-  const findingsGroupByResource = useFindingsByResource({
-    sortDirection: urlQuery.sortDirection,
-    query: baseEsQuery.query,
-    enabled: !baseEsQuery.error,
-  });
+  const error = findings.result.error;
 
-  const error = findingsGroupByResource.error || baseEsQuery.error;
-
-  const slicedPage = usePageSlice(findingsGroupByResource.data?.page, urlQuery.pageIndex, pageSize);
-
-  const { isLastLimitedPage, limitedTotalItemCount } = useLimitProperties({
-    total: findingsGroupByResource.data?.total,
-    pageIndex: urlQuery.pageIndex,
+  const pageProps = useFindingsPageComputedProps<
+    FindingsByResourcePage,
+    ReturnType<typeof getDefaultQuery>,
+    ReturnType<typeof getEsResult>
+  >({
+    setUrlQuery: findings.setUrlQuery,
+    setPageSize,
+    result: findings.result,
+    urlQuery: findings.urlQuery,
     pageSize,
+    dataView,
   });
 
-  const handleDistributionClick = (evaluation: Evaluation) => {
-    setUrlQuery({
-      pageIndex: 0,
-      filters: getFilters({
-        filters: urlQuery.filters,
-        dataView,
-        field: 'result.evaluation',
-        value: evaluation,
-        negate: false,
-      }),
-    });
-  };
+  const onAddFilter = pageProps.tableFiltersProps.onAddFilter;
+
+  const columns = [
+    findingsByResourceColumns.resource_id,
+    createColumnWithFilters(findingsByResourceColumns['resource.sub_type'], { onAddFilter }),
+    createColumnWithFilters(findingsByResourceColumns['resource.name'], { onAddFilter }),
+    createColumnWithFilters(findingsByResourceColumns['rule.benchmark.name'], { onAddFilter }),
+    findingsByResourceColumns['rule.section'],
+    createColumnWithFilters(findingsByResourceColumns.cluster_id, { onAddFilter }),
+    findingsByResourceColumns.failed_findings,
+  ];
 
   return (
     <div data-test-subj={TEST_SUBJECTS.FINDINGS_CONTAINER}>
-      <FindingsSearchBar
-        dataView={dataView}
-        setQuery={(query) => {
-          setUrlQuery({ ...query, pageIndex: 0 });
+      <FindingsSearchBar {...pageProps.searchBarProps} />
+      <FindingsPageHeader title={<FindingsPageTitle />} groupBy="resource" error={error} />
+      <FindingsTable
+        error={error}
+        distributionBarProps={pageProps.distributionBarProps}
+        tableProps={{
+          ...pageProps.tableProps,
+          columns,
+          sorting: {
+            sort: { field: 'failed_findings', direction: findings.urlQuery.sort.direction },
+          },
         }}
-        loading={findingsGroupByResource.isFetching}
       />
-      <EuiFlexGroup>
-        <EuiFlexItem>
-          <PageTitle>
-            <PageTitleText
-              title={
-                <CloudPosturePageTitle
-                  title={i18n.translate(
-                    'xpack.csp.findings.findingsByResource.findingsByResourcePageTitle',
-                    { defaultMessage: 'Findings' }
-                  )}
-                />
-              }
-            />
-          </PageTitle>
-        </EuiFlexItem>
-        <EuiFlexItem grow={false} style={{ width: 400 }}>
-          {!error && <FindingsGroupBySelector type="resource" />}
-        </EuiFlexItem>
-      </EuiFlexGroup>
-      {error && <ErrorCallout error={error} />}
-      {!error && (
-        <>
-          {findingsGroupByResource.isSuccess && !!findingsGroupByResource.data.page.length && (
-            <FindingsDistributionBar
-              {...{
-                distributionOnClick: handleDistributionClick,
-                type: i18n.translate('xpack.csp.findings.findingsByResource.tableRowTypeLabel', {
-                  defaultMessage: 'Resources',
-                }),
-                total: findingsGroupByResource.data.total,
-                passed: findingsGroupByResource.data.count.passed,
-                failed: findingsGroupByResource.data.count.failed,
-                ...getFindingsPageSizeInfo({
-                  pageIndex: urlQuery.pageIndex,
-                  pageSize,
-                  currentPageSize: slicedPage.length,
-                }),
-              }}
-            />
-          )}
-          <EuiSpacer />
-          <FindingsByResourceTable
-            loading={findingsGroupByResource.isFetching}
-            items={slicedPage}
-            pagination={getPaginationTableParams({
-              pageSize,
-              pageIndex: urlQuery.pageIndex,
-              totalItemCount: limitedTotalItemCount,
-            })}
-            setTableOptions={({ sort, page }) => {
-              setPageSize(page.size);
-              setUrlQuery({
-                sortDirection: sort?.direction,
-                pageIndex: page.index,
-              });
-            }}
-            sorting={{
-              sort: { field: 'failed_findings', direction: urlQuery.sortDirection },
-            }}
-            onAddFilter={(field, value, negate) =>
-              setUrlQuery({
-                pageIndex: 0,
-                filters: getFilters({
-                  filters: urlQuery.filters,
-                  dataView,
-                  field,
-                  value,
-                  negate,
-                }),
-              })
-            }
-          />
-        </>
-      )}
-      {isLastLimitedPage && <LimitedResultsBar />}
+      {pageProps.limitedTableProps.isLastLimitedPage && <LimitedResultsBar />}
     </div>
   );
 };

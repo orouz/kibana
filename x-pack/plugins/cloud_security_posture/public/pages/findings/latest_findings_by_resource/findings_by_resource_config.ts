@@ -4,35 +4,25 @@
  * 2.0; you may not use this file except in compliance with the Elastic License
  * 2.0.
  */
-import { useQuery } from '@tanstack/react-query';
-import { lastValueFrom } from 'rxjs';
-import { IKibanaSearchRequest, IKibanaSearchResponse } from '@kbn/data-plugin/common';
+import { IKibanaSearchResponse } from '@kbn/data-plugin/common';
 import type * as estypes from '@elastic/elasticsearch/lib/api/typesWithBodyKey';
-import type { Pagination } from '@elastic/eui';
-import { useKibana } from '../../../common/hooks/use_kibana';
-import { showErrorToast } from '../latest_findings/use_latest_findings';
-import type { FindingsBaseEsQuery, Sort } from '../types';
+import { CspFinding } from '../../../../common/schemas/csp_finding';
+import type {
+  FindingsBaseURLQuery,
+  FindingsCountAggregation,
+  FindingsEsQuery,
+  Sort,
+} from '../types';
 import { getAggregationCount, getFindingsCountAggQuery } from '../utils/utils';
 import { CSP_LATEST_FINDINGS_DATA_VIEW } from '../../../../common/constants';
 import { MAX_FINDINGS_TO_LOAD } from '../../../common/constants';
 
-interface UseFindingsByResourceOptions extends FindingsBaseEsQuery {
-  enabled: boolean;
-  sortDirection: Sort<unknown>['direction'];
+export interface FindingsByResourceQuery extends FindingsBaseURLQuery {
+  sort: Sort<FindingsByResourcePage>;
 }
 
 // Maximum number of grouped findings, default limit in elasticsearch is set to 65,536 (ref: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-settings.html#search-settings-max-buckets)
 const MAX_BUCKETS = 60 * 1000;
-
-export interface FindingsByResourceQuery {
-  pageIndex: Pagination['pageIndex'];
-  sortDirection: Sort<unknown>['direction'];
-}
-
-type FindingsAggRequest = IKibanaSearchRequest<estypes.SearchRequest>;
-type FindingsAggResponse = IKibanaSearchResponse<
-  estypes.SearchResponse<{}, FindingsByResourceAggs>
->;
 
 export interface FindingsByResourcePage {
   failed_findings: {
@@ -48,10 +38,9 @@ export interface FindingsByResourcePage {
   'rule.section': string[];
 }
 
-interface FindingsByResourceAggs {
+interface FindingsByResourceAggs extends FindingsCountAggregation {
   resource_total: estypes.AggregationsCardinalityAggregate;
   resources: estypes.AggregationsMultiBucketAggregateBase<FindingsAggBucket>;
-  count: estypes.AggregationsMultiBucketAggregateBase<estypes.AggregationsStringRareTermsBucketKeys>;
 }
 
 interface FindingsAggBucket extends estypes.AggregationsStringRareTermsBucketKeys {
@@ -63,13 +52,26 @@ interface FindingsAggBucket extends estypes.AggregationsStringRareTermsBucketKey
   cis_sections: estypes.AggregationsMultiBucketAggregateBase<estypes.AggregationsStringRareTermsBucketKeys>;
 }
 
-export const getFindingsByResourceAggQuery = ({
+export const getDefaultQuery = ({
   query,
-  sortDirection,
-}: UseFindingsByResourceOptions): estypes.SearchRequest => ({
+  filters,
+}: FindingsBaseURLQuery): FindingsByResourceQuery => ({
+  query,
+  filters,
+  pageIndex: 0,
+  sort: { field: 'failed_findings', direction: 'desc' },
+});
+
+export const getEsRequest = ({
+  urlQuery,
+  esQuery,
+}: {
+  urlQuery: FindingsByResourceQuery;
+  esQuery: FindingsEsQuery;
+}): estypes.SearchRequest => ({
   index: CSP_LATEST_FINDINGS_DATA_VIEW,
   body: {
-    query,
+    query: esQuery.query,
     size: 0,
     aggs: {
       ...getFindingsCountAggQuery(),
@@ -100,7 +102,7 @@ export const getFindingsByResourceAggQuery = ({
               size: MAX_FINDINGS_TO_LOAD,
               sort: [
                 {
-                  'failed_findings>_count': { order: sortDirection },
+                  'failed_findings>_count': { order: urlQuery.sort.direction },
                   _count: { order: 'desc' },
                   _key: { order: 'asc' },
                 },
@@ -114,45 +116,21 @@ export const getFindingsByResourceAggQuery = ({
   ignore_unavailable: false,
 });
 
-export const useFindingsByResource = (options: UseFindingsByResourceOptions) => {
-  const {
-    data,
-    notifications: { toasts },
-  } = useKibana().services;
+export const getEsResult = ({
+  rawResponse,
+}: IKibanaSearchResponse<estypes.SearchResponse<CspFinding, FindingsByResourceAggs>>) => {
+  const { aggregations } = rawResponse;
 
-  const params = { ...options };
+  if (!aggregations) throw new Error('expected aggregations to be defined');
 
-  return useQuery(
-    ['csp_findings_resource', { params }],
-    async () => {
-      const {
-        rawResponse: { aggregations },
-      } = await lastValueFrom(
-        data.search.search<FindingsAggRequest, FindingsAggResponse>({
-          params: getFindingsByResourceAggQuery(params),
-        })
-      );
+  if (!Array.isArray(aggregations.resources.buckets) || !Array.isArray(aggregations.count.buckets))
+    throw new Error('expected buckets to be an array');
 
-      if (!aggregations) throw new Error('expected aggregations to be defined');
-
-      if (
-        !Array.isArray(aggregations.resources.buckets) ||
-        !Array.isArray(aggregations.count.buckets)
-      )
-        throw new Error('expected buckets to be an array');
-
-      return {
-        page: aggregations.resources.buckets.map(createFindingsByResource),
-        total: aggregations.resource_total.value,
-        count: getAggregationCount(aggregations.count.buckets),
-      };
-    },
-    {
-      enabled: options.enabled,
-      keepPreviousData: true,
-      onError: (err: Error) => showErrorToast(toasts, err),
-    }
-  );
+  return {
+    page: aggregations.resources.buckets.map(createFindingsByResource),
+    total: aggregations.resource_total.value,
+    count: getAggregationCount(aggregations.count.buckets),
+  };
 };
 
 const createFindingsByResource = (resource: FindingsAggBucket): FindingsByResourcePage => {

@@ -21,7 +21,7 @@ import numeral from '@elastic/numeral';
 import { RULE_FAILED, RULE_PASSED } from '../../../../common/constants';
 import type { Evaluation } from '../../../../common/types';
 
-interface Props {
+export interface Props {
   total: number;
   passed: number;
   failed: number;

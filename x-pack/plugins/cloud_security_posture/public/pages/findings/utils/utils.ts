@@ -15,7 +15,11 @@ import { useKibana } from '../../../common/hooks/use_kibana';
 import type { CspFinding } from '../../../../common/schemas/csp_finding';
 export { getFilters } from './get_filters';
 
-const getBaseQuery = ({ dataView, query, filters }: FindingsBaseURLQuery & FindingsBaseProps) => {
+const getBaseQuery = ({
+  dataView,
+  query,
+  filters,
+}: Omit<FindingsBaseURLQuery, 'pageIndex'> & FindingsBaseProps) => {
   try {
     return {
       query: buildEsQuery(dataView, query, filters), // will throw for malformed query
@@ -52,7 +56,7 @@ export const usePersistedQuery = <T>(getter: ({ filters, query }: FindingsBaseUR
       getter({
         filters: filterManager.getAppFilters(),
         query: queryString.getQuery() as Query,
-      }),
+      } as FindingsBaseURLQuery),
     [getter, filterManager, queryString]
   );
 };
@@ -69,7 +73,7 @@ export const useBaseEsQuery = ({
   dataView,
   filters,
   query,
-}: FindingsBaseURLQuery & FindingsBaseProps) => {
+}: Omit<FindingsBaseURLQuery, 'pageIndex'> & FindingsBaseProps) => {
   const {
     notifications: { toasts },
     data: {
