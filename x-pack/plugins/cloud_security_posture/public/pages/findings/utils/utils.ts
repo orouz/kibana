@@ -40,23 +40,6 @@ export const getPaginationTableParams = (
   showPerPageOptions,
 });
 
-export const usePersistedQuery = <T>(getter: ({ filters, query }: FindingsBaseURLQuery) => T) => {
-  const {
-    data: {
-      query: { filterManager, queryString },
-    },
-  } = useKibana().services;
-
-  return useCallback(
-    () =>
-      getter({
-        filters: filterManager.getAppFilters(),
-        query: queryString.getQuery() as Query,
-      }),
-    [getter, filterManager, queryString]
-  );
-};
-
 export const getPaginationQuery = ({
   pageIndex,
   pageSize,
@@ -72,23 +55,12 @@ export const useBaseEsQuery = ({
 }: FindingsBaseURLQuery & FindingsBaseProps) => {
   const {
     notifications: { toasts },
-    data: {
-      query: { filterManager, queryString },
-    },
   } = useKibana().services;
 
   const baseEsQuery = useMemo(
     () => getBaseQuery({ dataView, filters, query }),
     [dataView, filters, query]
   );
-
-  /**
-   * Sync filters with the URL query
-   */
-  useEffect(() => {
-    filterManager.setAppFilters(filters);
-    queryString.setQuery(query);
-  }, [filters, filterManager, queryString, query]);
 
   const handleMalformedQueryError = () => {
     const error = baseEsQuery.error;

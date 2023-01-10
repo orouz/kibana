@@ -21,11 +21,13 @@ type SearchBarQueryProps = Pick<FindingsBaseURLQuery, 'query' | 'filters'>;
 interface FindingsSearchBarProps {
   setQuery(v: Partial<SearchBarQueryProps>): void;
   loading: boolean;
+  filters: Filter[];
 }
 
 export const FindingsSearchBar = ({
   dataView,
   loading,
+  filters,
   setQuery,
 }: FindingsSearchBarProps & { dataView: DataView }) => {
   const { euiTheme } = useEuiTheme();
@@ -34,6 +36,8 @@ export const FindingsSearchBar = ({
       ui: { SearchBar },
     },
   } = useKibana<CspClientPluginStartDeps>().services;
+
+  console.log({ filters });
 
   const securitySolutionContext = useContext(SecuritySolutionContext);
 
@@ -46,6 +50,7 @@ export const FindingsSearchBar = ({
         showDatePicker={false}
         showSaveQuery={false}
         isLoading={loading}
+        filters={filters} 
         indexPatterns={[dataView]}
         onQuerySubmit={setQuery}
         onFiltersUpdated={(value: Filter[]) => setQuery({ filters: value })}

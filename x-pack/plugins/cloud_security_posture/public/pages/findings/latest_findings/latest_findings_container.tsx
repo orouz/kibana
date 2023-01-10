@@ -33,19 +33,16 @@ import { ErrorCallout } from '../layout/error_callout';
 import { useLimitProperties } from '../utils/get_limit_properties';
 import { LOCAL_STORAGE_PAGE_SIZE_FINDINGS_KEY } from '../../../common/constants';
 
-export const getDefaultQuery = ({
-  query,
-  filters,
-}: FindingsBaseURLQuery): FindingsBaseURLQuery & FindingsGroupByNoneQuery => ({
-  query,
-  filters,
+export const getDefaultState = (): FindingsBaseURLQuery & FindingsGroupByNoneQuery => ({
+  query: { query: '', language: 'kuery' },
+  filters: [],
   sort: { field: '@timestamp', direction: 'desc' },
   pageIndex: 0,
 });
 
 export const LatestFindingsContainer = ({ dataView }: FindingsBaseProps) => {
-  const getPersistedDefaultQuery = usePersistedQuery(getDefaultQuery);
-  const { urlQuery, setUrlQuery } = useUrlQuery(getPersistedDefaultQuery);
+  // const getPersistedDefaultQuery = usePersistedQuery(getDefaultState);
+  const { urlQuery, setUrlQuery } = useUrlQuery(getDefaultState);
   const { pageSize, setPageSize } = usePageSize(LOCAL_STORAGE_PAGE_SIZE_FINDINGS_KEY);
 
   /**
@@ -97,6 +94,7 @@ export const LatestFindingsContainer = ({ dataView }: FindingsBaseProps) => {
           setUrlQuery({ ...query, pageIndex: 0 });
         }}
         loading={findingsGroupByNone.isFetching}
+        filters={urlQuery.filters}
       />
       <EuiFlexGroup>
         <EuiFlexItem>

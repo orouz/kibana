@@ -41,12 +41,9 @@ import { FindingsDistributionBar } from '../../layout/findings_distribution_bar'
 import { LOCAL_STORAGE_PAGE_SIZE_FINDINGS_KEY } from '../../../../common/constants';
 import { useLimitProperties } from '../../utils/get_limit_properties';
 
-const getDefaultQuery = ({
-  query,
-  filters,
-}: FindingsBaseURLQuery): FindingsBaseURLQuery & ResourceFindingsQuery => ({
-  query,
-  filters,
+const getDefaultQuery = (): FindingsBaseURLQuery & ResourceFindingsQuery => ({
+  query: { query: '', language: 'kuery' },
+  filters: [],
   sort: { field: 'result.evaluation' as keyof CspFinding, direction: 'asc' },
   pageIndex: 0,
 });
@@ -90,8 +87,8 @@ const getResourceFindingSharedValues = (sharedValues: {
 
 export const ResourceFindings = ({ dataView }: FindingsBaseProps) => {
   const params = useParams<{ resourceId: string }>();
-  const getPersistedDefaultQuery = usePersistedQuery(getDefaultQuery);
-  const { urlQuery, setUrlQuery } = useUrlQuery(getPersistedDefaultQuery);
+  // const getPersistedDefaultQuery = usePersistedQuery(getDefaultQuery);
+  const { urlQuery, setUrlQuery } = useUrlQuery(getDefaultQuery);
   const { pageSize, setPageSize } = usePageSize(LOCAL_STORAGE_PAGE_SIZE_FINDINGS_KEY);
 
   /**
@@ -143,6 +140,7 @@ export const ResourceFindings = ({ dataView }: FindingsBaseProps) => {
         setQuery={(query) => {
           setUrlQuery({ ...query, pageIndex: 0 });
         }}
+        filters={urlQuery.filters}
         loading={resourceFindings.isFetching}
       />
       <PageTitle>

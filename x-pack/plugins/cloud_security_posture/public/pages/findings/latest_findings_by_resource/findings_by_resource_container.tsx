@@ -35,12 +35,10 @@ import { FindingsDistributionBar } from '../layout/findings_distribution_bar';
 import { LOCAL_STORAGE_PAGE_SIZE_FINDINGS_KEY } from '../../../common/constants';
 import { useLimitProperties } from '../utils/get_limit_properties';
 
-const getDefaultQuery = ({
-  query,
-  filters,
-}: FindingsBaseURLQuery): FindingsBaseURLQuery & FindingsByResourceQuery => ({
-  query,
-  filters,
+const getDefaultQuery = (): FindingsBaseURLQuery & FindingsByResourceQuery => ({
+  query: { query: '', language: 'kuery' },
+  filters: [],
+  sort: { field: '@timestamp', direction: 'desc' },
   pageIndex: 0,
   sortDirection: 'desc',
 });
@@ -68,7 +66,7 @@ export const FindingsByResourceContainer = ({ dataView }: FindingsBaseProps) => 
 );
 
 const LatestFindingsByResource = ({ dataView }: FindingsBaseProps) => {
-  const getPersistedDefaultQuery = usePersistedQuery(getDefaultQuery);
+  // const getPersistedDefaultQuery = usePersistedQuery(getDefaultQuery);
   const { urlQuery, setUrlQuery } = useUrlQuery(getPersistedDefaultQuery);
   const { pageSize, setPageSize } = usePageSize(LOCAL_STORAGE_PAGE_SIZE_FINDINGS_KEY);
 
@@ -120,6 +118,7 @@ const LatestFindingsByResource = ({ dataView }: FindingsBaseProps) => {
         setQuery={(query) => {
           setUrlQuery({ ...query, pageIndex: 0 });
         }}
+        filters={urlQuery.filters}
         loading={findingsGroupByResource.isFetching}
       />
       <EuiFlexGroup>
