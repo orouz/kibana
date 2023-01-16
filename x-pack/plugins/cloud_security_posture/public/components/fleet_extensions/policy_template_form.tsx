@@ -5,12 +5,14 @@
  * 2.0.
  */
 import React, { memo, useEffect } from 'react';
-import { EuiSpacer } from '@elastic/eui';
+import { EuiSpacer, EuiTitle } from '@elastic/eui';
 import type {
   NewPackagePolicy,
   PackagePolicyCreateExtensionComponentProps,
 } from '@kbn/fleet-plugin/public';
-import type { PostureInput } from '../../../common/types';
+import { FormattedMessage } from '@kbn/i18n-react';
+import { useParams } from 'react-router-dom';
+import type { PostureInput, PosturePolicyTemplate } from '../../../common/types';
 import { CLOUDBEAT_AWS, CLOUDBEAT_VANILLA } from '../../../common/constants';
 import {
   getPosturePolicy,
@@ -20,6 +22,7 @@ import {
 } from './utils';
 import { AwsCredentialsForm, type AwsCredentialsType } from './aws_credentials_form';
 import { PolicyInputSelector } from './policy_template_input_selector';
+import { RadioGroup } from './csp_boxed_radio_group';
 
 const DEFAULT_INPUT_TYPE = {
   kspm: CLOUDBEAT_VANILLA,
@@ -49,6 +52,8 @@ const PolicyVarsForm = ({ input, ...props }: PolicyVarsFormProps) => {
 };
 
 export const CspPolicyTemplateForm = memo<Props>(({ newPolicy, onChange, edit }) => {
+  const { integration } = useParams<{ integration?: PosturePolicyTemplate }>();
+
   const input = getEnabledPostureInput(newPolicy);
 
   const updatePolicy = (updatedPolicy: NewPackagePolicy) =>
@@ -83,9 +88,48 @@ export const CspPolicyTemplateForm = memo<Props>(({ newPolicy, onChange, edit })
 
   return (
     <div>
+      {!integration && (
+        <PolicyTemplateSelector
+          selectedTemplate={input.policy_template!}
+          policy={newPolicy}
+          setPolicyTemplate={(template) => setEnabledPolicyInput(DEFAULT_INPUT_TYPE[template])}
+        />
+      )}
       <PolicyInputSelector input={input} setInput={setEnabledPolicyInput} disabled={!!edit} />
       <PolicyVarsForm input={input} newPolicy={newPolicy} updatePolicy={updatePolicy} />
       <EuiSpacer />
     </div>
   );
 });
+
+const PolicyTemplateSelector = ({
+  policy,
+  selectedTemplate,
+  setPolicyTemplate,
+}: {
+  selectedTemplate: PosturePolicyTemplate;
+  policy: NewPackagePolicy;
+  setPolicyTemplate(template: PosturePolicyTemplate): void;
+}) => {
+  const policyTemplates = new Set(policy.inputs.map((input) => input.policy_template!));
+
+  return (
+    <div>
+      <EuiTitle size="xs">
+        <h2>
+          <FormattedMessage
+            id="xpack.csp.fleetIntegration.selectIntegrationTypeTitle"
+            defaultMessage="Select Integration Type"
+          />
+        </h2>
+      </EuiTitle>
+      <EuiSpacer />
+      <RadioGroup
+        options={Array.from(policyTemplates, (v) => ({ id: v, label: v.toUpperCase() }))}
+        idSelected={selectedTemplate}
+        onChange={(id) => setPolicyTemplate(id as PosturePolicyTemplate)}
+      />
+      <EuiSpacer size="xl" />
+    </div>
+  );
+};
