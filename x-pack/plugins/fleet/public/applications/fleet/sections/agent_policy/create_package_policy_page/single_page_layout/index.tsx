@@ -266,18 +266,10 @@ export const CreatePackagePolicySinglePage: CreatePackagePolicyParams = ({
     ]
   );
 
-  const extensionView = useUIExtension(packagePolicy.package?.name ?? '', 'package-policy-create');
-  const replaceDefineStepView = useUIExtension(
-    packagePolicy.package?.name ?? '',
-    'package-policy-replace-define-step'
-  );
-
-  if (replaceDefineStepView && extensionView) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      "'package-policy-create' is ignored when 'package-policy-replace-define-step' is defined"
-    );
-  }
+  const [extensionView, replaceDefineStepView] = useUIExtension(packagePolicy.package?.name ?? '', [
+    'package-policy-create',
+    'package-policy-replace-define-step',
+  ] as const);
 
   const replaceStepConfigurePackagePolicy = replaceDefineStepView && packageInfo?.name && (
     <ExtensionWrapper>

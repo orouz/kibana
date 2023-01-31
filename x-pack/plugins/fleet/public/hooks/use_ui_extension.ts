@@ -17,21 +17,42 @@ type NarrowExtensionPoint<V extends UIExtensionPoint['view'], A = UIExtensionPoi
   ? A
   : never;
 
-export const useUIExtension = <V extends UIExtensionPoint['view'] = UIExtensionPoint['view']>(
+type ExclusiveExtensions<T extends ReadonlyArray<UIExtensionPoint['view']>> =
+  | ReplaceWithUndefined<T, 'package-policy-edit' | 'package-policy-create'>
+  | ReplaceWithUndefined<T, 'package-policy-replace-define-step'>;
+
+type ReplaceWithUndefined<Tuple extends readonly unknown[], Id> = Tuple extends readonly []
+  ? []
+  : Tuple extends readonly [infer Head, ...infer Rest]
+  ? Head extends Id
+    ? readonly [undefined, ...ReplaceWithUndefined<Rest, Id>]
+    : Head extends UIExtensionPoint['view']
+    ? readonly [NarrowExtensionPoint<Head> | undefined, ...ReplaceWithUndefined<Rest, Id>]
+    : never
+  : Tuple;
+
+export function useUIExtension<
+  V extends ReadonlyArray<UIExtensionPoint['view']> = ReadonlyArray<UIExtensionPoint['view']>
+>(packageName: UIExtensionPoint['package'], view: V): ExclusiveExtensions<V>;
+
+export function useUIExtension<V extends UIExtensionPoint['view'] = UIExtensionPoint['view']>(
   packageName: UIExtensionPoint['package'],
   view: V
-): NarrowExtensionPoint<V> | undefined => {
-  const registeredExtensions = useContext(UIExtensionsContext);
+): NarrowExtensionPoint<V> | undefined;
 
+export function useUIExtension<V extends UIExtensionPoint['view']>(
+  packageName: UIExtensionPoint['package'],
+  view: V | readonly V[]
+) {
+  const registeredExtensions = useContext(UIExtensionsContext);
   if (!registeredExtensions) {
     throw new Error('useUIExtension called outside of UIExtensionsContext');
   }
 
-  const extension = registeredExtensions?.[packageName]?.[view];
-
-  if (extension) {
-    // FIXME:PT Revisit ignore below and see if TS error can be addressed
-    // @ts-ignore
+  if (typeof view === 'string') {
+    const extension = registeredExtensions?.[packageName]?.[view];
     return extension;
   }
-};
+
+  return view.map((v) => registeredExtensions?.[packageName]?.[v]);
+}

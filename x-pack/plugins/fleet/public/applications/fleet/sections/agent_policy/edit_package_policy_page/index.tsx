@@ -239,22 +239,14 @@ export const EditPackagePolicyForm = memo<{
     }
   };
 
-  const extensionView = useUIExtension(packagePolicy.package?.name ?? '', 'package-policy-edit');
-  const replaceDefineStepView = useUIExtension(
+  const [extensionView, replaceDefineStepView, extensionTabsView] = useUIExtension(
     packagePolicy.package?.name ?? '',
-    'package-policy-replace-define-step'
+    [
+      'package-policy-edit',
+      'package-policy-replace-define-step',
+      'package-policy-edit-tabs',
+    ] as const
   );
-  const extensionTabsView = useUIExtension(
-    packagePolicy.package?.name ?? '',
-    'package-policy-edit-tabs'
-  );
-
-  if (replaceDefineStepView && extensionView) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      "'package-policy-edit' is ignored when 'package-policy-replace-define-step' is defined"
-    );
-  }
 
   const tabsViews = extensionTabsView?.tabs;
   const [selectedTab, setSelectedTab] = useState(0);
