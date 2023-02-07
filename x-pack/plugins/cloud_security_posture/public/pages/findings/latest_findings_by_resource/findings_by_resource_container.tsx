@@ -114,7 +114,7 @@ const LatestFindingsByResource = ({ dataView }: FindingsBaseProps) => {
   };
 
   return (
-    <div data-test-subj={TEST_SUBJECTS.FINDINGS_CONTAINER}>
+    <div data-test-subj={'findings_by_resource_container'}>
       <FindingsSearchBar
         dataView={dataView}
         setQuery={(query) => {

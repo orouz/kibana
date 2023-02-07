@@ -136,7 +136,7 @@ export const ResourceFindings = ({ dataView }: FindingsBaseProps) => {
     });
   };
   return (
-    <div data-test-subj={TEST_SUBJECTS.FINDINGS_CONTAINER}>
+    <div data-test-subj={'resource_findings_container'}>
       <FindingsSearchBar
         dataView={dataView}
         setQuery={(query) => {

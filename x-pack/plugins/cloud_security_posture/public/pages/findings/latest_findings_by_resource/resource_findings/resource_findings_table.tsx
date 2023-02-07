@@ -86,7 +86,7 @@ const ResourceFindingsTableComponent = ({
   return (
     <>
       <EuiBasicTable
-        data-test-subj={TEST_SUBJECTS.RESOURCES_FINDINGS_TABLE}
+        data-test-subj={'resource_findings_table'}
         loading={loading}
         items={items}
         columns={columns}

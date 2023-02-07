@@ -12,7 +12,6 @@ import { CloudPosturePageTitle } from '../../../components/cloud_posture_page_ti
 import type { FindingsBaseProps } from '../types';
 import { FindingsTable } from './latest_findings_table';
 import { FindingsSearchBar } from '../layout/findings_search_bar';
-import * as TEST_SUBJECTS from '../test_subjects';
 import { useLatestFindings } from './use_latest_findings';
 import type { FindingsGroupByNoneQuery } from './use_latest_findings';
 import type { FindingsBaseURLQuery } from '../types';
@@ -90,7 +89,7 @@ export const LatestFindingsContainer = ({ dataView }: FindingsBaseProps) => {
   };
 
   return (
-    <div data-test-subj={TEST_SUBJECTS.FINDINGS_CONTAINER}>
+    <div data-test-subj={'latest_findings_container'}>
       <FindingsSearchBar
         dataView={dataView}
         setQuery={(query) => {

@@ -98,7 +98,7 @@ const FindingsTableComponent = ({
     <>
       <EuiBasicTable
         loading={loading}
-        data-test-subj={TEST_SUBJECTS.FINDINGS_TABLE}
+        data-test-subj={'latest_findings_table'}
         items={items}
         columns={columns}
         pagination={pagination}
