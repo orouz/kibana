@@ -296,7 +296,7 @@ function getInputComponent({
   }
 }
 
-function SecretInputField({
+export function SecretInputField({
   varDef,
   value,
   onChange,

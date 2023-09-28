@@ -16,11 +16,13 @@ import {
   EuiHorizontalRule,
 } from '@elastic/eui';
 import type { NewPackagePolicy } from '@kbn/fleet-plugin/public';
-import { NewPackagePolicyInput } from '@kbn/fleet-plugin/common';
+import { NewPackagePolicyInput, PackageInfo } from '@kbn/fleet-plugin/common';
 import { FormattedMessage } from '@kbn/i18n-react';
 import { i18n } from '@kbn/i18n';
 import { RadioGroup } from './csp_boxed_radio_group';
 import { getPosturePolicy, NewPackagePolicyPostureInput } from './utils';
+import { SecretInputField, PackagePolicyInputVarField } from '@kbn/fleet-plugin/public';
+import { css } from '@emotion/react';
 
 const AWSSetupInfoContent = () => (
   <>
@@ -201,6 +203,7 @@ interface Props {
   newPolicy: NewPackagePolicy;
   input: Extract<NewPackagePolicyPostureInput, { type: 'cloudbeat/cis_aws' | 'cloudbeat/cis_eks' }>;
   updatePolicy(updatedPolicy: NewPackagePolicy): void;
+  packageInfo: PackageInfo;
 }
 
 const getInputVarsFields = (
@@ -211,6 +214,7 @@ const getInputVarsFields = (
     .filter(([id]) => id in fields)
     .map(([id, inputVar]) => {
       const field = fields[id];
+      console.log({ input, field, inputVar });
       return {
         id,
         label: field.label,
@@ -222,7 +226,7 @@ const getInputVarsFields = (
 const getAwsCredentialsType = (input: Props['input']): AwsCredentialsType | undefined =>
   input.streams[0].vars?.['aws.credentials.type'].value;
 
-export const EksCredentialsForm = ({ input, newPolicy, updatePolicy }: Props) => {
+export const EksCredentialsForm = ({ input, newPolicy, packageInfo, updatePolicy }: Props) => {
   // We only have a value for 'aws.credentials.type' once the form has mounted.
   // On initial render we don't have that value so we default to the first option.
   const awsCredentialsType = getAwsCredentialsType(input) || AWS_CREDENTIALS_OPTIONS[0].id;
@@ -249,6 +253,7 @@ export const EksCredentialsForm = ({ input, newPolicy, updatePolicy }: Props) =>
       {DocsLink}
       <EuiSpacer />
       <AwsInputVarFields
+        packageInfo={packageInfo}
         fields={fields}
         onChange={(key, value) =>
           updatePolicy(getPosturePolicy(newPolicy, input.type, { [key]: { value } }))
@@ -274,36 +279,50 @@ const AwsCredentialTypeSelector = ({
   />
 );
 
-const AwsInputVarFields = ({
+export const PackageVarFields = ({
+  packageInfo,
   fields,
   onChange,
 }: {
+  packageInfo: PackageInfo;
   fields: Array<AwsOptions[keyof AwsOptions]['fields'][number] & { value: string; id: string }>;
   onChange: (key: string, value: string) => void;
-}) => (
-  <div>
-    {fields.map((field) => (
-      <EuiFormRow key={field.id} label={field.label} fullWidth hasChildLabel={true} id={field.id}>
-        <>
-          {field.type === 'password' && (
-            <EuiFieldPassword
-              id={field.id}
-              type="dual"
-              fullWidth
-              value={field.value || ''}
-              onChange={(event) => onChange(field.id, event.target.value)}
-            />
-          )}
-          {field.type === 'text' && (
-            <EuiFieldText
-              id={field.id}
-              fullWidth
-              value={field.value || ''}
-              onChange={(event) => onChange(field.id, event.target.value)}
-            />
-          )}
-        </>
-      </EuiFormRow>
-    ))}
-  </div>
-);
+}) => {
+  const stream = packageInfo?.data_streams?.[0].streams?.find((v) => v.input.endsWith('eks'));
+  console.log({ stream, packageInfo });
+  return (
+    <div
+      css={css`
+        width: 100%;
+        .euiFormControlLayout,
+        .euiFormControlLayout__childrenWrapper,
+        .euiFormRow,
+        input {
+          max-width: 100%;
+          width: 100%;
+        }
+      `}
+    >
+      {fields.map((field) => {
+        const varDef = stream?.vars.find((v) => v.name === field.id);
+        console.log({ varDef, id: field.id });
+        return (
+          <PackagePolicyInputVarField
+            varDef={varDef!}
+            value={field.value || ''}
+            onChange={(value) => {
+              console.log({ value });
+              onChange(field.id, value);
+            }}
+            // errors={validationResults?.vars?.[varName] ?? []}
+            errors={[]}
+            forceShowErrors={false}
+            isEditPage={true}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
+const AwsInputVarFields = PackageVarFields;

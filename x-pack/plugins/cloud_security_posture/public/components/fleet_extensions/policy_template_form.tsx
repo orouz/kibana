@@ -294,6 +294,8 @@ const IntegrationSettings = ({ onChange, fields }: IntegrationInfoFieldsProps) =
 
 export const CspPolicyTemplateForm = memo<PackagePolicyReplaceDefineStepExtensionComponentProps>(
   ({ newPolicy, onChange, validationResults, isEditPage, packageInfo }) => {
+    console.log({ packageInfo });
+
     const integrationParam = useParams<{ integration: CloudSecurityPolicyTemplate }>().integration;
     const integration = SUPPORTED_POLICY_TEMPLATES.includes(integrationParam)
       ? integrationParam
@@ -466,7 +468,10 @@ export const CspPolicyTemplateForm = memo<PackagePolicyReplaceDefineStepExtensio
           newPolicy={newPolicy}
           updatePolicy={updatePolicy}
           packageInfo={packageInfo}
-          onChange={onChange}
+          onChange={(v) => {
+            console.log({ v });
+            onChange(v);
+          }}
           setIsValid={setIsValid}
         />
         <EuiSpacer />

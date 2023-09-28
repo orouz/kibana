@@ -36,6 +36,7 @@ import {
 import { SetupFormat, useAwsCredentialsForm } from './hooks';
 import { AWS_ORGANIZATION_ACCOUNT } from '../policy_template_form';
 import { AwsCredentialsType } from '../../../../common/types';
+import { PackageVarFields } from '../eks_credentials_form';
 
 interface AWSSetupInfoContentProps {
   integrationLink: string;
@@ -268,6 +269,7 @@ export const AwsCredentialsForm = ({
           <EuiSpacer size="l" />
           <AwsInputVarFields
             fields={fields}
+            packageInfo={packageInfo}
             onChange={(key, value) => {
               updatePolicy(getPosturePolicy(newPolicy, input.type, { [key]: { value } }));
             }}
@@ -302,7 +304,8 @@ const AwsCredentialTypeSelector = ({
   </EuiFormRow>
 );
 
-const AwsInputVarFields = ({
+const AwsInputVarFields = PackageVarFields;
+const AwsInputVarFields2 = ({
   fields,
   onChange,
 }: {
