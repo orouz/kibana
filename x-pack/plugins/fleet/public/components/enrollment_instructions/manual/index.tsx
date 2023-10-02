@@ -64,7 +64,7 @@ sudo elastic-agent enroll ${enrollArgs} \nsudo systemctl enable elastic-agent \n
 sudo rpm -vi elastic-agent-${agentVersion}-x86_64.rpm
 sudo elastic-agent enroll ${enrollArgs} \nsudo systemctl enable elastic-agent \nsudo systemctl start elastic-agent`;
 
-  const googleCloudShellCommand = `gcloud config set project <PROJECT_ID> && \nFLEET_URL=${fleetServerUrl} ENROLLMENT_TOKEN=${enrollmentToken} STACK_VERSION=${agentVersion} ./deploy.sh`;
+  const googleCloudShellCommand = `gcloud config set project <PROJECT_ID> && FLEET_URL=${fleetServerUrl} ENROLLMENT_TOKEN=${enrollmentToken} STACK_VERSION=${agentVersion} ./deploy.sh`;
 
   return {
     linux: linuxCommand,
