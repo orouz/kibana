@@ -12,6 +12,7 @@ import { API_VERSIONS, DEFAULT_ENTITY_STORE_PERMISSIONS } from '../constants';
 import type { EntityStorePluginRouter } from '../../types';
 import { wrapMiddlewares } from '../middleware';
 import { EntityType } from '../../../common/domain/definitions/entity_schema';
+import { ENTITY_STORE_API_CALL_EVENT } from '../../telemetry';
 
 const paramsSchema = z.object({
   entityType: EntityType,
@@ -44,19 +45,31 @@ export function registerForceLogExtraction(router: EntityStorePluginRouter) {
       },
       wrapMiddlewares(async (ctx, req, res): Promise<IKibanaResponse> => {
         const entityStoreCtx = await ctx.entityStore;
-        const { logger: baseLogger, logsExtractionClient } = entityStoreCtx;
+        const { logger: baseLogger, logsExtractionClient, telemetry } = entityStoreCtx;
         const { entityType } = req.params;
 
         const logger = baseLogger.get('forceLogExtraction').get(entityType);
         logger.debug(`Force log extraction API called for entity type: ${entityType}`);
 
-        const summary = await logsExtractionClient.extractLogs(entityType, {
-          specificWindow: req.body,
-        });
+        try {
+          const summary = await logsExtractionClient.extractLogs(entityType, {
+            specificWindow: req.body,
+          });
 
-        return res.ok({
-          body: summary,
-        });
+          telemetry.reportEvent(ENTITY_STORE_API_CALL_EVENT, {
+            endpoint: req.route.path,
+          });
+
+          return res.ok({
+            body: summary,
+          });
+        } catch (e) {
+          telemetry.reportEvent(ENTITY_STORE_API_CALL_EVENT, {
+            endpoint: req.route.path,
+            error: e instanceof Error ? e.message : String(e),
+          });
+          throw e;
+        }
       })
     );
 }

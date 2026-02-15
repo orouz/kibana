@@ -14,6 +14,7 @@ import type { EntityStorePluginRouter } from '../../types';
 import { wrapMiddlewares } from '../middleware';
 import type { EntityStoreStatus, GetStatusResult } from '../../domain/types';
 import type { LogExtractionState } from '../../domain/definitions/saved_objects';
+import { ENTITY_STORE_API_CALL_EVENT } from '../../telemetry';
 
 /**
  * Legacy engine descriptor from V1. will be removed in a future version.
@@ -86,17 +87,30 @@ export function registerStatus(router: EntityStorePluginRouter) {
       wrapMiddlewares(
         async (ctx, req, res): Promise<IKibanaResponse<EntityStoreStatusResponseBody>> => {
           const entityStoreCtx = await ctx.entityStore;
-          const { logger, assetManager } = entityStoreCtx;
+          const { logger, assetManager, telemetry } = entityStoreCtx;
           logger.debug('Status API invoked');
-          const withComponents = req.query.include_components;
-          const { status, engines } = await assetManager.getStatus(withComponents);
 
-          return res.ok({
-            body: {
-              status,
-              engines: engines.map(toPublicEngine),
-            },
-          });
+          try {
+            const withComponents = req.query.include_components;
+            const { status, engines } = await assetManager.getStatus(withComponents);
+
+            telemetry.reportEvent(ENTITY_STORE_API_CALL_EVENT, {
+              endpoint: req.route.path,
+            });
+
+            return res.ok({
+              body: {
+                status,
+                engines: engines.map(toPublicEngine),
+              },
+            });
+          } catch (e) {
+            telemetry.reportEvent(ENTITY_STORE_API_CALL_EVENT, {
+              endpoint: req.route.path,
+              error: e instanceof Error ? e.message : String(e),
+            });
+            throw e;
+          }
         }
       )
     );

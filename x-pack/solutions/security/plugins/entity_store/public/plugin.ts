@@ -7,9 +7,14 @@
 
 import type { CoreSetup, CoreStart, Plugin } from '@kbn/core/public';
 import type { AppPluginSetupDependencies } from './types';
+import { clientTelemetryEvents } from './telemetry';
 
 export class EntityStorePlugin implements Plugin {
   public setup(core: CoreSetup, deps: AppPluginSetupDependencies) {
+    clientTelemetryEvents.forEach((eventConfig) => {
+      core.analytics.registerEventType(eventConfig);
+    });
+
     // DON'T REGISTER APPLICATION ON THIS STAGE, WILL BE DONE LATER ON DEVELOPMENT STAGE
     //
     // core.application.register({

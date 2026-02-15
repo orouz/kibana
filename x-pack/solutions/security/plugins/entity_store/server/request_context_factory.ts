@@ -17,6 +17,7 @@ import { AssetManager } from './domain/asset_manager';
 import { FeatureFlags } from './infra/feature_flags';
 import { EngineDescriptorClient } from './domain/definitions/saved_objects';
 import { LogsExtractionClient } from './domain/logs_extraction_client';
+import type { TelemetryService } from './telemetry';
 
 interface EntityStoreApiRequestHandlerContextDeps {
   coreSetup: CoreSetup<EntityStoreStartPlugins, void>;
@@ -24,6 +25,7 @@ interface EntityStoreApiRequestHandlerContextDeps {
   logger: Logger;
   request: KibanaRequest;
   isServerless: boolean;
+  telemetry: TelemetryService;
 }
 
 export async function createRequestHandlerContext({
@@ -32,6 +34,7 @@ export async function createRequestHandlerContext({
   coreSetup,
   request,
   isServerless,
+  telemetry,
 }: EntityStoreApiRequestHandlerContextDeps): Promise<EntityStoreApiRequestHandlerContext> {
   const core = await context.core;
   const [, startPlugins] = await coreSetup.getStartServices();
@@ -70,8 +73,10 @@ export async function createRequestHandlerContext({
       namespace,
       isServerless,
       logsExtractionClient,
+      telemetry,
     }),
     featureFlags: new FeatureFlags(core.uiSettings.client),
     logsExtractionClient,
+    telemetry,
   };
 }

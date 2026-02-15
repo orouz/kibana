@@ -39,6 +39,12 @@ import {
 } from './assets/component_templates';
 import { getUpdatesEntitiesDataStreamName } from './assets/updates_data_stream';
 import type { LogsExtractionClient } from './logs_extraction_client';
+import type { TelemetryService } from '../telemetry';
+import {
+  ENTITY_ENGINE_INITIALIZATION_EVENT,
+  ENTITY_ENGINE_RESOURCE_INIT_FAILURE_EVENT,
+  ENTITY_ENGINE_DELETION_EVENT,
+} from '../telemetry';
 
 interface AssetManagerDependencies {
   logger: Logger;
@@ -48,6 +54,7 @@ interface AssetManagerDependencies {
   namespace: string;
   isServerless: boolean;
   logsExtractionClient: LogsExtractionClient;
+  telemetry: TelemetryService;
 }
 
 export class AssetManager {
@@ -58,6 +65,7 @@ export class AssetManager {
   private readonly namespace: string;
   private readonly isServerless: boolean;
   private readonly logsExtractionClient: LogsExtractionClient;
+  private readonly telemetry: TelemetryService;
 
   constructor(deps: AssetManagerDependencies) {
     this.logger = deps.logger;
@@ -67,6 +75,7 @@ export class AssetManager {
     this.namespace = deps.namespace;
     this.isServerless = deps.isServerless;
     this.logsExtractionClient = deps.logsExtractionClient;
+    this.telemetry = deps.telemetry;
   }
 
   public async initEntity(
@@ -118,6 +127,7 @@ export class AssetManager {
     logExtractionParams?: LogExtractionBodyParams
   ): Promise<ManagedEntityDefinition> {
     // TODO: return early if already installed
+    const startTime = Date.now();
     try {
       this.logger.get(type).debug(`Installing assets for entity type: ${type}`);
       const definition = getEntityDefinition(type, this.namespace);
@@ -135,16 +145,27 @@ export class AssetManager {
 
       await this.engineDescriptorClient.update(type, { status: ENGINE_STATUS.STARTED });
 
+      const duration = Math.round((Date.now() - startTime) / 1000);
+      this.telemetry.reportEvent(ENTITY_ENGINE_INITIALIZATION_EVENT, {
+        duration,
+        entityType: type,
+        namespace: this.namespace,
+      });
+
       this.logger.debug(`Installed definition: ${type}`);
 
       return definition;
     } catch (error) {
+      this.telemetry.reportEvent(ENTITY_ENGINE_RESOURCE_INIT_FAILURE_EVENT, {
+        error: error instanceof Error ? error.message : String(error),
+      });
       this.logger.error(`Error installing assets for entity type ${type}`, { error });
       throw error;
     }
   }
 
   public async uninstall(type: EntityType) {
+    const startTime = Date.now();
     try {
       const definition = getEntityDefinition(type, this.namespace);
       await this.stop(type);
@@ -158,6 +179,13 @@ export class AssetManager {
           namespace: this.namespace,
         }),
       ]);
+
+      const duration = Math.round((Date.now() - startTime) / 1000);
+      this.telemetry.reportEvent(ENTITY_ENGINE_DELETION_EVENT, {
+        duration,
+        entityType: type,
+        namespace: this.namespace,
+      });
 
       this.logger.get(type).debug(`Uninstalled definition: ${type}`);
     } catch (error) {

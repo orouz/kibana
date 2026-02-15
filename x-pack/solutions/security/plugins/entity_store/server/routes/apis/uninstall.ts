@@ -12,6 +12,7 @@ import { API_VERSIONS, DEFAULT_ENTITY_STORE_PERMISSIONS } from '../constants';
 import type { EntityStorePluginRouter } from '../../types';
 import { ALL_ENTITY_TYPES, EntityType } from '../../../common/domain/definitions/entity_schema';
 import { wrapMiddlewares } from '../middleware';
+import { ENTITY_STORE_API_CALL_EVENT } from '../../telemetry';
 
 const bodySchema = z.object({
   entityTypes: z.array(EntityType).optional().default(ALL_ENTITY_TYPES),
@@ -37,16 +38,28 @@ export function registerUninstall(router: EntityStorePluginRouter) {
         },
       },
       wrapMiddlewares(async (ctx, req, res) => {
-        const { logger, assetManager } = await ctx.entityStore;
+        const { logger, assetManager, telemetry } = await ctx.entityStore;
         logger.debug(`uninstalling entities: [${req.body.entityTypes.join(', ')}]`);
 
-        await Promise.all(req.body.entityTypes.map((type) => assetManager.uninstall(type)));
+        try {
+          await Promise.all(req.body.entityTypes.map((type) => assetManager.uninstall(type)));
 
-        return res.ok({
-          body: {
-            ok: true,
-          },
-        });
+          telemetry.reportEvent(ENTITY_STORE_API_CALL_EVENT, {
+            endpoint: req.route.path,
+          });
+
+          return res.ok({
+            body: {
+              ok: true,
+            },
+          });
+        } catch (e) {
+          telemetry.reportEvent(ENTITY_STORE_API_CALL_EVENT, {
+            endpoint: req.route.path,
+            error: e instanceof Error ? e.message : String(e),
+          });
+          throw e;
+        }
       })
     );
 }

@@ -8,6 +8,8 @@
 import { EntityStorePlugin } from './plugin';
 
 export { useInstallEntityStoreV2 } from './hooks/useInstallEntityStoreV2';
+export { EntityStoreEventTypes } from './telemetry';
+export type { EntityStoreEnablementParams } from './telemetry';
 
 export function plugin() {
   return new EntityStorePlugin();

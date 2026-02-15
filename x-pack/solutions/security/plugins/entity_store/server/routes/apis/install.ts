@@ -17,6 +17,7 @@ import {
 import type { EntityStorePluginRouter } from '../../types';
 import { wrapMiddlewares } from '../middleware';
 import { EntityType, ALL_ENTITY_TYPES } from '../../../common/domain/definitions/entity_schema';
+import { ENTITY_STORE_API_CALL_EVENT } from '../../telemetry';
 
 const bodySchema = z.object({
   entityTypes: z.array(EntityType).optional().default(ALL_ENTITY_TYPES),
@@ -44,19 +45,31 @@ export function registerInstall(router: EntityStorePluginRouter) {
       },
       wrapMiddlewares(async (ctx, req, res): Promise<IKibanaResponse> => {
         const entityStoreCtx = await ctx.entityStore;
-        const { logger, assetManager } = entityStoreCtx;
+        const { logger, assetManager, telemetry } = entityStoreCtx;
         const { entityTypes, logExtraction } = req.body;
         logger.debug('Install api called');
 
-        await Promise.all(
-          entityTypes.map((type) => assetManager.initEntity(req, type, logExtraction))
-        );
+        try {
+          await Promise.all(
+            entityTypes.map((type) => assetManager.initEntity(req, type, logExtraction))
+          );
 
-        return res.ok({
-          body: {
-            ok: true,
-          },
-        });
+          telemetry.reportEvent(ENTITY_STORE_API_CALL_EVENT, {
+            endpoint: req.route.path,
+          });
+
+          return res.ok({
+            body: {
+              ok: true,
+            },
+          });
+        } catch (e) {
+          telemetry.reportEvent(ENTITY_STORE_API_CALL_EVENT, {
+            endpoint: req.route.path,
+            error: e instanceof Error ? e.message : String(e),
+          });
+          throw e;
+        }
       })
     );
 }

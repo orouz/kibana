@@ -20,6 +20,7 @@ import { PLUGIN_ID } from '../common';
 import { registerTasks } from './tasks/register_tasks';
 import { registerUiSettings } from './infra/feature_flags/register';
 import { EngineDescriptorType } from './domain/definitions/saved_objects';
+import { TelemetryService, serverTelemetryEvents } from './telemetry';
 
 export class EntityStorePlugin
   implements
@@ -41,6 +42,12 @@ export class EntityStorePlugin
   public setup(core: EntityStoreCoreSetup, plugins: EntityStoreSetupPlugins) {
     plugins.taskManager.registerCanEncryptedSavedObjects(plugins.encryptedSavedObjects.canEncrypt);
 
+    this.logger.debug('Registering telemetry events');
+    serverTelemetryEvents.forEach((eventConfig) => {
+      core.analytics.registerEventType(eventConfig);
+    });
+    const telemetry = new TelemetryService(core.analytics);
+
     const router = core.http.createRouter<EntityStoreRequestHandlerContext>();
     core.http.registerRouteHandlerContext<EntityStoreRequestHandlerContext, typeof PLUGIN_ID>(
       PLUGIN_ID,
@@ -51,6 +58,7 @@ export class EntityStorePlugin
           logger: this.logger,
           request,
           isServerless: this.isServerless,
+          telemetry,
         })
     );
 
