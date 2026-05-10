@@ -58,8 +58,7 @@ import type { CcsLogsExtractionClient } from './ccs_logs_extraction_client';
 import { EntityStoreNotRunningError } from '../errors';
 import type { LogExtractionUpdateParams } from '../../routes/constants';
 
-const createOriginIndexPattern = (indexPattern: string) => `_origin:${indexPattern}` as const;
-const createNonOriginIndexPattern = (indexPattern: string) => `-_origin:${indexPattern}` as const;
+const EXCLUDED_ORIGIN = `-_origin:*` as const;
 
 /** Engine state with all cursor fields cleared. Used between sub-window iterations so a fresh
  * sub-window does not re-trigger recovery from cursors persisted by an earlier sub-window. */
@@ -270,7 +269,8 @@ export class LogsExtractionClient {
       engineState,
       opts,
       entityDefinition,
-      indexPatterns: localIndexPatterns.map(createOriginIndexPattern),
+      // indexPatterns: localIndexPatterns.map(createOriginIndexPattern),
+      indexPatterns: localIndexPatterns, // always with default esClient, not cpsClient, doesnt need prefix
       latestIndex,
     });
 
@@ -278,7 +278,7 @@ export class LogsExtractionClient {
 
     const cpsPromise = this.ccsLogsExtractionClient.extractToUpdates({
       type,
-      remoteIndexPatterns: localIndexPatterns.map(createNonOriginIndexPattern),
+      remoteIndexPatterns: [...localIndexPatterns, EXCLUDED_ORIGIN],
       docsLimit: config.docsLimit,
       maxLogsPerPage: config.maxLogsPerPage,
       lookbackPeriod: config.lookbackPeriod,
