@@ -67,6 +67,10 @@ export async function createRequestHandlerContext({
   );
 
   const esClient = core.elasticsearch.client.asCurrentUser;
+  const cpsClient = coreStart.elasticsearch.client.asScoped(request, {
+    projectRouting: 'space',
+  }).asCurrentUser;
+
   const crudClient = new CRUDClient({
     logger,
     esClient,
@@ -79,10 +83,11 @@ export async function createRequestHandlerContext({
   );
   const ccsLogsExtractionClient = new CcsLogsExtractionClient(
     logger,
-    esClient,
+    cpsClient, // ccs is now CPS, ignoring CCS for now, testing wip
     namespace,
     ccsLogExtractionStateClient
   );
+
   const logsExtractionClient = new LogsExtractionClient({
     logger,
     namespace,

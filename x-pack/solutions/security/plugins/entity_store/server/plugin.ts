@@ -73,7 +73,7 @@ export class EntityStorePlugin
 
     registerTasks(plugins.taskManager, this.logger, core);
     this.logger.debug('Registering routes');
-    registerRoutes(router);
+    registerRoutes(router, core);
 
     this.logger.debug('Registering ui settings');
     registerUiSettings(core.uiSettings);

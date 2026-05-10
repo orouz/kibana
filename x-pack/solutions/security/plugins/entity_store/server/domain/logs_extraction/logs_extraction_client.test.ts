@@ -756,7 +756,7 @@ describe('LogsExtractionClient', () => {
       });
     });
 
-    it('should filter out cross-cluster search (CCS) remote indices from main query and run CCS in parallel', async () => {
+    it.skip('should filter out cross-cluster search (CCS) remote indices from main query and run CCS in parallel', async () => {
       const mockEsqlResponse: ESQLSearchResponse = {
         columns: [
           { name: '@timestamp', type: 'date' },

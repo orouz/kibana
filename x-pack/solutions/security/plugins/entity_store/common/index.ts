@@ -71,6 +71,7 @@ export const ENTITY_STORE_ROUTES = {
     ENTITY_MAINTAINERS_RUN: `${INTERNAL_BASE_ROUTE}/entity_maintainers/run/{id}`,
     ENTITY_MAINTAINERS_GET: `${INTERNAL_BASE_ROUTE}/entity_maintainers`,
     ENTITY_MAINTAINERS_INIT: `${INTERNAL_BASE_ROUTE}/entity_maintainers/init`,
+    CPS_SEARCH: `${INTERNAL_BASE_ROUTE}/cps_search`,
   },
 } as const satisfies Record<string, Record<string, string>>;
 

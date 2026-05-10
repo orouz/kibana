@@ -29,10 +29,11 @@ import {
   registerResolutionGroup,
   registerUpdate,
   registerCheckPrivileges,
+  // registerCpsSearch,
 } from './apis';
-import type { EntityStorePluginRouter } from '../types';
+import type { EntityStoreCoreSetup, EntityStorePluginRouter } from '../types';
 
-export function registerRoutes(router: EntityStorePluginRouter) {
+export function registerRoutes(router: EntityStorePluginRouter, coreSetup: EntityStoreCoreSetup) {
   registerInstall(router);
   registerStop(router);
   registerStatus(router);

@@ -51,9 +51,13 @@ export async function createLogsExtractionClient({
   );
 
   const esClient = clusterClient.asCurrentUser;
+  const cpsClient = coreStart.elasticsearch.client.asScoped(fakeRequest, {
+    projectRouting: 'space',
+  }).asCurrentUser;
+
   const ccsLogsExtractionClient = new CcsLogsExtractionClient(
     logger,
-    esClient,
+    cpsClient,
     namespace,
     new CcsLogExtractionStateClient(soClient, namespace, logger)
   );
