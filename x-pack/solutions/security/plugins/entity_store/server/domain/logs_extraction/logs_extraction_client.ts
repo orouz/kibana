@@ -58,6 +58,9 @@ import type { CcsLogsExtractionClient } from './ccs_logs_extraction_client';
 import { EntityStoreNotRunningError } from '../errors';
 import type { LogExtractionUpdateParams } from '../../routes/constants';
 
+const createOriginIndexPattern = (indexPattern: string) => `_origin:${indexPattern}` as const;
+const createNonOriginIndexPattern = (indexPattern: string) => `-_origin:${indexPattern}` as const;
+
 /** Engine state with all cursor fields cleared. Used between sub-window iterations so a fresh
  * sub-window does not re-trigger recovery from cursors persisted by an earlier sub-window. */
 const FRESH_ENGINE_LOG_EXTRACTION_STATE: EngineLogExtractionState = {
@@ -267,34 +270,32 @@ export class LogsExtractionClient {
       engineState,
       opts,
       entityDefinition,
-      indexPatterns: localIndexPatterns,
+      indexPatterns: localIndexPatterns.map(createOriginIndexPattern),
       latestIndex,
     });
 
-    if (remoteIndexPatterns.length > 0) {
-      const ccsPromise = this.ccsLogsExtractionClient.extractToUpdates({
-        type,
-        remoteIndexPatterns,
-        docsLimit: config.docsLimit,
-        maxLogsPerPage: config.maxLogsPerPage,
-        lookbackPeriod: config.lookbackPeriod,
-        delay: config.delay,
-        entityDefinition,
-        abortController: opts?.abortController,
-        windowOverride: opts?.specificWindow,
-        maxTimeWindowSize: config.maxTimeWindowSize,
-      });
+    // assume CPS, ignore CCS (WIP)
 
-      const [mainResult, ccsResult] = await Promise.all([mainPromise, ccsPromise]);
+    const cpsPromise = this.ccsLogsExtractionClient.extractToUpdates({
+      type,
+      remoteIndexPatterns: localIndexPatterns.map(createNonOriginIndexPattern),
+      docsLimit: config.docsLimit,
+      maxLogsPerPage: config.maxLogsPerPage,
+      lookbackPeriod: config.lookbackPeriod,
+      delay: config.delay,
+      entityDefinition,
+      abortController: opts?.abortController,
+      windowOverride: opts?.specificWindow,
+      maxTimeWindowSize: config.maxTimeWindowSize,
+    });
 
-      return {
-        ...mainResult,
-        indexPatterns: [...localIndexPatterns, ...remoteIndexPatterns],
-        ccsError: ccsResult.error,
-      };
-    }
+    const [mainResult, cpsResult] = await Promise.all([mainPromise, cpsPromise]);
 
-    return await mainPromise;
+    return {
+      ...mainResult,
+      indexPatterns: [...localIndexPatterns, ...remoteIndexPatterns],
+      ccsError: cpsResult.error,
+    };
   }
 
   /**

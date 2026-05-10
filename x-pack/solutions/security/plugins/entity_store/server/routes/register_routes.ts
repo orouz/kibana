@@ -29,7 +29,7 @@ import {
   registerResolutionGroup,
   registerUpdate,
   registerCheckPrivileges,
-  // registerCpsSearch,
+  registerCpsSearch,
 } from './apis';
 import type { EntityStoreCoreSetup, EntityStorePluginRouter } from '../types';
 
@@ -57,4 +57,5 @@ export function registerRoutes(router: EntityStorePluginRouter, coreSetup: Entit
   registerGetMaintainers(router);
   registerInitMaintainers(router);
   registerRunMaintainer(router);
+  registerCpsSearch(router, coreSetup);
 }
