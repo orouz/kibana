@@ -58,6 +58,8 @@ import type { CcsLogsExtractionClient } from './ccs_logs_extraction_client';
 import { EntityStoreNotRunningError } from '../errors';
 import type { LogExtractionUpdateParams } from '../../routes/constants';
 
+const EXCLUDED_ORIGIN = `-_origin:*` as const;
+
 /** Engine state with all cursor fields cleared. Used between sub-window iterations so a fresh
  * sub-window does not re-trigger recovery from cursors persisted by an earlier sub-window. */
 const FRESH_ENGINE_LOG_EXTRACTION_STATE: EngineLogExtractionState = {
@@ -274,12 +276,9 @@ export class LogsExtractionClient {
 
     // assume CPS, ignore CCS (WIP)
 
-    // ESQL doesn't support CPS flat-world index resolution yet, so we use canonical
-    // CCS notation (`*:<pattern>`) to fan out to every linked project in the routing
-    // scope while excluding origin (origin is unprefixed).
     const cpsPromise = this.ccsLogsExtractionClient.extractToUpdates({
       type,
-      remoteIndexPatterns: localIndexPatterns.map((p) => `*:${p}`),
+      remoteIndexPatterns: [...localIndexPatterns, EXCLUDED_ORIGIN],
       docsLimit: config.docsLimit,
       maxLogsPerPage: config.maxLogsPerPage,
       lookbackPeriod: config.lookbackPeriod,
