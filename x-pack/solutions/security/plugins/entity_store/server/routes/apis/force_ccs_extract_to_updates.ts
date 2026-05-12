@@ -61,7 +61,7 @@ export function registerForceCcsExtractToUpdates(router: EntityStorePluginRouter
       },
       wrapMiddlewares(async (ctx, req, res): Promise<IKibanaResponse> => {
         const entityStoreCtx = await ctx.entityStore;
-        const { logger: baseLogger, ccsLogsExtractionClient, namespace } = entityStoreCtx;
+        const { logger: baseLogger, remoteLogsExtractionClient, namespace } = entityStoreCtx;
         const { entityType } = req.params;
         const { indexPatterns, fromDateISO, toDateISO, docsLimit, maxLogsPerPage } = req.body;
 
@@ -73,7 +73,7 @@ export function registerForceCcsExtractToUpdates(router: EntityStorePluginRouter
         );
 
         const entityDefinition = getEntityDefinition(entityType, namespace);
-        const result = await ccsLogsExtractionClient.extractToUpdates({
+        const result = await remoteLogsExtractionClient.extractToUpdates({
           type: entityType,
           remoteIndexPatterns: indexPatterns,
           docsLimit: docsLimit ?? DEFAULT_DOCS_LIMIT,

@@ -21,6 +21,7 @@ import { registerTasks } from './tasks/register_tasks';
 import { registerUiSettings } from './infra/feature_flags/register';
 import {
   CcsLogExtractionStateType,
+  CpsLogExtractionStateType,
   EngineDescriptorType,
   EntityStoreGlobalStateType,
 } from './domain/saved_objects';
@@ -71,7 +72,7 @@ export class EntityStorePlugin
         })
     );
 
-    registerTasks(plugins.taskManager, this.logger, core);
+    registerTasks(plugins.taskManager, this.logger, core, this.isServerless);
     this.logger.debug('Registering routes');
     registerRoutes(router, core);
 
@@ -82,6 +83,7 @@ export class EntityStorePlugin
     core.savedObjects.registerType(EngineDescriptorType);
     core.savedObjects.registerType(EntityStoreGlobalStateType);
     core.savedObjects.registerType(CcsLogExtractionStateType);
+    core.savedObjects.registerType(CpsLogExtractionStateType);
 
     registerEntityMaintainerTask({
       taskManager: plugins.taskManager,

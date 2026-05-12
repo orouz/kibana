@@ -259,7 +259,7 @@ export interface BuildSetFieldsByConditionPostStatsContext {
 
 /**
  * Builds ESQL EVAL CASE fragments for when-condition field overrides (pre-STATS by default).
- * Pass `postStats` for after-STATS rows in logs extraction (main vs CCS differs by `useRecentDataPrefix`).
+ * Pass `postStats` for after-STATS rows in logs extraction (main vs remote differs by `useRecentDataPrefix`).
  */
 export function buildSetFieldsByCondition(
   setFieldsByCondition: SetFieldsByCondition,
@@ -297,7 +297,7 @@ export function buildSetFieldsByCondition(
 
 /**
  * Maps logical field paths (entity `fields[].source` / `fields[].destination`) to ESQL column names
- * after STATS: `recent.<destination>` when `useRecentDataPrefix` is true (main extraction), else `<destination>` (CCS).
+ * after STATS: `recent.<destination>` when `useRecentDataPrefix` is true (main extraction), else `<destination>` (remote).
  */
 export function buildPostStatsLogicalToColumnMap(
   entityFields: EntityField[],

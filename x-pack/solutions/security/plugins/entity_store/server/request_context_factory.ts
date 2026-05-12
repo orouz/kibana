@@ -17,10 +17,12 @@ import { EntityMaintainersClient } from './domain/entity_maintainers';
 import { FeatureFlags } from './infra/feature_flags';
 import {
   CcsLogExtractionStateClient,
+  CpsLogExtractionStateClient,
   EngineDescriptorClient,
   EntityStoreGlobalStateClient,
 } from './domain/saved_objects';
-import { CcsLogsExtractionClient, LogsExtractionClient } from './domain/logs_extraction';
+import { LogsExtractionClient } from './domain/logs_extraction';
+import { createRemoteLogsExtractionClient } from './domain/logs_extraction/remote';
 import { HistorySnapshotClient } from './domain/history_snapshot';
 import { CRUDClient } from './domain/crud';
 import { ResolutionClient } from './domain/resolution';
@@ -81,12 +83,20 @@ export async function createRequestHandlerContext({
     namespace,
     logger
   );
-  const ccsLogsExtractionClient = new CcsLogsExtractionClient(
-    logger,
-    cpsClient, // ccs is now CPS, ignoring CCS for now, testing wip
+  const cpsLogExtractionStateClient = new CpsLogExtractionStateClient(
+    core.savedObjects.client,
     namespace,
-    ccsLogExtractionStateClient
+    logger
   );
+  const remoteLogsExtractionClient = createRemoteLogsExtractionClient({
+    logger,
+    namespace,
+    esClient,
+    cpsClient,
+    ccsStateClient: ccsLogExtractionStateClient,
+    cpsStateClient: cpsLogExtractionStateClient,
+    isServerless,
+  });
 
   const logsExtractionClient = new LogsExtractionClient({
     logger,
@@ -95,7 +105,7 @@ export async function createRequestHandlerContext({
     dataViewsService,
     engineDescriptorClient,
     globalStateClient,
-    ccsLogsExtractionClient,
+    remoteLogsExtractionClient,
   });
 
   const historySnapshotClient = new HistorySnapshotClient({
@@ -115,6 +125,7 @@ export async function createRequestHandlerContext({
       engineDescriptorClient,
       globalStateClient,
       ccsLogExtractionStateClient,
+      cpsLogExtractionStateClient,
       namespace,
       isServerless,
       logsExtractionClient,
@@ -136,7 +147,7 @@ export async function createRequestHandlerContext({
       esClient: core.elasticsearch.client.asCurrentUser,
       namespace,
     }),
-    ccsLogsExtractionClient,
+    remoteLogsExtractionClient,
     featureFlags: new FeatureFlags(core.uiSettings.client),
     logsExtractionClient,
     historySnapshotClient,

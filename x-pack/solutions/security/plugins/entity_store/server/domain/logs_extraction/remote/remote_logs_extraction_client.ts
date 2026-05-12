@@ -6,38 +6,38 @@
  */
 
 import type { Logger } from '@kbn/logging';
-import type { ElasticsearchClient } from '@kbn/core/server';
 import moment from 'moment';
 import { unflattenObject } from '@kbn/object-utils';
 import { get } from 'lodash';
 import { set } from '@kbn/safer-lodash-set';
-import type { Entity } from '../../../common/domain/definitions/entity.gen';
+import type { Entity } from '../../../../common/domain/definitions/entity.gen';
 import {
   EntityType,
   type ManagedEntityDefinition,
-} from '../../../common/domain/definitions/entity_schema';
+} from '../../../../common/domain/definitions/entity_schema';
 import {
   ENGINE_METADATA_PAGINATION_FIRST_SEEN_LOG_FIELD,
   type PaginationParams,
-} from './query_builder_commons';
+} from '../query_builder_commons';
 import {
-  buildCcsLogsExtractionEsqlQuery,
-  extractCcsPaginationParams,
-} from './ccs_logs_extraction_query_builder';
+  buildRemoteLogsExtractionEsqlQuery,
+  extractRemotePaginationParams,
+} from './remote_logs_extraction_query_builder';
 import {
   buildLogPaginationCursorProbeEsql,
   interpretLogPaginationCursorRows,
   parseLogPaginationCursorRow,
   type LogPaginationCursor,
-} from './log_pagination_probe_query_builder';
-import { executeEsqlQuery } from '../../infra/elasticsearch/esql';
-import { ingestEntities } from '../../infra/elasticsearch/ingest';
-import { getUpdatesEntitiesDataStreamName } from '../asset_manager/updates_data_stream';
-import type { CcsLogExtractionStateClient } from '../saved_objects/ccs_log_extraction_state';
-import { capExtractionWindowEnd, resolveCcsExtractionWindow } from './extraction_window';
+} from '../log_pagination_probe_query_builder';
+import { executeEsqlQuery } from '../../../infra/elasticsearch/esql';
+import { ingestEntities } from '../../../infra/elasticsearch/ingest';
+import { getUpdatesEntitiesDataStreamName } from '../../asset_manager/updates_data_stream';
+import { capExtractionWindowEnd, resolveRemoteExtractionWindow } from '../extraction_window';
+import type { RemoteExtractionStrategy } from './strategies';
 
-interface CcsExtractToUpdatesParams {
+export interface RemoteExtractToUpdatesParams {
   type: EntityType;
+  /** Index patterns already shaped by the strategy (CCS prefixed, CPS with `-_origin:*`). */
   remoteIndexPatterns: string[];
   docsLimit: number;
   maxLogsPerPage: number;
@@ -51,28 +51,39 @@ interface CcsExtractToUpdatesParams {
   maxTimeWindowSize: string;
 }
 
-export interface CcsExtractToUpdatesResult {
+export interface RemoteExtractToUpdatesResult {
   count: number;
   pages: number;
   error?: Error;
 }
 
-export class CcsLogsExtractionClient {
+/**
+ * Strategy-agnostic umbrella that runs the shared probe-then-aggregate loop for
+ * any remote extraction path (CCS or CPS). The strategy supplies its own ES
+ * client (already scoped) and state SO client.
+ */
+export class RemoteLogsExtractionClient {
+  private readonly logger: Logger;
+
   constructor(
-    private readonly logger: Logger,
-    private readonly esClient: ElasticsearchClient,
+    logger: Logger,
     private readonly namespace: string,
-    private readonly ccsStateClient: CcsLogExtractionStateClient
-  ) {}
+    public readonly strategy: RemoteExtractionStrategy
+  ) {
+    // Scope every log line emitted by this client so the strategy id appears in
+    // the logger name (e.g. `…remote.ccs` / `…remote.cps`). Log messages
+    // themselves stay strategy-neutral.
+    this.logger = logger.get(`remote.${strategy.id}`);
+  }
 
   public async extractToUpdates(
-    params: CcsExtractToUpdatesParams
-  ): Promise<CcsExtractToUpdatesResult> {
+    params: RemoteExtractToUpdatesParams
+  ): Promise<RemoteExtractToUpdatesResult> {
     try {
       return await this.doExtractToUpdates(params);
     } catch (error) {
       const wrappedError = new Error(
-        `Failed to extract to updates from CCS indices: ${error.message}`
+        `Failed to extract to updates from remote indices: ${error.message}`
       );
       this.logger.error(wrappedError);
       return { count: 0, pages: 0, error: wrappedError };
@@ -90,23 +101,29 @@ export class CcsLogsExtractionClient {
     abortController,
     windowOverride,
     maxTimeWindowSize,
-  }: CcsExtractToUpdatesParams): Promise<CcsExtractToUpdatesResult> {
-    const ccsState =
+  }: RemoteExtractToUpdatesParams): Promise<RemoteExtractToUpdatesResult> {
+    if (remoteIndexPatterns.length === 0) {
+      // Strategy produced no patterns to scan (e.g. CCS with no remotes
+      // configured). Nothing to do, but not an error.
+      return { count: 0, pages: 0 };
+    }
+
+    const state =
       windowOverride != null
         ? { checkpointTimestamp: null, paginationRecoveryId: null }
-        : await this.ccsStateClient.findOrInit(type);
+        : await this.strategy.stateClient.findOrInit(type);
 
     const { effectiveFromDateISO, effectiveWindowEnd, recoveryId, isWindowOverride } =
-      resolveCcsExtractionWindow({
+      resolveRemoteExtractionWindow({
         config: { lookbackPeriod, delay },
-        ccsState,
+        state,
         windowOverride,
         logger: this.logger,
       });
 
     if (effectiveFromDateISO >= effectiveWindowEnd) {
       this.logger.error(
-        `CCS extraction window is empty (from=${effectiveFromDateISO} >= to=${effectiveWindowEnd}), skipping`
+        `extraction window is empty (from=${effectiveFromDateISO} >= to=${effectiveWindowEnd}), skipping`
       );
       return { count: 0, pages: 0 };
     }
@@ -175,7 +192,7 @@ export class CcsLogsExtractionClient {
     }
 
     if (totalCount === 0) {
-      await this.ccsStateClient.clearRecoveryId(type);
+      await this.strategy.stateClient.clearRecoveryId(type);
     }
 
     return { count: totalCount, pages: totalPages };
@@ -209,13 +226,13 @@ export class CcsLogsExtractionClient {
     effectiveFromDateISO: string;
     recoveryId: string | undefined;
     skipStateUpdates: boolean;
-  }): Promise<CcsExtractToUpdatesResult> {
+  }): Promise<RemoteExtractToUpdatesResult> {
     let totalCount = 0;
     let totalPages = 0;
 
     const onAbort = () => {
       this.logger.info(
-        `Aborting CCS logs extraction, CCS entities extracted until abort: ${totalCount}, in ${totalPages} pages`
+        `Aborting logs extraction, entities extracted until abort: ${totalCount}, in ${totalPages} pages`
       );
     };
     abortController?.signal.addEventListener('abort', onAbort);
@@ -269,14 +286,14 @@ export class CcsLogsExtractionClient {
       sliceStart = sliceEnd;
       effectiveFromDateISO = sliceEnd.timestampCursor;
       if (!skipStateUpdates) {
-        await this.ccsStateClient.update(type, {
+        await this.strategy.stateClient.update(type, {
           checkpointTimestamp: sliceEnd.timestampCursor,
           paginationRecoveryId: null,
         });
       }
     } while (!isLastLogsPage);
 
-    this.logger.info(`CCS entities extracted: ${totalCount}, in ${totalPages} pages`);
+    this.logger.info(`entities extracted: ${totalCount}, in ${totalPages} pages`);
 
     return { count: totalCount, pages: totalPages };
   }
@@ -315,13 +332,13 @@ export class CcsLogsExtractionClient {
       });
 
     this.logger.info(
-      `CCS probe: from=${fromDateISO} to=${toDateISO}${
+      `probe: from=${fromDateISO} to=${toDateISO}${
         sliceStart ? ` sliceStart=${sliceStart.timestampCursor}` : ''
       }`
     );
 
     const probeResponse = await executeEsqlQuery({
-      esClient: this.esClient,
+      esClient: this.strategy.client,
       query: probeQuery,
       abortController,
     });
@@ -380,7 +397,7 @@ export class CcsLogsExtractionClient {
     let recoveryId = initialRecoveryId;
 
     do {
-      const query = buildCcsLogsExtractionEsqlQuery({
+      const query = buildRemoteLogsExtractionEsqlQuery({
         indexPatterns: remoteIndexPatterns,
         entityDefinition,
         fromDateISO,
@@ -394,7 +411,7 @@ export class CcsLogsExtractionClient {
       recoveryId = undefined; // one-shot: used only on the first page of a recovered slice
 
       this.logger.info(
-        `CCS extraction from=${fromDateISO} to=${toDateISO} sliceEnd=${sliceEnd.timestampCursor}${
+        `extraction from=${fromDateISO} to=${toDateISO} sliceEnd=${sliceEnd.timestampCursor}${
           entityPagination
             ? ` entityPagination=${entityPagination.timestampCursor}|${entityPagination.idCursor}`
             : ''
@@ -402,18 +419,18 @@ export class CcsLogsExtractionClient {
       );
 
       const esqlResponse = await executeEsqlQuery({
-        esClient: this.esClient,
+        esClient: this.strategy.client,
         query,
         abortController,
       });
 
       count += esqlResponse.values.length;
-      entityPagination = extractCcsPaginationParams(esqlResponse, docsLimit);
+      entityPagination = extractRemotePaginationParams(esqlResponse, docsLimit);
 
       if (esqlResponse.values.length > 0) {
         pages++;
         await ingestEntities({
-          esClient: this.esClient,
+          esClient: this.strategy.client,
           esqlResponse,
           targetIndex: getUpdatesEntitiesDataStreamName(this.namespace),
           logger: this.logger,
@@ -424,7 +441,7 @@ export class CcsLogsExtractionClient {
       }
 
       if (entityPagination && !skipStateUpdates) {
-        await this.ccsStateClient.update(type, {
+        await this.strategy.stateClient.update(type, {
           checkpointTimestamp: entityPagination.timestampCursor,
           paginationRecoveryId: entityPagination.idCursor,
         });
@@ -436,20 +453,20 @@ export class CcsLogsExtractionClient {
 
   /**
    * Returns a document transformer that rewrites `@timestamp` to a synthetic value
-   * just of now, incrementing by 1ms per doc, so the next local extraction
-   * run picks up CCS-written updates in the correct order.
-   * This should be picked up in time because of the delay implemented in the main extraction
+   * just past now, incrementing by 1ms per doc, so the next local extraction run
+   * picks up these updates in the correct order. This is bounded by the `delay`
+   * configured on the main extraction.
    */
   private buildTransformDocument(type: EntityType) {
     let timestampIncrement = 1;
     return (doc: Record<string, unknown>) => {
       timestampIncrement++;
       const timestamp = moment().utc().add(timestampIncrement, 'ms').toISOString();
-      return this.transformDocForCcsUpsert(type, doc, timestamp);
+      return this.transformDocForUpsert(type, doc, timestamp);
     };
   }
 
-  private transformDocForCcsUpsert(
+  private transformDocForUpsert(
     type: EntityType,
     data: Partial<Entity>,
     timestamp: string

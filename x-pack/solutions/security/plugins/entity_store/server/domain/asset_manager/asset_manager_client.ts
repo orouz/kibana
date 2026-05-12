@@ -57,6 +57,7 @@ import { getComponentTemplateName, getUpdatesComponentTemplateName } from './com
 import { getUpdatesEntitiesDataStreamName } from './updates_data_stream';
 import type { LogsExtractionClient } from '../logs_extraction';
 import type { CcsLogExtractionStateClient } from '../saved_objects/ccs_log_extraction_state';
+import type { CpsLogExtractionStateClient } from '../saved_objects/cps_log_extraction_state';
 import type { ManagedEntityDefinition } from '../../../common/domain/definitions/entity_schema';
 import { getEntityDefinition } from '../../../common/domain/definitions/registry';
 import { installEuidStoredScripts, deleteEuidStoredScripts } from './euid_stored_scripts';
@@ -76,6 +77,7 @@ interface AssetManagerDependencies {
   engineDescriptorClient: EngineDescriptorClient;
   globalStateClient: EntityStoreGlobalStateClient;
   ccsLogExtractionStateClient: CcsLogExtractionStateClient;
+  cpsLogExtractionStateClient: CpsLogExtractionStateClient;
   namespace: string;
   isServerless: boolean;
   logsExtractionClient: LogsExtractionClient;
@@ -91,6 +93,7 @@ export class AssetManagerClient {
   private readonly engineDescriptorClient: EngineDescriptorClient;
   private readonly globalStateClient: EntityStoreGlobalStateClient;
   private readonly ccsLogExtractionStateClient: CcsLogExtractionStateClient;
+  private readonly cpsLogExtractionStateClient: CpsLogExtractionStateClient;
   private readonly namespace: string;
   private readonly isServerless: boolean;
   private readonly logsExtractionClient: LogsExtractionClient;
@@ -105,6 +108,7 @@ export class AssetManagerClient {
     this.engineDescriptorClient = deps.engineDescriptorClient;
     this.globalStateClient = deps.globalStateClient;
     this.ccsLogExtractionStateClient = deps.ccsLogExtractionStateClient;
+    this.cpsLogExtractionStateClient = deps.cpsLogExtractionStateClient;
     this.namespace = deps.namespace;
     this.isServerless = deps.isServerless;
     this.logsExtractionClient = deps.logsExtractionClient;
@@ -236,6 +240,7 @@ export class AssetManagerClient {
       await Promise.all([
         this.engineDescriptorClient.delete(type),
         this.ccsLogExtractionStateClient.delete(type),
+        this.cpsLogExtractionStateClient.delete(type),
         uninstallElasticsearchAssets({
           esClient: this.esClient,
           logger: this.logger.get(type),

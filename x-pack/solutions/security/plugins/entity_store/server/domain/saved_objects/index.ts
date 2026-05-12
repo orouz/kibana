@@ -14,3 +14,6 @@ export * from './global_state';
 export * from './ccs_log_extraction_state/constants';
 export * from './ccs_log_extraction_state/types';
 export * from './ccs_log_extraction_state';
+export * from './cps_log_extraction_state/constants';
+export * from './cps_log_extraction_state/types';
+export * from './cps_log_extraction_state';

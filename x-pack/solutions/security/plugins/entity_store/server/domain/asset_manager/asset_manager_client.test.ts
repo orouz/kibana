@@ -134,6 +134,9 @@ describe('AssetManagerClient', () => {
       ccsLogExtractionStateClient: {
         delete: jest.fn().mockResolvedValue(undefined),
       } as unknown as import('../saved_objects/ccs_log_extraction_state').CcsLogExtractionStateClient,
+      cpsLogExtractionStateClient: {
+        delete: jest.fn().mockResolvedValue(undefined),
+      } as unknown as import('../saved_objects/cps_log_extraction_state').CpsLogExtractionStateClient,
       namespace,
       isServerless: false,
       logsExtractionClient: {} as unknown as import('../logs_extraction').LogsExtractionClient,

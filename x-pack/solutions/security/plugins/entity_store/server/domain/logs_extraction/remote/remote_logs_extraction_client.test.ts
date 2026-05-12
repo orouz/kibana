@@ -8,18 +8,18 @@
 import type { ESQLSearchResponse } from '@kbn/es-types';
 import { loggerMock } from '@kbn/logging-mocks';
 import type { ElasticsearchClient } from '@kbn/core/server';
-import { CcsLogsExtractionClient } from '.';
-import { getEntityDefinition } from '../../../common/domain/definitions/registry';
-import { getUpdatesEntitiesDataStreamName } from '../asset_manager/updates_data_stream';
-import { executeEsqlQuery } from '../../infra/elasticsearch/esql';
-import { ingestEntities } from '../../infra/elasticsearch/ingest';
-import { ENGINE_METADATA_PAGINATION_FIRST_SEEN_LOG_FIELD } from './query_builder_commons';
-import type { CcsLogExtractionStateClient } from '../saved_objects/ccs_log_extraction_state';
+import { RemoteLogsExtractionClient } from './remote_logs_extraction_client';
+import type { RemoteExtractionStrategy, RemoteLogExtractionStateClient } from './strategies';
+import { getEntityDefinition } from '../../../../common/domain/definitions/registry';
+import { getUpdatesEntitiesDataStreamName } from '../../asset_manager/updates_data_stream';
+import { executeEsqlQuery } from '../../../infra/elasticsearch/esql';
+import { ingestEntities } from '../../../infra/elasticsearch/ingest';
+import { ENGINE_METADATA_PAGINATION_FIRST_SEEN_LOG_FIELD } from '../query_builder_commons';
 import { get } from 'lodash';
 
-jest.mock('../../infra/elasticsearch/esql', () => {
-  const actual = jest.requireActual<typeof import('../../infra/elasticsearch/esql')>(
-    '../../infra/elasticsearch/esql'
+jest.mock('../../../infra/elasticsearch/esql', () => {
+  const actual = jest.requireActual<typeof import('../../../infra/elasticsearch/esql')>(
+    '../../../infra/elasticsearch/esql'
   );
   return {
     ...actual,
@@ -27,7 +27,7 @@ jest.mock('../../infra/elasticsearch/esql', () => {
   };
 });
 
-jest.mock('../../infra/elasticsearch/ingest', () => ({
+jest.mock('../../../infra/elasticsearch/ingest', () => ({
   ingestEntities: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -55,7 +55,7 @@ const EXPECTED_FROM_DATE_ISO = '2026-01-01T09:00:00.000Z';
 
 const DEFAULT_MAX_LOGS_PER_PAGE = 10000;
 
-describe('CcsLogsExtractionClient', () => {
+describe('RemoteLogsExtractionClient', () => {
   const mockLogger = loggerMock.create();
   const mockEsClient = {} as unknown as jest.Mocked<ElasticsearchClient>;
   const namespace = 'default';
@@ -64,9 +64,16 @@ describe('CcsLogsExtractionClient', () => {
     findOrInit: jest.fn(),
     update: jest.fn().mockResolvedValue(undefined),
     clearRecoveryId: jest.fn().mockResolvedValue(undefined),
-  } as unknown as jest.Mocked<CcsLogExtractionStateClient>;
+  } as unknown as jest.Mocked<RemoteLogExtractionStateClient>;
 
-  let client: CcsLogsExtractionClient;
+  const mockStrategy: RemoteExtractionStrategy = {
+    id: 'ccs',
+    client: mockEsClient,
+    stateClient: mockCcsStateClient,
+    buildPatterns: ({ remoteIndexPatterns }) => remoteIndexPatterns,
+  };
+
+  let client: RemoteLogsExtractionClient;
 
   const defaultExtractParams = {
     type: 'host' as const,
@@ -92,7 +99,7 @@ describe('CcsLogsExtractionClient', () => {
     });
     mockCcsStateClient.update.mockResolvedValue(undefined);
     mockCcsStateClient.clearRecoveryId.mockResolvedValue(undefined);
-    client = new CcsLogsExtractionClient(mockLogger, mockEsClient, namespace, mockCcsStateClient);
+    client = new RemoteLogsExtractionClient(mockLogger, namespace, mockStrategy);
   });
 
   afterEach(() => {
@@ -122,14 +129,15 @@ describe('CcsLogsExtractionClient', () => {
     // probe + entity page; total_logs=2 <= maxLogsPerPage → isLastLogsPage=true, no second probe
     expect(mockExecuteEsqlQuery).toHaveBeenCalledTimes(2);
     expect(mockIngestEntities).toHaveBeenCalledTimes(1);
-    expect(mockIngestEntities).toHaveBeenCalledWith({
-      esClient: mockEsClient,
-      esqlResponse: entityPageResponse,
-      targetIndex: getUpdatesEntitiesDataStreamName(namespace),
-      logger: mockLogger,
-      fieldsToIgnore: [ENGINE_METADATA_PAGINATION_FIRST_SEEN_LOG_FIELD],
-      transformDocument: expect.any(Function),
-    });
+    expect(mockIngestEntities).toHaveBeenCalledWith(
+      expect.objectContaining({
+        esClient: mockEsClient,
+        esqlResponse: entityPageResponse,
+        targetIndex: getUpdatesEntitiesDataStreamName(namespace),
+        fieldsToIgnore: [ENGINE_METADATA_PAGINATION_FIRST_SEEN_LOG_FIELD],
+        transformDocument: expect.any(Function),
+      })
+    );
     const transformDocument = mockIngestEntities.mock.calls[0][0].transformDocument!;
     const doc1 = transformDocument({
       '@timestamp': '2024-06-15T12:00:00.000Z',

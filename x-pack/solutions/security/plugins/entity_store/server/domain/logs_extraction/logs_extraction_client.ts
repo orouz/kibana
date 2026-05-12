@@ -54,11 +54,13 @@ import {
   type EntityStoreGlobalStateClient,
 } from '../saved_objects';
 import { ENGINE_STATUS } from '../constants';
-import type { CcsLogsExtractionClient } from './ccs_logs_extraction_client';
+import type {
+  RemoteExtractToUpdatesParams,
+  RemoteExtractToUpdatesResult,
+  RemoteLogsExtractionClient,
+} from './remote';
 import { EntityStoreNotRunningError } from '../errors';
 import type { LogExtractionUpdateParams } from '../../routes/constants';
-
-const EXCLUDED_ORIGIN = `-_origin:*` as const;
 
 /** Engine state with all cursor fields cleared. Used between sub-window iterations so a fresh
  * sub-window does not re-trigger recovery from cursors persisted by an earlier sub-window. */
@@ -101,7 +103,11 @@ export interface LogsExtractionClientDependencies {
   dataViewsService: DataViewsService;
   engineDescriptorClient: EngineDescriptorClient;
   globalStateClient: EntityStoreGlobalStateClient;
-  ccsLogsExtractionClient: CcsLogsExtractionClient;
+  /**
+   * Remote-extraction client for CCS or CPS. Mutually exclusive: a deployment
+   * is either stateful with CCS or serverless with CPS, never both.
+   */
+  remoteLogsExtractionClient: RemoteLogsExtractionClient;
 }
 
 export class LogsExtractionClient {
@@ -111,8 +117,7 @@ export class LogsExtractionClient {
   dataViewsService: DataViewsService;
   engineDescriptorClient: EngineDescriptorClient;
   globalStateClient: EntityStoreGlobalStateClient;
-  ccsLogsExtractionClient: CcsLogsExtractionClient;
-
+  remoteLogsExtractionClient: RemoteLogsExtractionClient;
   constructor({
     logger,
     namespace,
@@ -120,7 +125,7 @@ export class LogsExtractionClient {
     dataViewsService,
     engineDescriptorClient,
     globalStateClient,
-    ccsLogsExtractionClient,
+    remoteLogsExtractionClient,
   }: LogsExtractionClientDependencies) {
     this.logger = logger;
     this.namespace = namespace;
@@ -128,7 +133,7 @@ export class LogsExtractionClient {
     this.dataViewsService = dataViewsService;
     this.engineDescriptorClient = engineDescriptorClient;
     this.globalStateClient = globalStateClient;
-    this.ccsLogsExtractionClient = ccsLogsExtractionClient;
+    this.remoteLogsExtractionClient = remoteLogsExtractionClient;
   }
 
   private async getLogExtractionConfigAndState(
@@ -151,7 +156,7 @@ export class LogsExtractionClient {
     try {
       const { config, engineState } = await this.getLogExtractionConfigAndState(type);
       const entityDefinition = getEntityDefinition(type, this.namespace);
-      const { count, pages, indexPatterns, lastSearchTimestamp, ccsError } =
+      const { count, pages, indexPatterns, lastSearchTimestamp, remoteError } =
         await this.runQueryAndIngestDocs({
           type,
           config,
@@ -181,7 +186,7 @@ export class LogsExtractionClient {
           logsPageCursorEndId: null,
           lastExecutionTimestamp: lastSearchTimestamp || moment().utc().toISOString(),
         },
-        error: ccsError ? { message: ccsError.message, action: 'extractLogs' } : null,
+        error: remoteError ? { message: remoteError.message, action: 'extractLogs' } : null,
       });
 
       return operationResult;
@@ -238,6 +243,21 @@ export class LogsExtractionClient {
     }
   }
 
+  private async runRemotePath(
+    params: RemoteExtractToUpdatesParams & { localIndexPatterns: string[] }
+  ): Promise<RemoteExtractToUpdatesResult> {
+    // CCS uses the user-configured prefixed patterns as-is. CPS uses the local
+    // patterns with `-_origin:*` appended. Strategy picks which.
+    const remoteIndexPatterns = this.remoteLogsExtractionClient.strategy.buildPatterns({
+      localIndexPatterns: params.localIndexPatterns,
+      remoteIndexPatterns: params.remoteIndexPatterns,
+    });
+    return this.remoteLogsExtractionClient.extractToUpdates({
+      ...params,
+      remoteIndexPatterns,
+    });
+  }
+
   private async runQueryAndIngestDocs({
     type,
     config,
@@ -255,13 +275,12 @@ export class LogsExtractionClient {
     pages: number;
     indexPatterns: string[];
     lastSearchTimestamp: string;
-    ccsError?: Error;
+    remoteError?: Error;
   }> {
     const { localIndexPatterns, remoteIndexPatterns } = await this.getLocalAndRemoteIndexPatterns(
       config.additionalIndexPatterns,
       config.excludedIndexPatterns
     );
-    const latestIndex = getLatestEntitiesIndexName(this.namespace);
 
     const mainPromise = this.runMainPath({
       type,
@@ -269,32 +288,30 @@ export class LogsExtractionClient {
       engineState,
       opts,
       entityDefinition,
-      // indexPatterns: localIndexPatterns.map(createOriginIndexPattern),
-      indexPatterns: localIndexPatterns, // always with default esClient, not cpsClient, doesnt need prefix
-      latestIndex,
+      latestIndex: getLatestEntitiesIndexName(this.namespace),
+      indexPatterns: localIndexPatterns,
     });
 
-    // assume CPS, ignore CCS (WIP)
-
-    const cpsPromise = this.ccsLogsExtractionClient.extractToUpdates({
+    const remotePromise = this.runRemotePath({
+      ...config,
+      ...opts,
       type,
-      remoteIndexPatterns: [...localIndexPatterns, EXCLUDED_ORIGIN],
-      docsLimit: config.docsLimit,
-      maxLogsPerPage: config.maxLogsPerPage,
-      lookbackPeriod: config.lookbackPeriod,
-      delay: config.delay,
       entityDefinition,
-      abortController: opts?.abortController,
-      windowOverride: opts?.specificWindow,
-      maxTimeWindowSize: config.maxTimeWindowSize,
+      localIndexPatterns,
+      remoteIndexPatterns,
     });
 
-    const [mainResult, cpsResult] = await Promise.all([mainPromise, cpsPromise]);
+    const [mainResult, remoteResult] = await Promise.all([mainPromise, remotePromise]);
+
+    const scannedRemoteIndexPatterns = this.remoteLogsExtractionClient.strategy.buildPatterns({
+      localIndexPatterns,
+      remoteIndexPatterns,
+    });
 
     return {
       ...mainResult,
-      indexPatterns: [...localIndexPatterns, ...remoteIndexPatterns],
-      ccsError: cpsResult.error,
+      indexPatterns: [...localIndexPatterns, ...scannedRemoteIndexPatterns],
+      remoteError: remoteResult.error,
     };
   }
 
@@ -747,9 +764,11 @@ export class LogsExtractionClient {
   }
 
   /**
-   * Returns local and remote (CCS) index patterns separately.
-   * Main extraction uses local only (LOOKUP JOIN does not support CCS).
-   * CCS extraction uses remote only.
+   * Returns local index patterns and user-configured CCS-prefixed patterns
+   * (`cluster1:logs-*`) separately. The main extraction uses local only
+   * (LOOKUP JOIN does not support remote clusters); the CCS strategy consumes
+   * the prefixed list as-is. The CPS strategy ignores both and works from the
+   * local list internally.
    */
   public async getLocalAndRemoteIndexPatterns(
     additionalIndexPatterns: string[] = [],
@@ -795,8 +814,9 @@ export class LogsExtractionClient {
   }
 
   /**
-   * Builds the full list of index patterns (updates, additional, security data view)
-   * including CCS remote indices, without filtering by alerts or CCS.
+   * Builds the full list of index patterns (updates, additional, security data view),
+   * including CCS-prefixed remote patterns from the data view, without any alerts or
+   * remote-pattern filtering applied.
    */
   private async getAllIndexPatternsIncludingRemote(
     additionalIndexPatterns: string[] = []

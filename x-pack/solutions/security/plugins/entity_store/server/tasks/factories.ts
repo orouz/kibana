@@ -10,9 +10,10 @@ import type { ElasticsearchClient, KibanaRequest } from '@kbn/core/server';
 import type { EntityStoreCoreSetup } from '../types';
 import { AssetManagerClient } from '../domain/asset_manager';
 import { LogsExtractionClient } from '../domain/logs_extraction';
-import { CcsLogsExtractionClient } from '../domain/logs_extraction';
+import { createRemoteLogsExtractionClient } from '../domain/logs_extraction/remote';
 import {
   CcsLogExtractionStateClient,
+  CpsLogExtractionStateClient,
   EngineDescriptorClient,
   EntityStoreGlobalStateClient,
 } from '../domain/saved_objects';
@@ -32,11 +33,13 @@ export async function createLogsExtractionClient({
   fakeRequest,
   logger,
   namespace,
+  isServerless,
 }: {
   core: EntityStoreCoreSetup;
   logger: Logger;
   namespace: string;
   fakeRequest: KibanaRequest;
+  isServerless: boolean;
 }): Promise<LogsExtractionClientFactoryResult> {
   const [coreStart, pluginsStart] = await core.getStartServices();
 
@@ -55,12 +58,15 @@ export async function createLogsExtractionClient({
     projectRouting: 'space',
   }).asCurrentUser;
 
-  const ccsLogsExtractionClient = new CcsLogsExtractionClient(
+  const remoteLogsExtractionClient = createRemoteLogsExtractionClient({
     logger,
-    cpsClient,
     namespace,
-    new CcsLogExtractionStateClient(soClient, namespace, logger)
-  );
+    esClient,
+    cpsClient,
+    ccsStateClient: new CcsLogExtractionStateClient(soClient, namespace, logger),
+    cpsStateClient: new CpsLogExtractionStateClient(soClient, namespace, logger),
+    isServerless,
+  });
 
   const logsExtractionClient = new LogsExtractionClient({
     logger,
@@ -69,7 +75,7 @@ export async function createLogsExtractionClient({
     dataViewsService,
     engineDescriptorClient: new EngineDescriptorClient(soClient, namespace, logger),
     globalStateClient: new EntityStoreGlobalStateClient(soClient, namespace, logger),
-    ccsLogsExtractionClient,
+    remoteLogsExtractionClient,
   });
 
   return {
@@ -99,11 +105,13 @@ export async function createAssetManagerClient({
   const engineDescriptorClient = new EngineDescriptorClient(soClient, namespace, logger);
   const globalStateClient = new EntityStoreGlobalStateClient(soClient, namespace, logger);
   const ccsLogExtractionStateClient = new CcsLogExtractionStateClient(soClient, namespace, logger);
+  const cpsLogExtractionStateClient = new CpsLogExtractionStateClient(soClient, namespace, logger);
   const { logsExtractionClient } = await createLogsExtractionClient({
     core,
     fakeRequest,
     logger,
     namespace,
+    isServerless,
   });
 
   return {
@@ -115,6 +123,7 @@ export async function createAssetManagerClient({
       engineDescriptorClient,
       globalStateClient,
       ccsLogExtractionStateClient,
+      cpsLogExtractionStateClient,
       namespace,
       isServerless,
       logsExtractionClient,
