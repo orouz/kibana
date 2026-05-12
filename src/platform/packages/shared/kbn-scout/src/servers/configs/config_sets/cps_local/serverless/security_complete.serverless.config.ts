@@ -37,6 +37,7 @@ export const servers: ScoutServerConfig = {
       '--cps.cpsEnabled=true',
       '--xpack.alerting.rules.apiKeyType=uiam',
       '--xpack.task_manager.grant_uiam_api_keys=true',
+      '--xpack.task_manager.api_key_type=uiam',
     ],
   },
 };
