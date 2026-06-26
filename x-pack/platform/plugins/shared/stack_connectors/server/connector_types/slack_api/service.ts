@@ -247,6 +247,7 @@ export const createExternalService = (
     channelIds = [],
     channelNames = [],
     text,
+    threadTs,
   }: PostMessageSubActionParams): Promise<ConnectorTypeExecutorResult<unknown>> => {
     try {
       const channelToUse = getChannelToUse({ channels, channelIds, channelNames });
@@ -256,7 +257,8 @@ export const createExternalService = (
         method: 'post',
         url: `${SLACK_URL}chat.postMessage`,
         logger,
-        data: { channel: channelToUse, text },
+        // `thread_ts` makes this a threaded reply to the parent message; omitted -> new message
+        data: { channel: channelToUse, text, ...(threadTs ? { thread_ts: threadTs } : {}) },
         headers,
         configurationUtilities,
         connectorUsageCollector,

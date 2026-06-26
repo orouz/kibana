@@ -68,6 +68,9 @@ export const PostMessageSubActionParamsSchema = lazySchema(() =>
         .max(1)
         .optional(),
       text: z.string().min(1),
+      // Slack `thread_ts`: the parent message's `ts`. When set, this message is
+      // posted as a reply in that thread instead of as a new top-level message.
+      threadTs: z.string().min(1).optional(),
     })
     .strict()
 );

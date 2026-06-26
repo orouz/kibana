@@ -226,6 +226,31 @@ describe('Slack API service', () => {
       });
     });
 
+    test('should include thread_ts when threadTs is provided (threaded reply)', async () => {
+      requestMock.mockImplementation(() => postMessageResponse);
+
+      await service.postMessage({
+        channels: ['general'],
+        text: 'a reply',
+        threadTs: '1234567890.123456',
+      });
+
+      expect(requestMock).toHaveBeenCalledTimes(1);
+      expect(requestMock).toHaveBeenNthCalledWith(1, {
+        axios,
+        headers: {
+          Authorization: 'Bearer token',
+          'Content-type': 'application/json; charset=UTF-8',
+        },
+        logger,
+        configurationUtilities,
+        method: 'post',
+        url: 'https://slack.com/api/chat.postMessage',
+        data: { channel: 'general', text: 'a reply', thread_ts: '1234567890.123456' },
+        connectorUsageCollector,
+      });
+    });
+
     test('should call request with only channelIds argument', async () => {
       requestMock.mockImplementation(() => postMessageResponse);
 
