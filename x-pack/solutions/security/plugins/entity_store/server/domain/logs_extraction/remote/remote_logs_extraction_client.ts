@@ -63,13 +63,22 @@ interface RemoteExtractToUpdatesParams {
   maxLogsPerWindowCapBehavior: 'defer' | 'drop';
 }
 
-interface RemoteExtractToUpdatesResult {
+/** Entity/page counts produced by a completed extraction pass. */
+interface RemoteExtractCounts {
   count: number;
   pages: number;
-  logsProcessed?: number;
-  error?: Error;
-  logsCapApplied?: boolean;
 }
+
+/** Outer-loop stats: the exposed counts plus internal log-volume bookkeeping. */
+interface RemoteExtractStats extends RemoteExtractCounts {
+  logsProcessed: number;
+  logsCapApplied: boolean;
+}
+
+/** A full remote extraction either completes (with counts) or fails with an error. */
+type RemoteExtractToUpdatesResult =
+  | ({ status: 'ok' } & RemoteExtractCounts)
+  | { status: 'error'; error: Error };
 
 const getEsErrorType = (error: unknown): string | undefined =>
   isResponseError(error) ? (error.body as ElasticsearchErrorDetails)?.error?.type : undefined;
@@ -107,13 +116,13 @@ export class RemoteLogsExtractionClient {
         this.logger.warn(
           `remote extraction unavailable (no linked projects or CPS disabled): ${message}. Returning empty result.`
         );
-        return { count: 0, pages: 0 };
+        return { status: 'ok', count: 0, pages: 0 };
       }
       const wrappedError = new Error(
         `Failed to extract to updates from remote indices: ${message}`
       );
       this.logger.error(wrappedError);
-      return { count: 0, pages: 0, error: wrappedError };
+      return { status: 'error', error: wrappedError };
     }
   }
 
@@ -133,7 +142,7 @@ export class RemoteLogsExtractionClient {
     maxLogsPerWindowCapBehavior,
   }: RemoteExtractToUpdatesParams): Promise<RemoteExtractToUpdatesResult> {
     if (remoteIndexPatterns.length === 0) {
-      return { count: 0, pages: 0 };
+      return { status: 'ok', count: 0, pages: 0 };
     }
 
     const { openBackingIndices, negations: closedNegations } = await resolveClosedIndexAdjustments(
@@ -177,7 +186,7 @@ export class RemoteLogsExtractionClient {
       this.logger.error(
         `extraction window is empty (from=${effectiveFromDateISO} >= to=${effectiveWindowEnd}), skipping`
       );
-      return { count: 0, pages: 0 };
+      return { status: 'ok', count: 0, pages: 0 };
     }
 
     if (isWindowOverride) {
@@ -208,12 +217,12 @@ export class RemoteLogsExtractionClient {
           } logs (limit: ${maxLogsPerWindow}). Cap behavior: "${maxLogsPerWindowCapBehavior}". Cursor is not persisted.`
         );
       }
-      entityStoreMetrics.extractionLogsProcessed.record(result.logsProcessed ?? 0, {
+      entityStoreMetrics.extractionLogsProcessed.record(result.logsProcessed, {
         entity_type: type,
         namespace: this.namespace,
         remote: true,
       });
-      return result;
+      return { status: 'ok', count: result.count, pages: result.pages };
     }
 
     let totalCount = 0;
@@ -260,7 +269,7 @@ export class RemoteLogsExtractionClient {
 
       totalCount += subResult.count;
       totalPages += subResult.pages;
-      totalLogs += subResult.logsProcessed ?? 0;
+      totalLogs += subResult.logsProcessed;
 
       if (subResult.logsCapApplied) {
         entityStoreMetrics.extractionLogsCapApplied.add(1, {
@@ -286,12 +295,7 @@ export class RemoteLogsExtractionClient {
             paginationRecoveryId: null,
           });
         }
-        return {
-          count: totalCount,
-          pages: totalPages,
-          logsProcessed: totalLogs,
-          logsCapApplied: true,
-        };
+        return { status: 'ok', count: totalCount, pages: totalPages };
       }
 
       // if the window was capped we consider we have a next page
@@ -309,7 +313,7 @@ export class RemoteLogsExtractionClient {
       remote: true,
     });
 
-    return { count: totalCount, pages: totalPages };
+    return { status: 'ok', count: totalCount, pages: totalPages };
   }
 
   /**
@@ -342,7 +346,7 @@ export class RemoteLogsExtractionClient {
     effectiveFromDateISO: string;
     recoveryId: string | undefined;
     skipStateUpdates: boolean;
-  }): Promise<RemoteExtractToUpdatesResult> {
+  }): Promise<RemoteExtractStats> {
     const effectiveMaxLogsPerPage = capAtMaxLogsPerWindow(maxLogsPerPage, maxLogsPerWindow);
     const effectiveDocsLimit = capAtMaxLogsPerWindow(docsLimit, maxLogsPerWindow);
     let totalCount = 0;

@@ -79,7 +79,7 @@ type MockRemoteLogsExtractionClient = jest.Mocked<
 
 function createMockRemoteLogsExtractionClient(): MockRemoteLogsExtractionClient {
   return {
-    extractToUpdates: jest.fn().mockResolvedValue({ count: 0, pages: 0 }),
+    extractToUpdates: jest.fn().mockResolvedValue({ status: 'ok', count: 0, pages: 0 }),
     strategy: {
       id: 'ccs',
       buildPatterns: jest.fn(({ remoteIndexPatterns }) => remoteIndexPatterns),
@@ -825,8 +825,7 @@ describe('LogsExtractionClient', () => {
       mockExtractSuccessSequence(mockEsqlResponse);
       mockIngestEntities.mockResolvedValue(undefined);
       mockRemoteLogsExtractionClient.extractToUpdates.mockResolvedValue({
-        count: 0,
-        pages: 0,
+        status: 'error',
         error: remoteError,
       });
 

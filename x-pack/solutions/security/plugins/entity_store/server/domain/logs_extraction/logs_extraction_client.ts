@@ -323,7 +323,7 @@ export class LogsExtractionClient {
       ...mainResult,
       isRemote: remoteStrategyIndexPatterns.length > 0,
       indexPatterns: [...localIndexPatterns, ...remoteStrategyIndexPatterns],
-      remoteError: remoteResult.error,
+      remoteError: remoteResult.status === 'error' ? remoteResult.error : undefined,
     };
   }
 

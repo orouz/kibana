@@ -102,7 +102,7 @@ export function registerForceRemoteExtractToUpdates(router: EntityStorePluginRou
           maxLogsPerWindowCapBehavior,
         });
 
-        if (result.error) {
+        if (result.status === 'error') {
           return res.customError({
             statusCode: 500,
             body: {

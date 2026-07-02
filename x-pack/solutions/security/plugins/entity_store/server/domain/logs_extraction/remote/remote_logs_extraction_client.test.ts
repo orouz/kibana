@@ -134,7 +134,7 @@ describe('RemoteLogsExtractionClient', () => {
 
     const result = await client.extractToUpdates(defaultExtractParams);
 
-    expect(result).toEqual({ count: 2, pages: 1 });
+    expect(result).toEqual({ status: 'ok', count: 2, pages: 1 });
     // probe + entity page; total_logs=2 < maxLogsPerPage=10000 → isLastLogsPage=true, no second probe
     expect(mockExecuteEsqlQuery).toHaveBeenCalledTimes(2);
     expect(mockIngestEntities).toHaveBeenCalledTimes(1);
@@ -226,7 +226,7 @@ describe('RemoteLogsExtractionClient', () => {
 
     const result = await client.extractToUpdates({ ...defaultExtractParams, docsLimit });
 
-    expect(result).toEqual({ count: 3, pages: 2 });
+    expect(result).toEqual({ status: 'ok', count: 3, pages: 2 });
     // probe + 2 entity pages; total_logs=3 < maxLogsPerPage=10000 → isLastLogsPage=true, no second probe
     expect(mockExecuteEsqlQuery).toHaveBeenCalledTimes(3);
     expect(mockIngestEntities).toHaveBeenCalledTimes(2);
@@ -289,7 +289,7 @@ describe('RemoteLogsExtractionClient', () => {
       maxLogsPerPage,
     });
 
-    expect(result).toEqual({ count: 4, pages: 2 });
+    expect(result).toEqual({ status: 'ok', count: 4, pages: 2 });
     // 2 probes + 2 entity pages
     expect(mockExecuteEsqlQuery).toHaveBeenCalledTimes(4);
     expect(mockIngestEntities).toHaveBeenCalledTimes(2);
@@ -333,7 +333,7 @@ describe('RemoteLogsExtractionClient', () => {
       abortController: new AbortController(),
     });
 
-    expect(result.error).toBeDefined();
+    expect(result.status === 'error' && result.error).toBeInstanceOf(Error);
     // probe + first entity page + second entity page (aborts)
     expect(mockExecuteEsqlQuery).toHaveBeenCalledTimes(3);
     expect(mockIngestEntities).toHaveBeenCalledTimes(1);
@@ -348,7 +348,7 @@ describe('RemoteLogsExtractionClient', () => {
 
     const result = await client.extractToUpdates(defaultExtractParams);
 
-    expect(result).toEqual({ count: 0, pages: 0 });
+    expect(result).toEqual({ status: 'ok', count: 0, pages: 0 });
     expect(mockExecuteEsqlQuery).toHaveBeenCalledTimes(1);
     expect(mockIngestEntities).not.toHaveBeenCalled();
     // clearRecoveryId called to clean up any stale recovery id; checkpoint unchanged
@@ -383,7 +383,7 @@ describe('RemoteLogsExtractionClient', () => {
 
     const result = await client.extractToUpdates(defaultExtractParams);
 
-    expect(result).toEqual({ count: 1, pages: 1 });
+    expect(result).toEqual({ status: 'ok', count: 1, pages: 1 });
 
     // The probe query must use checkpointTimestamp as the window start
     const probeQuery = mockExecuteEsqlQuery.mock.calls[0][0].query as string;
@@ -416,7 +416,7 @@ describe('RemoteLogsExtractionClient', () => {
 
     const result = await client.extractToUpdates(defaultExtractParams);
 
-    expect(result).toEqual({ count: 1, pages: 1 });
+    expect(result).toEqual({ status: 'ok', count: 1, pages: 1 });
 
     const probeQuery = mockExecuteEsqlQuery.mock.calls[0][0].query as string;
     expect(probeQuery).toContain(sliceBoundaryTimestamp);
@@ -491,7 +491,7 @@ describe('RemoteLogsExtractionClient', () => {
 
     const result = await client.extractToUpdates(defaultExtractParams);
 
-    expect(result).toEqual({ count: 0, pages: 0 });
+    expect(result).toEqual({ status: 'ok', count: 0, pages: 0 });
     expect(mockExecuteEsqlQuery).not.toHaveBeenCalled();
     expect(mockStateClient.clearRecoveryId).not.toHaveBeenCalled();
   });
@@ -514,7 +514,7 @@ describe('RemoteLogsExtractionClient', () => {
         maxTimeWindowSize: '5m',
       });
 
-      expect(result).toEqual({ count: 0, pages: 0 });
+      expect(result).toEqual({ status: 'ok', count: 0, pages: 0 });
       // 6 sub-windows × 1 probe each.
       expect(mockExecuteEsqlQuery).toHaveBeenCalledTimes(6);
       // No per-sub-window checkpoint persistence — inner per-slice persistence is the only
@@ -619,7 +619,7 @@ describe('RemoteLogsExtractionClient', () => {
 
       const result = await client.extractToUpdates(defaultExtractParams);
 
-      expect(result.error).toBeUndefined();
+      expect(result.status).toBe('ok');
       expect(mockLogger.warn).toHaveBeenCalledTimes(1);
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining(`log-slice probe stalled at ${stalledTs}`)
@@ -651,7 +651,7 @@ describe('RemoteLogsExtractionClient', () => {
 
       const result = await client.extractToUpdates(defaultExtractParams);
 
-      expect(result.error).toBeUndefined();
+      expect(result.status).toBe('ok');
       expect(mockLogger.warn).not.toHaveBeenCalled();
     });
 
@@ -672,7 +672,7 @@ describe('RemoteLogsExtractionClient', () => {
 
       const result = await client.extractToUpdates(defaultExtractParams);
 
-      expect(result.error).toBeUndefined();
+      expect(result.status).toBe('ok');
       expect(mockLogger.warn).not.toHaveBeenCalled();
     });
 
@@ -692,7 +692,7 @@ describe('RemoteLogsExtractionClient', () => {
 
       const result = await client.extractToUpdates(defaultExtractParams);
 
-      expect(result.error).toBeUndefined();
+      expect(result.status).toBe('ok');
       expect(mockLogger.warn).not.toHaveBeenCalled();
     });
   });
@@ -719,7 +719,7 @@ describe('RemoteLogsExtractionClient', () => {
 
       const result = await makeClient('cps').extractToUpdates(defaultExtractParams);
 
-      expect(result).toEqual({ count: 0, pages: 0 });
+      expect(result).toEqual({ status: 'ok', count: 0, pages: 0 });
     });
 
     it('CPS: treats no_such_remote_cluster_exception (CPS disabled) as empty, no error', async () => {
@@ -729,7 +729,7 @@ describe('RemoteLogsExtractionClient', () => {
 
       const result = await makeClient('cps').extractToUpdates(defaultExtractParams);
 
-      expect(result).toEqual({ count: 0, pages: 0 });
+      expect(result).toEqual({ status: 'ok', count: 0, pages: 0 });
     });
 
     it('CCS: surfaces no_such_remote_cluster_exception as an error (gate is CPS-only)', async () => {
@@ -739,9 +739,7 @@ describe('RemoteLogsExtractionClient', () => {
 
       const result = await makeClient('ccs').extractToUpdates(defaultExtractParams);
 
-      expect(result.count).toBe(0);
-      expect(result.pages).toBe(0);
-      expect(result.error).toBeDefined();
+      expect(result).toEqual({ status: 'error', error: expect.any(Error) });
     });
 
     it('CPS: surfaces unrelated failures as an error', async () => {
@@ -749,7 +747,7 @@ describe('RemoteLogsExtractionClient', () => {
 
       const result = await makeClient('cps').extractToUpdates(defaultExtractParams);
 
-      expect(result.error?.message).toContain('some other failure');
+      expect(result.status === 'error' && result.error.message).toContain('some other failure');
     });
   });
 });
