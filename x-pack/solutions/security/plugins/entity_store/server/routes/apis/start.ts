@@ -15,6 +15,7 @@ import type { EntityStorePluginRouter } from '../../types';
 import { wrapMiddlewares } from '../middleware';
 import { ALL_ENTITY_TYPES, EntityType } from '../../../common/domain/definitions/entity_schema';
 import { ENGINE_STATUS } from '../../domain/constants';
+import { resolveLogExtractionConfig } from '../../domain/logs_extraction/config_resolver';
 
 const bodySchema = z.object({
   entityTypes: z
@@ -63,13 +64,23 @@ export function registerStart(router: EntityStorePluginRouter) {
         logger.debug('Start API invoked');
 
         const { engines } = await assetManager.getStatus();
-        const stoppedTypes = new Set(
-          engines.filter((e) => e.status === ENGINE_STATUS.STOPPED).map((e) => e.type)
+        const stoppedEngines = engines.filter(
+          (e) => e.status === ENGINE_STATUS.STOPPED && entityTypes.includes(e.type)
         );
-        const toStart = entityTypes.filter((type) => stoppedTypes.has(type));
+        const toStart = stoppedEngines.map((e) => e.type);
 
-        const logsExtraction = await assetManager.getLogExtractionConfig();
-        await Promise.all(toStart.map((type) => assetManager.start(req, type, logsExtraction)));
+        const globalConfig = await assetManager.getLogExtractionConfig();
+        await Promise.all(
+          stoppedEngines.map((engine) =>
+            assetManager.start(
+              req,
+              engine.type,
+              // Resolve the per-type effective config so an engine keeps its per-type
+              // frequency (and its default cadence) across a stop/start.
+              resolveLogExtractionConfig(engine.type, globalConfig, engine.logExtractionOverrides)
+            )
+          )
+        );
 
         if (toStart.length > 0) {
           await entityMaintainersClient.startAll(req);

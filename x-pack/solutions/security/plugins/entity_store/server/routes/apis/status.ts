@@ -17,7 +17,7 @@ import { wrapMiddlewares } from '../middleware';
 import type { EntityStoreStatus, GetStatusSuccessResult } from '../../domain/types';
 import type { LogExtractionConfig } from '../../domain/saved_objects';
 import { capAtMaxLogsPerWindow } from '../../domain/logs_extraction/effective_page_limits';
-import { mergeCadenceOverrides } from '../../domain/logs_extraction/cadence_overrides';
+import { resolveLogExtractionConfig } from '../../domain/logs_extraction/config_resolver';
 import { ENTITY_STORE_STATUS } from '../../domain/constants';
 
 /**
@@ -65,9 +65,9 @@ function toPublicEngine(
   logsExtractionConfig: LogExtractionConfig
 ): StatusEngine {
   const { versionState, logExtractionState, logExtractionOverrides, ...rest } = engine;
-  // Effective cadence for this entity type: its own override when set, otherwise the
-  // shared default. All other fields (limits, index patterns, etc.) always come from
-  // the shared config — only frequency/delay/lookbackPeriod are overridable per type.
+  // Effective config for this entity type: per-type default < global config < this engine's
+  // override. Only frequency/delay/lookbackPeriod are overridable per type; every other
+  // field comes from the shared config.
   const {
     delay,
     timeout,
@@ -78,7 +78,7 @@ function toPublicEngine(
     maxTimeWindowSize,
     maxLogsPerWindow,
     maxLogsPerWindowCapBehavior,
-  } = mergeCadenceOverrides(logsExtractionConfig, logExtractionOverrides);
+  } = resolveLogExtractionConfig(engine.type, logsExtractionConfig, logExtractionOverrides);
 
   return {
     ...rest,

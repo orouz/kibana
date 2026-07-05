@@ -13,6 +13,7 @@ import { parseDurationToMs } from '../../../infra/time';
 import {
   LOG_EXTRACTION_DELAY_DEFAULT,
   LOG_EXTRACTION_LOOKBACK_PERIOD_DEFAULT,
+  OVERRIDABLE_LOG_EXTRACTION_FIELDS,
 } from '../../../domain/saved_objects';
 
 const MIN_FREQUENCY_MS = 30 * 1000;
@@ -111,15 +112,11 @@ export const LogExtractionUpdadeSchema = LogExtractionUpdateParams.superRefine(
   validateLogExtractionParams
 );
 
-// Per-entity-type cadence overrides (see #269261): only frequency/delay/lookbackPeriod are
-// configurable per type. All other logExtraction settings remain store-wide only. Shared by
-// both `install/{entityType}` and `update/{entityType}` — a caller can set a value equal to
-// a type's default explicitly, but there is no way to "clear" an override back to the
-// default (no `null`); only real duration values are accepted.
-const CadenceFieldsParams = LogExtractionUpdateParams.pick({
-  frequency: true,
-  delay: true,
-  lookbackPeriod: true,
-});
-
-export const CadenceOverrideSchema = CadenceFieldsParams.superRefine(validateLogExtractionParams);
+// Per-entity-type override (see #269261): only the overridable fields
+// (`OVERRIDABLE_LOG_EXTRACTION_FIELDS`) are configurable per type; all other logExtraction
+// settings remain store-wide only. Shared by both `install/{entityType}` and
+// `update/{entityType}`. There is no way to "clear" a field back to the global value — set
+// it explicitly to the value you want.
+export const LogExtractionOverrideSchema = LogExtractionUpdateParams.pick(
+  OVERRIDABLE_LOG_EXTRACTION_FIELDS
+).superRefine(validateLogExtractionParams);

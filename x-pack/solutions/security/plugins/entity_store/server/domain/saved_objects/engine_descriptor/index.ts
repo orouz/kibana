@@ -11,7 +11,7 @@ import type {
 } from '@kbn/core-saved-objects-api-server';
 import { SavedObjectsErrorHelpers, type Logger } from '@kbn/core/server';
 import type { EntityType } from '../../../../common/domain/definitions/entity_schema';
-import type { EngineDescriptor, EngineLogExtractionOverrides } from './constants';
+import type { EngineDescriptor } from './constants';
 import { EngineLogExtractionState, VersionState } from './constants';
 import { EngineDescriptorTypeName } from './types';
 import { ENGINE_STATUS } from '../../constants';
@@ -48,10 +48,7 @@ export class EngineDescriptorClient {
     return response.saved_objects[0].attributes;
   }
 
-  async init(
-    entityType: EntityType,
-    logExtractionOverrides: EngineLogExtractionOverrides
-  ): Promise<EngineDescriptor> {
+  async init(entityType: EntityType): Promise<EngineDescriptor> {
     const engineDescriptor = await this.find(entityType);
 
     if (engineDescriptor.total > 0) {
@@ -72,7 +69,7 @@ export class EngineDescriptorClient {
         type: entityType,
         error: null,
         logExtractionState,
-        logExtractionOverrides,
+        logExtractionOverrides: {},
         versionState: defaultVersionState,
       },
       { id }

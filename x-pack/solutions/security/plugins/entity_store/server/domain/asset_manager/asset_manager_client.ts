@@ -28,17 +28,12 @@ import {
   type EngineDescriptor,
   type EngineDescriptorClient,
   type EntityStoreGlobalStateClient,
-  DEFAULT_LOG_EXTRACTION_OVERRIDES,
   type EngineLogExtractionOverrides,
   HistorySnapshotState,
   LogExtractionConfig,
 } from '../saved_objects';
-import {
-  mergeCadenceOverrides,
-  getExplicitCadenceFields,
-  type CadenceField,
-  type CadenceOverridePatch,
-} from '../logs_extraction/cadence_overrides';
+import { resolveLogExtractionConfig } from '../logs_extraction/config_resolver';
+import type { ResolvedLogExtractionConfig } from '../logs_extraction/config_resolver';
 import type {
   HistorySnapshotBodyParams,
   LogExtractionInstallParams,
@@ -138,11 +133,6 @@ export class AssetManagerClient {
         logsExtractionParams
       );
       const historySnapshot = HistorySnapshotState.parse(historySnapshotParams ?? {});
-      // Caller-supplied cadence fields are an explicit request for the whole store and must
-      // win over a type's built-in default cadence override (e.g. Service/Generic's reduced
-      // cadence) — otherwise existing consumers who set a custom cadence at install time
-      // would silently stop getting it for those types.
-      const explicitCadenceFields = getExplicitCadenceFields(logsExtractionParams);
 
       // Phase 1: Install shared ES assets/storage and run independent setup tasks.
       await Promise.all([
@@ -173,9 +163,7 @@ export class AssetManagerClient {
 
       // Phase 2: Initialize engines and start background tasks.
       await Promise.all([
-        ...entityTypes.map((type) =>
-          this.initEntity(request, type, logsExtraction, explicitCadenceFields)
-        ),
+        ...entityTypes.map((type) => this.initEntity(request, type, logsExtraction)),
 
         scheduleHistorySnapshotTasks({
           logger: this.logger,
@@ -207,7 +195,13 @@ export class AssetManagerClient {
     }
   }
 
-  public async start(request: KibanaRequest, type: EntityType, { frequency }: LogExtractionConfig) {
+  public async start(
+    request: KibanaRequest,
+    type: EntityType,
+    // Callers pass a resolved config (`resolveLogExtractionConfig`), which always has a
+    // concrete `frequency` — unlike the raw global config, where it's now optional.
+    { frequency }: ResolvedLogExtractionConfig
+  ) {
     try {
       this.logger.get(type).debug(`Scheduling extract entity task for type: ${type}`);
 
@@ -337,22 +331,13 @@ export class AssetManagerClient {
   private async initEntity(
     request: KibanaRequest,
     type: EntityType,
-    logsExtractionConfig: LogExtractionConfig,
-    explicitCadenceFields: CadenceField[]
+    logsExtractionConfig: LogExtractionConfig
   ): Promise<boolean> {
-    // A caller-supplied cadence field wins over this type's built-in default for that
-    // field (e.g. Service/Generic's reduced cadence); untouched fields still seed the
-    // type's default.
-    const overridesToSeed = clearFields(
-      DEFAULT_LOG_EXTRACTION_OVERRIDES[type],
-      explicitCadenceFields
-    );
-    const installed = await this.install(type, overridesToSeed);
+    const installed = await this.install(type);
     if (installed) {
-      // Schedule the extraction task at the effective (merged) frequency, not the raw
-      // global one, so the seeded override takes effect immediately.
-      const effectiveConfig = mergeCadenceOverrides(logsExtractionConfig, overridesToSeed);
-      await this.start(request, type, effectiveConfig);
+      // Schedule at the type's effective frequency (per-type default, unless the store-wide
+      // config overrides it), not the raw global one.
+      await this.start(request, type, resolveLogExtractionConfig(type, logsExtractionConfig, {}));
     }
     this.analytics.reportEvent(ENTITY_STORE_INITIALIZATION_EVENT, {
       entityType: type,
@@ -397,10 +382,7 @@ export class AssetManagerClient {
     });
   }
 
-  public async install(
-    type: EntityType,
-    logExtractionOverrides: EngineLogExtractionOverrides = DEFAULT_LOG_EXTRACTION_OVERRIDES[type]
-  ): Promise<boolean> {
+  public async install(type: EntityType): Promise<boolean> {
     try {
       const { engines } = await this.getStatus();
       if (engines.some((e) => e.type === type)) {
@@ -410,7 +392,7 @@ export class AssetManagerClient {
       this.logger.get(type).debug(`Installing assets for entity type: ${type}`);
       // Engine installation is per-type. Shared indices and data streams are created once
       // during `init()` before parallel engine initialization begins.
-      await this.engineDescriptorClient.init(type, logExtractionOverrides);
+      await this.engineDescriptorClient.init(type);
       this.logger.debug(`Installed definition: ${type}`);
 
       return true;
@@ -421,19 +403,17 @@ export class AssetManagerClient {
   }
 
   /**
-   * Installs a single entity type. Accepts the same `logExtraction` shape as `init` — but
-   * scoped to one type: cadence fields (`frequency`, `delay`, `lookbackPeriod`) become this
-   * type's per-type override, while every other field (index patterns, volume limits, etc.)
-   * is applied to the shared global config exactly as the store-wide install would. If the
-   * store isn't installed yet, this bootstraps the whole Entity Store (shared indices/
-   * templates, global state, EUID scripts, shared history-snapshot/status-report tasks) for
-   * this one type; if the store is already installed by other types, only this type is
-   * added. A no-op (returns `false`) if this type is already installed.
+   * Installs a single entity type. If the store isn't installed yet, this bootstraps the
+   * whole Entity Store (shared indices/templates, global state, EUID scripts, shared
+   * history-snapshot/status-report tasks) for this one type; if the store is already
+   * installed by other types, only this type is added. A no-op (returns `false`) if this
+   * type is already installed. `override`, when provided, is applied as this type's
+   * per-type override; store-wide settings are set via `install`/`update`, not here.
    */
-  public async installByType(
+  public async installType(
     request: KibanaRequest,
     type: EntityType,
-    logsExtractionParams?: LogExtractionInstallParams
+    override?: EngineLogExtractionOverrides
   ): Promise<boolean> {
     const { status, engines } = await this.getStatus();
 
@@ -441,136 +421,96 @@ export class AssetManagerClient {
       return false;
     }
 
-    const { frequency, delay, lookbackPeriod, ...nonCadenceParams } = logsExtractionParams ?? {};
-    const cadenceOverride: CadenceOverridePatch = {
-      ...(frequency !== undefined && { frequency }),
-      ...(delay !== undefined && { delay }),
-      ...(lookbackPeriod !== undefined && { lookbackPeriod }),
-    };
-
     if (status === ENTITY_STORE_STATUS.NOT_INSTALLED) {
-      await this.init(request, [type], nonCadenceParams);
+      await this.init(request, [type]);
     } else {
-      if (Object.keys(nonCadenceParams).length > 0) {
-        const existingState = await this.globalStateClient.find();
-        const logsExtraction = resolveLogsExtractionOnInstall(
-          existingState?.logsExtraction,
-          nonCadenceParams
-        );
-        await this.globalStateClient.init({ logsExtraction });
-      }
-      const globalConfig = await this.getLogExtractionConfig();
-      const installed = await this.install(type, DEFAULT_LOG_EXTRACTION_OVERRIDES[type]);
+      const installed = await this.install(type);
       if (installed) {
-        const effectiveConfig = mergeCadenceOverrides(
-          globalConfig,
-          DEFAULT_LOG_EXTRACTION_OVERRIDES[type]
-        );
-        await this.start(request, type, effectiveConfig);
+        const globalConfig = await this.getLogExtractionConfig();
+        await this.start(request, type, resolveLogExtractionConfig(type, globalConfig, {}));
       }
     }
 
-    if (Object.keys(cadenceOverride).length > 0) {
-      await this.updateByType(request, type, cadenceOverride);
+    if (override && Object.keys(override).length > 0) {
+      await this.updateType(request, type, override);
     }
     return true;
   }
 
   /**
-   * Updates a single entity type's cadence override. Only the fields present in
-   * `cadenceOverride` are changed — there is no way to clear a field back to the shared
-   * global value; callers must set it explicitly. Reschedules the type's extraction task
-   * immediately when its effective frequency changes and the engine is currently started.
+   * Merges an override into a single entity type's stored override and reschedules its
+   * extraction task when that changes its effective frequency and the engine is started.
+   * Only the fields present in `override` are changed; there is no way to clear a field
+   * back to the global value — set it explicitly.
    */
-  public async updateByType(
+  public async updateType(
     request: KibanaRequest,
     type: EntityType,
-    cadenceOverride: CadenceOverridePatch
+    override: EngineLogExtractionOverrides
   ): Promise<EngineLogExtractionOverrides> {
     const engine = await this.engineDescriptorClient.findOrThrow(type);
-    const newOverride = mergeOverrideFields(engine.logExtractionOverrides, cadenceOverride);
-    const frequencyChanged =
-      cadenceOverride.frequency !== undefined &&
-      newOverride.frequency !== engine.logExtractionOverrides.frequency;
+    const newOverride = { ...engine.logExtractionOverrides, ...override };
 
     const globalConfig = await this.getLogExtractionConfig();
-    await this.persistOverrideAndReschedule(
-      request,
-      engine,
-      newOverride,
-      globalConfig,
-      frequencyChanged
-    );
+    const before = resolveLogExtractionConfig(type, globalConfig, engine.logExtractionOverrides);
+    const after = resolveLogExtractionConfig(type, globalConfig, newOverride);
+
+    await this.engineDescriptorClient.update(type, { logExtractionOverrides: newOverride });
+    if (after.frequency !== before.frequency && engine.status === ENGINE_STATUS.STARTED) {
+      await this.rescheduleExtractTask(request, type, after.frequency);
+    }
     return newOverride;
   }
 
   /**
-   * Updates the shared, store-wide log extraction config. Any cadence field explicitly
-   * supplied here (`frequency`, `delay`, `lookbackPeriod`) is a deliberate request for
-   * the whole store and resets that field's per-type override — via `update/{entityType}`
-   * or a built-in default (e.g. Service/Generic) — for every entity type, so the newly
-   * set global value applies uniformly.
+   * Updates the shared, store-wide log extraction config, then reschedules every started
+   * engine whose effective frequency changed as a result (i.e. those without a frequency
+   * override of their own). Per-type overrides are left untouched — a type that has set
+   * its own frequency keeps it.
    */
   public async updateGlobalLogExtraction(
     request: KibanaRequest,
     params: LogExtractionUpdateParams
   ): Promise<LogExtractionConfig> {
+    const before = await this.getLogExtractionConfig();
     const updatedConfig = await this.logsExtractionClient.updateConfig(params);
-    const explicitFields = getExplicitCadenceFields(params);
-    await this.clearOverridesForFields(request, explicitFields, updatedConfig);
-    return updatedConfig;
-  }
-
-  private async persistOverrideAndReschedule(
-    request: KibanaRequest,
-    engine: EngineDescriptor,
-    newOverride: EngineLogExtractionOverrides,
-    globalConfig: LogExtractionConfig,
-    frequencyChanged: boolean
-  ): Promise<void> {
-    await this.engineDescriptorClient.update(engine.type, { logExtractionOverrides: newOverride });
-    if (frequencyChanged && engine.status === ENGINE_STATUS.STARTED) {
-      const effectiveConfig = mergeCadenceOverrides(globalConfig, newOverride);
-      await scheduleExtractEntityTask({
-        logger: this.logger,
-        taskManager: this.taskManager,
-        type: engine.type,
-        frequency: effectiveConfig.frequency,
-        namespace: this.namespace,
-        request,
-      });
-    }
-  }
-
-  private async clearOverridesForFields(
-    request: KibanaRequest,
-    explicitFields: CadenceField[],
-    updatedGlobalConfig: LogExtractionConfig
-  ): Promise<void> {
-    if (explicitFields.length === 0) {
-      return;
-    }
 
     const engines = await this.engineDescriptorClient.getAll();
     await Promise.all(
-      engines.map((engine) => {
-        const touchedFieldsWithOverride = explicitFields.filter(
-          (field) => engine.logExtractionOverrides[field] !== null
-        );
-        if (touchedFieldsWithOverride.length === 0) {
-          return Promise.resolve();
-        }
-        const newOverride = clearFields(engine.logExtractionOverrides, explicitFields);
-        const frequencyChanged = touchedFieldsWithOverride.includes('frequency');
-        return this.persistOverrideAndReschedule(
-          request,
-          engine,
-          newOverride,
-          updatedGlobalConfig,
-          frequencyChanged
-        );
-      })
+      engines
+        .filter((engine) => engine.status === ENGINE_STATUS.STARTED)
+        .map((engine) => {
+          const previous = resolveLogExtractionConfig(
+            engine.type,
+            before,
+            engine.logExtractionOverrides
+          );
+          const current = resolveLogExtractionConfig(
+            engine.type,
+            updatedConfig,
+            engine.logExtractionOverrides
+          );
+          return current.frequency === previous.frequency
+            ? Promise.resolve()
+            : this.rescheduleExtractTask(request, engine.type, current.frequency);
+        })
     );
+    return updatedConfig;
+  }
+
+  private async rescheduleExtractTask(
+    request: KibanaRequest,
+    type: EntityType,
+    frequency: string
+  ): Promise<void> {
+    await scheduleExtractEntityTask({
+      logger: this.logger,
+      taskManager: this.taskManager,
+      type,
+      frequency,
+      namespace: this.namespace,
+      request,
+    });
   }
 
   private async getEngineWithComponents(
@@ -744,33 +684,4 @@ function resolveLogsExtractionOnInstall(
     return existing;
   }
   return LogExtractionConfig.parse({});
-}
-
-/** Overlays any fields explicitly present in `patch` onto `base`; fields absent from
- * `patch` (`undefined`) keep `base`'s value. An explicit `null` in `patch` wins, clearing
- * that field. */
-function mergeOverrideFields(
-  base: EngineLogExtractionOverrides,
-  patch: Partial<EngineLogExtractionOverrides> | undefined
-): EngineLogExtractionOverrides {
-  return {
-    frequency: patch?.frequency !== undefined ? patch.frequency : base.frequency,
-    delay: patch?.delay !== undefined ? patch.delay : base.delay,
-    lookbackPeriod:
-      patch?.lookbackPeriod !== undefined ? patch.lookbackPeriod : base.lookbackPeriod,
-  };
-}
-
-/** Sets each field in `fieldsToClear` to `null` (no override); other fields are unchanged. */
-function clearFields(
-  overrides: EngineLogExtractionOverrides,
-  fieldsToClear: CadenceField[]
-): EngineLogExtractionOverrides {
-  if (fieldsToClear.length === 0) {
-    return overrides;
-  }
-  const nullPatch = Object.fromEntries(fieldsToClear.map((field) => [field, null])) as Partial<
-    Record<CadenceField, null>
-  >;
-  return mergeOverrideFields(overrides, nullPatch);
 }

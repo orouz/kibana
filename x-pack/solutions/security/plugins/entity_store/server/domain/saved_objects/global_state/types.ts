@@ -12,6 +12,7 @@ import {
   LOG_EXTRACTION_MAX_TIME_WINDOW_SIZE_DEFAULT,
   LOG_EXTRACTION_MAX_LOGS_PER_WINDOW_DEFAULT,
   LOG_EXTRACTION_CAP_BEHAVIOR_DEFAULT,
+  LOG_EXTRACTION_FREQUENCY_DEFAULT,
 } from './constants';
 
 export const EntityStoreGlobalStateTypeName = 'entity-store-global-state';
@@ -120,11 +121,48 @@ const version3: SavedObjectsFullModelVersion = {
   },
 };
 
+// v4 does not change the stored shape (`frequency` was already optional at the SO layer),
+// so the schema is unchanged from v3.
+const globalStateSchemaV4 = globalStateSchemaV3;
+
+const version4: SavedObjectsFullModelVersion = {
+  changes: [
+    {
+      // Frequency defaults are now per entity type and resolved in code
+      // (`LOG_EXTRACTION_DEFAULTS_BY_TYPE`), so the store-wide config no longer carries a
+      // frequency default. Existing stores persisted the legacy default (`1m`) densely;
+      // strip it here so the per-type defaults (e.g. Service 10m, Generic 30m) take effect
+      // on upgrade. A frequency an admin set to a non-default value is preserved. The
+      // running extract tasks pick up the new cadence on their next (re)schedule. See
+      // #269261.
+      // `unsafe_transform` is required because this removes an attribute field, which
+      // `data_backfill` (merge-only) cannot express.
+      type: 'unsafe_transform',
+      transformFn: (typeSafeGuard) =>
+        typeSafeGuard<
+          { logsExtraction?: Record<string, unknown> },
+          { logsExtraction?: Record<string, unknown> }
+        >((document) => {
+          const logsExtraction = document.attributes.logsExtraction;
+          if (logsExtraction?.frequency === LOG_EXTRACTION_FREQUENCY_DEFAULT) {
+            const { frequency, ...rest } = logsExtraction;
+            document.attributes.logsExtraction = rest;
+          }
+          return { document };
+        }),
+    },
+  ],
+  schemas: {
+    create: globalStateSchemaV4,
+    forwardCompatibility: globalStateSchemaV4.extends({}, { unknowns: 'ignore' }),
+  },
+};
+
 export const EntityStoreGlobalStateType: SavedObjectsType = {
   name: EntityStoreGlobalStateTypeName,
   hidden: false,
   namespaceType: 'multiple-isolated',
   mappings: EntityStoreGlobalStateTypeMappings,
-  modelVersions: { 1: version1, 2: version2, 3: version3 },
+  modelVersions: { 1: version1, 2: version2, 3: version3, 4: version4 },
   hiddenFromHttpApis: true,
 };

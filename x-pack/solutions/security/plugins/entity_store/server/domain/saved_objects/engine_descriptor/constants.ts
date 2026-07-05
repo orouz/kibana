@@ -7,6 +7,7 @@
 
 import { z } from '@kbn/zod/v4';
 import { EntityType } from '../../../../common/domain/definitions/entity_schema';
+import { LogExtractionConfig } from '../global_state/constants';
 
 export type EngineStatus = z.infer<typeof EngineStatus>;
 export const EngineStatus = z.enum(['installing', 'started', 'stopped', 'updating', 'error']);
@@ -20,28 +21,26 @@ export const EngineLogExtractionState = z.object({
 });
 
 /**
- * Per-entity-type overrides for the cadence-related subset of `LogExtractionConfig`
- * (`frequency`, `delay`, `lookbackPeriod`). A `null` field means "no override for this
- * type" — the shared `entity-store-global-state` value is used instead. All other
- * `LogExtractionConfig` fields remain store-wide only.
+ * The subset of `LogExtractionConfig` fields that may be overridden per entity type. This
+ * is the single source of truth for "what's overridable" — the route validation schema
+ * picks the same set.
  */
-export type EngineLogExtractionOverrides = z.infer<typeof EngineLogExtractionOverrides>;
-export const EngineLogExtractionOverrides = z.object({
-  frequency: z.string().nullable().default(null),
-  delay: z.string().nullable().default(null),
-  lookbackPeriod: z.string().nullable().default(null),
-});
+export const OVERRIDABLE_LOG_EXTRACTION_FIELDS = {
+  frequency: true,
+  delay: true,
+  lookbackPeriod: true,
+} as const;
 
 /**
- * Default cadence overrides seeded per entity type on install. Host/User have no default
- * override and inherit the global cadence (see #269261).
+ * A per-entity-type override of the overridable `LogExtractionConfig` fields. Sparse: only
+ * fields the admin set for this type are present; absent fields fall through to the global
+ * config (and, for `frequency`, the per-type default). `.partial()` bypasses the picked
+ * fields' defaults, so an unset field stays absent rather than being filled. See #269261.
  */
-export const DEFAULT_LOG_EXTRACTION_OVERRIDES: Record<EntityType, EngineLogExtractionOverrides> = {
-  host: EngineLogExtractionOverrides.parse({}),
-  user: EngineLogExtractionOverrides.parse({}),
-  service: EngineLogExtractionOverrides.parse({ frequency: '10m' }),
-  generic: EngineLogExtractionOverrides.parse({ frequency: '30m' }),
-};
+export type EngineLogExtractionOverrides = z.infer<typeof EngineLogExtractionOverrides>;
+export const EngineLogExtractionOverrides = LogExtractionConfig.pick(
+  OVERRIDABLE_LOG_EXTRACTION_FIELDS
+).partial();
 
 export type EngineError = z.infer<typeof EngineError>;
 export const EngineError = z.object({
@@ -61,11 +60,7 @@ export const EngineDescriptor = z.object({
   type: EntityType,
   status: EngineStatus,
   logExtractionState: EngineLogExtractionState,
-  logExtractionOverrides: EngineLogExtractionOverrides.default({
-    frequency: null,
-    delay: null,
-    lookbackPeriod: null,
-  }),
+  logExtractionOverrides: EngineLogExtractionOverrides.default({}),
   error: EngineError.nullable().default(null),
   versionState: VersionState,
 });

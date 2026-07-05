@@ -8,8 +8,6 @@
 import type { SavedObjectsFullModelVersion } from '@kbn/core-saved-objects-server';
 import type { SavedObjectsType } from '@kbn/core/server';
 import { schema } from '@kbn/config-schema';
-import type { EntityType } from '../../../../common/domain/definitions/entity_schema';
-import { DEFAULT_LOG_EXTRACTION_OVERRIDES } from './constants';
 
 export const EngineDescriptorTypeName = 'entity-engine-descriptor-v2';
 
@@ -327,14 +325,19 @@ const version6: SavedObjectsFullModelVersion = {
   },
 };
 
+// Per-entity-type override of the overridable log-extraction fields. Sparse: each field is
+// optional and absent means "no override for this type" (the per-type default / global
+// value applies). No data backfill — the per-type defaults live in code
+// (`LOG_EXTRACTION_DEFAULTS_BY_TYPE`) and are resolved at read time, so existing engines
+// simply start with an empty override.
 const logExtractionOverridesSchemaV7 = schema.object({
-  frequency: schema.nullable(schema.string()),
-  delay: schema.nullable(schema.string()),
-  lookbackPeriod: schema.nullable(schema.string()),
+  frequency: schema.maybe(schema.string()),
+  delay: schema.maybe(schema.string()),
+  lookbackPeriod: schema.maybe(schema.string()),
 });
 
 const engineDescriptorSchemaV7 = engineDescriptorSchemaV6.extends({
-  logExtractionOverrides: logExtractionOverridesSchemaV7,
+  logExtractionOverrides: schema.maybe(logExtractionOverridesSchemaV7),
 });
 
 const version7: SavedObjectsFullModelVersion = {
@@ -349,25 +352,6 @@ const version7: SavedObjectsFullModelVersion = {
             lookbackPeriod: { type: 'keyword' as const },
           },
         },
-      },
-    },
-    {
-      // Seeds the per-type cadence defaults introduced by #269261: Service and Generic
-      // entities extract at a reduced cadence out of the box, while Host/User keep
-      // inheriting the shared global cadence (no override).
-      type: 'data_backfill' as const,
-      backfillFn: (document) => {
-        const entityType = document.attributes.type as EntityType;
-        const defaultOverride = DEFAULT_LOG_EXTRACTION_OVERRIDES[entityType] ?? {
-          frequency: null,
-          delay: null,
-          lookbackPeriod: null,
-        };
-        return {
-          attributes: {
-            logExtractionOverrides: defaultOverride,
-          },
-        };
       },
     },
   ],

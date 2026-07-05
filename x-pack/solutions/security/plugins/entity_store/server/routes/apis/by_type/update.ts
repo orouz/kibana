@@ -16,14 +16,14 @@ import { wrapMiddlewares } from '../../middleware';
 import { API_VERSIONS, ENTITY_STORE_ROUTES } from '../../../../common';
 import { EntityType } from '../../../../common/domain/definitions/entity_schema';
 import { enforceEntityStorePrivileges } from '../utils/check_entity_store_privileges';
-import { CadenceOverrideSchema } from '../utils/log_extraction_validator';
+import { LogExtractionOverrideSchema } from '../utils/log_extraction_validator';
 
 const paramsSchema = z.object({
   entityType: EntityType,
 });
 
 const bodySchema = z.object({
-  logExtraction: CadenceOverrideSchema,
+  logExtraction: LogExtractionOverrideSchema,
 });
 
 export function registerUpdateByType(router: EntityStorePluginRouter) {
@@ -69,7 +69,7 @@ export function registerUpdateByType(router: EntityStorePluginRouter) {
         if (forbidden) return forbidden;
 
         try {
-          await assetManager.updateByType(req, entityType, req.body.logExtraction);
+          await assetManager.updateType(req, entityType, req.body.logExtraction);
         } catch (error) {
           if (SavedObjectsErrorHelpers.isNotFoundError(error)) {
             return res.badRequest({

@@ -40,7 +40,8 @@ import {
   validateExtractionWindow,
 } from './extraction_window';
 import { capAtMaxLogsPerWindow } from './effective_page_limits';
-import { mergeCadenceOverrides } from './cadence_overrides';
+import { resolveLogExtractionConfig } from './config_resolver';
+import type { ResolvedLogExtractionConfig } from './config_resolver';
 import { getLatestEntitiesIndexName } from '../../../common/domain/entity_index';
 import { getUpdatesEntitiesDataStreamName } from '../asset_manager/updates_data_stream';
 import { executeEsqlQuery } from '../../infra/elasticsearch/esql';
@@ -137,13 +138,17 @@ export class LogsExtractionClient {
 
   private async getLogExtractionConfigAndState(
     type: EntityType
-  ): Promise<{ config: LogExtractionConfig; engineState: EngineLogExtractionState }> {
+  ): Promise<{
+    config: ResolvedLogExtractionConfig;
+    engineState: EngineLogExtractionState;
+  }> {
     const engineDescriptor = await this.engineDescriptorClient.findOrThrow(type);
     if (engineDescriptor.status !== ENGINE_STATUS.STARTED) {
       throw new EntityStoreNotRunningError();
     }
     const globalState = await this.globalStateClient.findOrThrow();
-    const config = mergeCadenceOverrides(
+    const config = resolveLogExtractionConfig(
+      type,
       globalState.logsExtraction,
       engineDescriptor.logExtractionOverrides
     );
@@ -272,7 +277,7 @@ export class LogsExtractionClient {
     entityDefinition,
   }: {
     type: EntityType;
-    config: LogExtractionConfig;
+    config: ResolvedLogExtractionConfig;
     engineState: EngineLogExtractionState;
     opts?: LogsExtractionOptions;
     entityDefinition: ManagedEntityDefinition;
@@ -351,7 +356,7 @@ export class LogsExtractionClient {
     latestIndex,
   }: {
     type: EntityType;
-    config: LogExtractionConfig;
+    config: ResolvedLogExtractionConfig;
     engineState: EngineLogExtractionState;
     opts?: LogsExtractionOptions;
     entityDefinition: ManagedEntityDefinition;

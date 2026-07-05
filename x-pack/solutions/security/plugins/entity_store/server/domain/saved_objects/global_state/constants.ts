@@ -41,10 +41,13 @@ export const LogExtractionConfig = z.object({
     .string()
     .regex(/[smdh]$/)
     .default(LOG_EXTRACTION_TIMEOUT_DEFAULT),
+  // Optional (no default): the per-type baseline lives in `LOG_EXTRACTION_DEFAULTS_BY_TYPE`
+  // and is applied by `resolveLogExtractionConfig`. A value here means an admin set one
+  // store-wide; its absence is what lets a type's per-type default show through. See #269261.
   frequency: z
     .string()
     .regex(/[smdh]$/)
-    .default(LOG_EXTRACTION_FREQUENCY_DEFAULT),
+    .optional(),
   maxTimeWindowSize: z
     .string()
     .regex(/[smdh]$/)
