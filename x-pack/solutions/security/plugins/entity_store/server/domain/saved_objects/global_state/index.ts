@@ -11,31 +11,20 @@ import type {
 } from '@kbn/core-saved-objects-api-server';
 import { SavedObjectsErrorHelpers, type Logger } from '@kbn/core/server';
 import Boom from '@hapi/boom';
-import {
-  EntityStoreGlobalState,
-  HistorySnapshotState,
-  LogExtractionConfig,
-  GLOBAL_DEFAULTS,
-  LATEST_DEFAULTS,
-  isLogExtractionConfigVersion,
-} from './constants';
+import { EntityStoreGlobalState, HistorySnapshotState } from './constants';
+import { LogExtractionDefaults } from './log_extraction_defaults';
 import { EntityStoreGlobalStateTypeName } from './types';
 
-/** Fill latest defaults and pin `defaultsVersion` to LATEST for persistence. */
-const getConfigWithLatestDefaults = (
-  config: Partial<LogExtractionConfig> = {}
-): LogExtractionConfig =>
-  LogExtractionConfig.parse({
-    ...config,
-    defaultsVersion: LATEST_DEFAULTS.defaultsVersion,
-  });
-
 export class EntityStoreGlobalStateClient {
+  private readonly logExtractionDefaults: LogExtractionDefaults;
+
   constructor(
     private readonly soClient: SavedObjectsClientContract,
     private readonly namespace: string,
     private readonly logger: Logger
-  ) {}
+  ) {
+    this.logExtractionDefaults = new LogExtractionDefaults(logger);
+  }
 
   async find(): Promise<EntityStoreGlobalState | undefined> {
     const response = await this.findSO();
@@ -43,7 +32,14 @@ export class EntityStoreGlobalStateClient {
       return undefined;
     }
 
-    return this.resolveGlobalState(response.saved_objects[0].attributes);
+    const { historySnapshot, logsExtraction } = response.saved_objects[0].attributes;
+    // Apply zod defaults to the persisted attributes so that fields added in newer Kibana
+    // versions (e.g. `maxTimeWindowSize`) are populated for SOs that were written before the
+    // field existed. This avoids `undefined` reaching consumers like `parseDurationToMs`.
+    return EntityStoreGlobalState.parse({
+      historySnapshot,
+      logsExtraction: this.logExtractionDefaults.resolve(logsExtraction),
+    });
   }
 
   async findOrThrow(): Promise<EntityStoreGlobalState> {
@@ -66,7 +62,7 @@ export class EntityStoreGlobalStateClient {
     this.logger.debug(`Creating global state with id ${id}`);
 
     const historySnapshot = HistorySnapshotState.parse(initialState?.historySnapshot ?? {});
-    const logsExtraction = getConfigWithLatestDefaults(initialState?.logsExtraction);
+    const logsExtraction = this.logExtractionDefaults.resolve(initialState?.logsExtraction);
     const parsed = EntityStoreGlobalState.parse({
       historySnapshot,
       logsExtraction,
@@ -99,8 +95,7 @@ export class EntityStoreGlobalStateClient {
     }
 
     if (partial.logsExtraction !== undefined) {
-      // Persist the merged effective config pinned to the current latest defaults.
-      toWrite.logsExtraction = getConfigWithLatestDefaults({
+      toWrite.logsExtraction = this.logExtractionDefaults.resolve({
         ...existing.logsExtraction,
         ...partial.logsExtraction,
       });
@@ -150,40 +145,5 @@ export class EntityStoreGlobalStateClient {
       namespaces: [this.namespace],
       perPage: 1,
     });
-  }
-
-  private resolveGlobalState(attributes: EntityStoreGlobalState): EntityStoreGlobalState {
-    // Apply zod defaults to the persisted attributes so that fields added in newer Kibana
-    // versions (e.g. `maxTimeWindowSize`) are populated for SOs that were written before the
-    // field existed. This avoids `undefined` reaching consumers like `parseDurationToMs`.
-    return EntityStoreGlobalState.parse({
-      historySnapshot: attributes.historySnapshot,
-      // Drops fields equal to the stored defaults pin so .parse can fill in latest defaults
-      // while keeping true overrides.
-      logsExtraction: this.getLogExtractionConfigOverrides(attributes.logsExtraction),
-    });
-  }
-
-  private getLogExtractionConfigOverrides(
-    config: LogExtractionConfig
-  ): Partial<LogExtractionConfig> {
-    if (!isLogExtractionConfigVersion(config.defaultsVersion)) {
-      this.logger.warn(
-        `Unknown log extraction config defaults version ${config.defaultsVersion}. Preserving persisted values.`
-      );
-      // Treat every persisted field as an override so we do not wipe user config.
-      return config;
-    }
-    const configDefaults = GLOBAL_DEFAULTS[config.defaultsVersion];
-    const overrides = Object.keys(configDefaults).reduce((acc, key) => {
-      const configValue = config[key as keyof typeof config];
-      const configDefaultValue = configDefaults[key as keyof typeof configDefaults];
-      if (configValue !== undefined && configValue !== configDefaultValue) {
-        acc[key as keyof typeof acc] = configValue as never;
-      }
-      return acc;
-    }, {} as Partial<LogExtractionConfig>);
-
-    return overrides;
   }
 }

@@ -60,7 +60,7 @@ describe('EntityStoreGlobalStateClient', () => {
       expect(result?.logsExtraction.defaultsVersion).toBe(LATEST_DEFAULTS.defaultsVersion);
     });
 
-    it('preserves all persisted values when defaultsVersion is unknown', async () => {
+    it('preserves field values when defaultsVersion is unknown, but pins to latest', async () => {
       mockFindAttributes({
         historySnapshot: { status: 'started', frequency: '24h' },
         logsExtraction: {
@@ -78,7 +78,7 @@ describe('EntityStoreGlobalStateClient', () => {
       expect(result?.logsExtraction.delay).toBe('5m');
       expect(result?.logsExtraction.frequency).toBe('1m');
       expect(result?.logsExtraction.maxLogsPerPage).toBe(50_000);
-      expect(result?.logsExtraction.defaultsVersion).toBe(99);
+      expect(result?.logsExtraction.defaultsVersion).toBe(LATEST_DEFAULTS.defaultsVersion);
     });
   });
 
