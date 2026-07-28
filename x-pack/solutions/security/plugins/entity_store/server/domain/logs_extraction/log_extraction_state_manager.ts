@@ -27,9 +27,6 @@ import {
  *
  * Empty / omitted `entityTypes` on write → global SO.
  * Non-empty `entityTypes` → per-type local SOs only.
- *
- * Callers must not touch EntityStoreGlobalStateClient / EntityStoreLocalStateClient for
- * `logsExtraction` — only this manager (via LogsExtractionClient).
  */
 export class LogExtractionStateManager {
   constructor(
@@ -49,16 +46,13 @@ export class LogExtractionStateManager {
     );
   }
 
-  /** Store-wide resolved config (no per-type layer). */
-  public async getStoreWideConfig(): Promise<LogExtractionConfig> {
+  /** Global overrides over CURRENT defaults (no per-type layer). */
+  public async getGlobalConfig(): Promise<LogExtractionConfig> {
     const globalState = await this.globalStateClient.findOrThrow();
     return resolveGlobalLogExtractionConfig(globalState.logsExtraction);
   }
 
-  /**
-   * Idempotent: ensure global SO exists, apply optional install params, ensure local shells.
-   * Safe to call in parallel with HistorySnapshotClient.init.
-   */
+  /** Ensure global SO exists, apply optional install params, ensure local shells. */
   public async init(
     entityTypes: EntityType[],
     params?: LogExtractionConfigInput

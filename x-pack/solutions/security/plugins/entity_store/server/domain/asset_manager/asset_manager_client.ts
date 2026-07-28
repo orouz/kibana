@@ -123,7 +123,7 @@ export class AssetManagerClient {
     historySnapshotParams?: HistorySnapshotBodyParams
   ) {
     try {
-      // Idempotent + order-independent: either client can create the shared global SO.
+      // Either client can create the shared global SO; safe in parallel.
       const [historySnapshot] = await Promise.all([
         this.historySnapshotClient.init(historySnapshotParams),
         this.logsExtractionClient.init(entityTypes, logsExtractionParams),
@@ -193,9 +193,11 @@ export class AssetManagerClient {
     }
   }
 
-  public async start(request: KibanaRequest, type: EntityType, { frequency }: LogExtractionConfig) {
+  public async start(request: KibanaRequest, type: EntityType) {
     try {
       this.logger.get(type).debug(`Scheduling extract entity task for type: ${type}`);
+
+      const { frequency } = await this.logsExtractionClient.getConfig(type);
 
       await this.engineDescriptorClient.update(type, { status: ENGINE_STATUS.STARTED });
 
@@ -265,7 +267,7 @@ export class AssetManagerClient {
             esClient: this.esClient,
             logger: this.logger,
           }),
-          // Idempotent + order-independent cleanup of shared state SOs.
+          // Shared state SO cleanup (order-independent).
           this.historySnapshotClient.delete(),
           this.logsExtractionClient.deleteLocalStates(),
           stopStatusReportTask({
@@ -298,7 +300,7 @@ export class AssetManagerClient {
       const [engines, historySnapshot, logsExtractionConfig] = await Promise.all([
         this.engineDescriptorClient.getAll(),
         this.historySnapshotClient.getHistorySnapshot(),
-        this.logsExtractionClient.getStoreWideConfig(),
+        this.logsExtractionClient.getGlobalConfig(),
       ]);
 
       const status = this.calculateEntityStoreStatus(engines);
@@ -333,8 +335,7 @@ export class AssetManagerClient {
   private async initEntity(request: KibanaRequest, type: EntityType): Promise<boolean> {
     const installed = await this.install(type);
     if (installed) {
-      const config = await this.logsExtractionClient.getConfig(type);
-      await this.start(request, type, config);
+      await this.start(request, type);
     }
     this.analytics.reportEvent(ENTITY_STORE_INITIALIZATION_EVENT, {
       entityType: type,

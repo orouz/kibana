@@ -110,7 +110,7 @@ export interface LogsExtractionClientDependencies {
 
 /**
  * Public facade for log-extraction config + extraction runtime.
- * Sole owner of {@link LogExtractionStateManager} — callers must not construct/use the manager.
+ * Owns {@link LogExtractionStateManager} privately.
  */
 export class LogsExtractionClient {
   logger: Logger;
@@ -148,14 +148,11 @@ export class LogsExtractionClient {
     return this.logExtractionStateManager.getConfig(type);
   }
 
-  public async getStoreWideConfig(): Promise<LogExtractionConfig> {
-    return this.logExtractionStateManager.getStoreWideConfig();
+  public async getGlobalConfig(): Promise<LogExtractionConfig> {
+    return this.logExtractionStateManager.getGlobalConfig();
   }
 
-  /**
-   * Idempotent: ensure global SO exists, apply optional install params, ensure local shells.
-   * Safe to call in parallel with {@link HistorySnapshotClient.init}.
-   */
+  /** Ensure global SO exists, apply optional install params, ensure local shells. */
   public async init(
     entityTypes: EntityType[],
     params?: LogExtractionConfigInput
@@ -163,7 +160,6 @@ export class LogsExtractionClient {
     await this.logExtractionStateManager.init(entityTypes, params);
   }
 
-  /** Idempotent local-state cleanup (missing docs are ignored). */
   public async deleteLocalStates(entityTypes?: EntityType[]): Promise<void> {
     await this.logExtractionStateManager.deleteLocalStates(entityTypes);
   }

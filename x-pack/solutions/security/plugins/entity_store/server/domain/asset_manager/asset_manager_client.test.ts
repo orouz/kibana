@@ -92,7 +92,7 @@ describe('AssetManagerClient', () => {
   let mockLogsExtractionClient: {
     init: jest.Mock;
     getConfig: jest.Mock;
-    getStoreWideConfig: jest.Mock;
+    getGlobalConfig: jest.Mock;
     deleteLocalStates: jest.Mock;
     getLocalIndexPatterns: jest.Mock;
   };
@@ -130,7 +130,7 @@ describe('AssetManagerClient', () => {
     mockLogsExtractionClient = {
       init: jest.fn().mockResolvedValue(undefined),
       getConfig: jest.fn().mockResolvedValue({ frequency: '1m' }),
-      getStoreWideConfig: jest.fn().mockResolvedValue({}),
+      getGlobalConfig: jest.fn().mockResolvedValue({}),
       deleteLocalStates: jest.fn().mockResolvedValue(undefined),
       getLocalIndexPatterns: jest.fn().mockResolvedValue([]),
     };

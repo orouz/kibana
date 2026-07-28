@@ -42,7 +42,6 @@ export interface HistorySnapshotClientDependencies {
 
 /**
  * Owns historySnapshot on the entity-store global SO (and the SO document lifecycle).
- * Do not touch EntityStoreGlobalStateClient from outside this client for history concerns.
  */
 export class HistorySnapshotClient {
   private readonly logger: Logger;
@@ -63,8 +62,8 @@ export class HistorySnapshotClient {
   }
 
   /**
-   * Idempotent: ensure the global SO exists and apply history settings.
-   * Safe to call in parallel with {@link LogsExtractionClient.init}.
+   * Ensure the global SO exists and apply history settings.
+   * Safe to call in parallel with LogsExtractionClient.init.
    */
   public async init(
     historySnapshotParams?: Partial<HistorySnapshotState>
@@ -79,7 +78,7 @@ export class HistorySnapshotClient {
     return state.historySnapshot;
   }
 
-  /** Idempotent: deletes the entire global SO when present. */
+  /** Deletes the entire global SO when present. */
   public async delete(): Promise<void> {
     await this.globalStateClient.delete();
   }

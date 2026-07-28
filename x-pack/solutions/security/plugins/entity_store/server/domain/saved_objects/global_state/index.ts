@@ -18,17 +18,12 @@ import {
   toStoredGlobalLogsExtraction,
 } from './constants';
 import { EntityStoreGlobalStateTypeName } from './types';
-
-const REPLACE_MAX_ATTEMPTS = 5;
+import { retryOnConflict } from '../../../infra/retry_on_conflict';
 
 /**
  * Persistence for the entity-store global SO (historySnapshot + logsExtraction shell).
  *
- * Do not write `logsExtraction` from here except via {@link updateLogsExtraction} —
- * that path is reserved for {@link LogExtractionStateManager}.
- *
- * Create / field updates are race-safe so HistorySnapshotClient and LogsExtractionClient
- * can init in parallel without coordinating order.
+ * `logsExtraction` writes go through {@link updateLogsExtraction} only (LogExtractionStateManager).
  */
 export class EntityStoreGlobalStateClient {
   constructor(
@@ -55,10 +50,7 @@ export class EntityStoreGlobalStateClient {
     return response;
   }
 
-  /**
-   * Idempotent: return existing SO or create one with default history + empty sparse logs shell.
-   * Concurrent creates resolve via conflict → re-find.
-   */
+  /** Return existing SO or create one with default history + empty sparse logs shell. */
   async ensureExists(): Promise<EntityStoreGlobalState> {
     const existing = await this.find();
     if (existing !== undefined) {
@@ -87,9 +79,7 @@ export class EntityStoreGlobalStateClient {
     }
   }
 
-  /**
-   * Idempotent history upsert. Ensures the SO exists; never touches logsExtraction.
-   */
+  /** History upsert. Ensures the SO exists; never touches logsExtraction. */
   async init(
     initialState?: Partial<{
       historySnapshot: EntityStoreGlobalState['historySnapshot'];
@@ -109,13 +99,11 @@ export class EntityStoreGlobalStateClient {
     return this.replaceAttributes({ historySnapshot });
   }
 
-  /** Reserved for LogExtractionStateManager — pass an already-sparse stored shape. */
   async updateLogsExtraction(logsExtraction: StoredLogsExtraction): Promise<EntityStoreGlobalState> {
     await this.ensureExists();
     return this.replaceAttributes({ logsExtraction });
   }
 
-  /** Idempotent: no-op when missing. */
   async delete(): Promise<void> {
     const response = await this.findSO();
     if (response.total === 0) {
@@ -138,38 +126,22 @@ export class EntityStoreGlobalStateClient {
     historySnapshot?: EntityStoreGlobalState['historySnapshot'];
     logsExtraction?: StoredLogsExtraction;
   }): Promise<EntityStoreGlobalState> {
-    let lastError: unknown;
-    for (let attempt = 0; attempt < REPLACE_MAX_ATTEMPTS; attempt++) {
-      try {
-        const { id, attributes, version } = await this.findSOOrThrow();
-        const next: EntityStoreGlobalState = {
-          historySnapshot: partial.historySnapshot ?? attributes.historySnapshot,
-          logsExtraction: partial.logsExtraction ?? attributes.logsExtraction,
-        };
-        const parsed = EntityStoreGlobalState.parse(next);
+    return retryOnConflict(async () => {
+      const { id, attributes, version } = await this.findSOOrThrow();
+      const next: EntityStoreGlobalState = {
+        historySnapshot: partial.historySnapshot ?? attributes.historySnapshot,
+        logsExtraction: partial.logsExtraction ?? attributes.logsExtraction,
+      };
+      const parsed = EntityStoreGlobalState.parse(next);
 
-        await this.soClient.update<EntityStoreGlobalState>(
-          EntityStoreGlobalStateTypeName,
-          id,
-          parsed,
-          {
-            refresh: 'wait_for',
-            mergeAttributes: false,
-            version,
-          }
-        );
+      await this.soClient.update<EntityStoreGlobalState>(EntityStoreGlobalStateTypeName, id, parsed, {
+        refresh: 'wait_for',
+        mergeAttributes: false,
+        version,
+      });
 
-        return parsed;
-      } catch (error) {
-        lastError = error;
-        // Parallel history + logs field updates can race on SO version.
-        if (SavedObjectsErrorHelpers.isConflictError(error) || Boom.isBoom(error, 409)) {
-          continue;
-        }
-        throw error;
-      }
-    }
-    throw lastError;
+      return parsed;
+    });
   }
 
   private getSavedObjectId(): string {
