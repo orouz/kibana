@@ -16,7 +16,7 @@ import {
   uninstallAllEntityTypes,
 } from '../fixtures/helpers';
 import { FF_ENABLE_ENTITY_STORE_V2 } from '../../../../common';
-import { LATEST_DEFAULTS } from '../../../../server/domain/saved_objects';
+import { LATEST_LOG_EXTRACTION_DEFAULTS } from '../../../../server/domain/saved_objects';
 
 const ALL_ENTITY_TYPES = ['generic', 'host', 'service', 'user'];
 
@@ -52,9 +52,9 @@ apiTest.describe('Entity Store Status API tests', { tag: ENTITY_STORE_TAGS }, ()
 
       for (const engine of status.body.engines) {
         expect(engine.status).toBe('started');
-        expect(engine.maxLogsPerWindow).toBe(LATEST_DEFAULTS.maxLogsPerWindow);
+        expect(engine.maxLogsPerWindow).toBe(LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerWindow);
         expect(engine.maxLogsPerWindowCapBehavior).toBe(
-          LATEST_DEFAULTS.maxLogsPerWindowCapBehavior
+          LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerWindowCapBehavior
         );
       }
     }

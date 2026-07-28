@@ -24,7 +24,7 @@ import {
 import { LOG_PAGINATION_CURSOR_TOTAL_LOGS_FIELD } from './log_pagination_probe_query_builder';
 import {
   LogExtractionConfig,
-  LATEST_DEFAULTS,
+  LATEST_LOG_EXTRACTION_DEFAULTS,
   type EngineDescriptorClient,
   type EntityStoreGlobalState,
   type EntityStoreGlobalStateClient,
@@ -45,7 +45,7 @@ const LOG_PAGINATION_CURSOR_PROBE_COLUMNS: ESQLSearchResponse['columns'] = [
  */
 function mockLogPaginationCursorProbeRow(
   timestamp: string,
-  totalLogsInSlice: number = LATEST_DEFAULTS.maxLogsPerPage
+  totalLogsInSlice: number = LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerPage
 ): ESQLSearchResponse {
   return {
     columns: LOG_PAGINATION_CURSOR_PROBE_COLUMNS,
@@ -1345,7 +1345,10 @@ describe('LogsExtractionClient', () => {
           .mockResolvedValueOnce(mockLogPaginationCursorProbeRow(stalledTs)) // slice 1, not last
           .mockResolvedValueOnce({ columns: [], values: [] }) // entity extraction 1
           .mockResolvedValueOnce(
-            mockLogPaginationCursorProbeRow(stalledTs, LATEST_DEFAULTS.maxLogsPerPage) // slice 2: stall fires, extraction skipped
+            mockLogPaginationCursorProbeRow(
+              stalledTs,
+              LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerPage
+            ) // slice 2: stall fires, extraction skipped
           )
           .mockResolvedValueOnce(mockLogPaginationCursorProbeEmpty()) // probe 3 with bumpedTs → last page
           .mockResolvedValueOnce({ columns: [], values: [] }); // follow-up sweep extraction → loop ends
@@ -1358,7 +1361,7 @@ describe('LogsExtractionClient', () => {
         // scope) raw config variable name.
         expect(mockLogger.warn).toHaveBeenCalledWith(
           expect.stringContaining(
-            `Log-slice probe stalled at ${stalledTs} with a saturated page; advancing cursor by 1ms. Docs sharing this timestamp beyond the configured per-page limit (${LATEST_DEFAULTS.maxLogsPerPage}) will be dropped.`
+            `Log-slice probe stalled at ${stalledTs} with a saturated page; advancing cursor by 1ms. Docs sharing this timestamp beyond the configured per-page limit (${LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerPage}) will be dropped.`
           )
         );
         // After the stall bump, a later update persists checkpointTimestamp = bumpedTs.
@@ -1381,7 +1384,7 @@ describe('LogsExtractionClient', () => {
           .mockResolvedValueOnce(mockLogPaginationCursorProbeRow(ts1)) // slice 1, not last
           .mockResolvedValueOnce({ columns: [], values: [] }) // entity extraction 1
           .mockResolvedValueOnce(
-            mockLogPaginationCursorProbeRow(ts2, LATEST_DEFAULTS.maxLogsPerPage) // full page, different ts → not last
+            mockLogPaginationCursorProbeRow(ts2, LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerPage) // full page, different ts → not last
           )
           .mockResolvedValueOnce({ columns: [], values: [] }) // entity extraction 2
           .mockResolvedValueOnce(mockLogPaginationCursorProbeEmpty()) // terminal probe → last page
@@ -1420,7 +1423,7 @@ describe('LogsExtractionClient', () => {
         // still triggers one more (swept) extraction before the loop ends.
         mockExecuteEsqlQuery
           .mockResolvedValueOnce(
-            mockLogPaginationCursorProbeRow(someTs, LATEST_DEFAULTS.maxLogsPerPage)
+            mockLogPaginationCursorProbeRow(someTs, LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerPage)
           )
           .mockResolvedValueOnce({ columns: [], values: [] }) // entity extraction
           .mockResolvedValueOnce(mockLogPaginationCursorProbeEmpty()) // terminal probe → last page

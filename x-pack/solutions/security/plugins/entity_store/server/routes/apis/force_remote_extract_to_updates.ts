@@ -14,7 +14,7 @@ import type { EntityStorePluginRouter } from '../../types';
 import { wrapMiddlewares } from '../middleware';
 import { EntityType } from '../../../common/domain/definitions/entity_schema';
 import { getEntityDefinition } from '../../../common/domain/definitions/registry';
-import { LATEST_DEFAULTS } from '../../domain/saved_objects/global_state/constants';
+import { LATEST_LOG_EXTRACTION_DEFAULTS } from '../../domain/saved_objects/global_state/constants';
 
 const paramsSchema = z.object({
   entityType: EntityType,
@@ -26,10 +26,14 @@ const bodySchema = z.object({
   toDateISO: z.string().datetime(),
   docsLimit: z.number().int().min(1).optional(),
   maxLogsPerPage: z.number().int().min(1).optional(),
-  maxLogsPerWindow: z.number().int().min(0).default(LATEST_DEFAULTS.maxLogsPerWindow),
+  maxLogsPerWindow: z
+    .number()
+    .int()
+    .min(0)
+    .default(LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerWindow),
   maxLogsPerWindowCapBehavior: z
     .enum(['defer', 'drop'])
-    .default(LATEST_DEFAULTS.maxLogsPerWindowCapBehavior),
+    .default(LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerWindowCapBehavior),
 });
 
 export function registerForceRemoteExtractToUpdates(router: EntityStorePluginRouter) {
@@ -80,14 +84,14 @@ export function registerForceRemoteExtractToUpdates(router: EntityStorePluginRou
         const result = await remoteLogsExtractionClient.extractToUpdates({
           type: entityType,
           remoteIndexPatterns: indexPatterns,
-          docsLimit: docsLimit ?? LATEST_DEFAULTS.docsLimit,
-          maxLogsPerPage: maxLogsPerPage ?? LATEST_DEFAULTS.maxLogsPerPage,
-          lookbackPeriod: LATEST_DEFAULTS.lookbackPeriod,
-          delay: LATEST_DEFAULTS.delay,
-          frequency: LATEST_DEFAULTS.frequency,
+          docsLimit: docsLimit ?? LATEST_LOG_EXTRACTION_DEFAULTS.docsLimit,
+          maxLogsPerPage: maxLogsPerPage ?? LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerPage,
+          lookbackPeriod: LATEST_LOG_EXTRACTION_DEFAULTS.lookbackPeriod,
+          delay: LATEST_LOG_EXTRACTION_DEFAULTS.delay,
+          frequency: LATEST_LOG_EXTRACTION_DEFAULTS.frequency,
           entityDefinition,
           windowOverride: { fromDateISO, toDateISO },
-          maxTimeWindowSize: LATEST_DEFAULTS.maxTimeWindowSize,
+          maxTimeWindowSize: LATEST_LOG_EXTRACTION_DEFAULTS.maxTimeWindowSize,
           maxLogsPerWindow,
           maxLogsPerWindowCapBehavior,
         });

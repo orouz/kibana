@@ -8,7 +8,11 @@
 import { savedObjectsClientMock } from '@kbn/core/server/mocks';
 import { loggerMock } from '@kbn/logging-mocks';
 import { EntityStoreGlobalStateClient } from '.';
-import { GLOBAL_DEFAULTS, LATEST_DEFAULTS, type EntityStoreGlobalState } from './constants';
+import {
+  GLOBAL_LOG_EXTRACTION_DEFAULTS,
+  LATEST_LOG_EXTRACTION_DEFAULTS,
+  type EntityStoreGlobalState,
+} from './constants';
 import { EntityStoreGlobalStateTypeName } from './types';
 
 describe('EntityStoreGlobalStateClient', () => {
@@ -47,7 +51,7 @@ describe('EntityStoreGlobalStateClient', () => {
       mockFindAttributes({
         historySnapshot: { status: 'started', frequency: '24h' },
         logsExtraction: {
-          ...GLOBAL_DEFAULTS[1],
+          ...GLOBAL_LOG_EXTRACTION_DEFAULTS[1],
           delay: '5m', // user override vs V1 default
         },
       });
@@ -55,16 +59,20 @@ describe('EntityStoreGlobalStateClient', () => {
       const result = await client.find();
 
       expect(result?.logsExtraction.delay).toBe('5m');
-      expect(result?.logsExtraction.frequency).toBe(LATEST_DEFAULTS.frequency);
-      expect(result?.logsExtraction.maxLogsPerPage).toBe(LATEST_DEFAULTS.maxLogsPerPage);
-      expect(result?.logsExtraction.defaultsVersion).toBe(LATEST_DEFAULTS.defaultsVersion);
+      expect(result?.logsExtraction.frequency).toBe(LATEST_LOG_EXTRACTION_DEFAULTS.frequency);
+      expect(result?.logsExtraction.maxLogsPerPage).toBe(
+        LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerPage
+      );
+      expect(result?.logsExtraction.defaultsVersion).toBe(
+        LATEST_LOG_EXTRACTION_DEFAULTS.defaultsVersion
+      );
     });
 
     it('preserves field values when defaultsVersion is unknown, but pins to latest', async () => {
       mockFindAttributes({
         historySnapshot: { status: 'started', frequency: '24h' },
         logsExtraction: {
-          ...GLOBAL_DEFAULTS[1],
+          ...GLOBAL_LOG_EXTRACTION_DEFAULTS[1],
           defaultsVersion: 99,
           delay: '5m',
           frequency: '1m',
@@ -78,7 +86,9 @@ describe('EntityStoreGlobalStateClient', () => {
       expect(result?.logsExtraction.delay).toBe('5m');
       expect(result?.logsExtraction.frequency).toBe('1m');
       expect(result?.logsExtraction.maxLogsPerPage).toBe(50_000);
-      expect(result?.logsExtraction.defaultsVersion).toBe(LATEST_DEFAULTS.defaultsVersion);
+      expect(result?.logsExtraction.defaultsVersion).toBe(
+        LATEST_LOG_EXTRACTION_DEFAULTS.defaultsVersion
+      );
     });
   });
 
@@ -104,21 +114,23 @@ describe('EntityStoreGlobalStateClient', () => {
         expect.objectContaining({
           logsExtraction: expect.objectContaining({
             delay: '2m',
-            frequency: LATEST_DEFAULTS.frequency,
-            defaultsVersion: LATEST_DEFAULTS.defaultsVersion,
+            frequency: LATEST_LOG_EXTRACTION_DEFAULTS.frequency,
+            defaultsVersion: LATEST_LOG_EXTRACTION_DEFAULTS.defaultsVersion,
           }),
         }),
         { id: savedObjectId }
       );
       expect(result.logsExtraction.delay).toBe('2m');
-      expect(result.logsExtraction.defaultsVersion).toBe(LATEST_DEFAULTS.defaultsVersion);
+      expect(result.logsExtraction.defaultsVersion).toBe(
+        LATEST_LOG_EXTRACTION_DEFAULTS.defaultsVersion
+      );
     });
 
     it('adopts latest defaults when updating an existing SO via init', async () => {
       mockFindAttributes({
         historySnapshot: { status: 'started', frequency: '24h' },
         logsExtraction: {
-          ...GLOBAL_DEFAULTS[1],
+          ...GLOBAL_LOG_EXTRACTION_DEFAULTS[1],
           delay: '5m',
         },
       });
@@ -138,13 +150,15 @@ describe('EntityStoreGlobalStateClient', () => {
           logsExtraction: expect.objectContaining({
             delay: '5m',
             lookbackPeriod: '6h',
-            frequency: LATEST_DEFAULTS.frequency,
-            defaultsVersion: LATEST_DEFAULTS.defaultsVersion,
+            frequency: LATEST_LOG_EXTRACTION_DEFAULTS.frequency,
+            defaultsVersion: LATEST_LOG_EXTRACTION_DEFAULTS.defaultsVersion,
           }),
         }),
         { refresh: 'wait_for', mergeAttributes: true }
       );
-      expect(result.logsExtraction.defaultsVersion).toBe(LATEST_DEFAULTS.defaultsVersion);
+      expect(result.logsExtraction.defaultsVersion).toBe(
+        LATEST_LOG_EXTRACTION_DEFAULTS.defaultsVersion
+      );
     });
   });
 
@@ -153,7 +167,7 @@ describe('EntityStoreGlobalStateClient', () => {
       mockFindAttributes({
         historySnapshot: { status: 'started', frequency: '24h' },
         logsExtraction: {
-          ...GLOBAL_DEFAULTS[1],
+          ...GLOBAL_LOG_EXTRACTION_DEFAULTS[1],
           delay: '5m',
         },
       });
@@ -175,15 +189,17 @@ describe('EntityStoreGlobalStateClient', () => {
           logsExtraction: expect.objectContaining({
             delay: '5m',
             docsLimit: 5000,
-            frequency: LATEST_DEFAULTS.frequency,
-            defaultsVersion: LATEST_DEFAULTS.defaultsVersion,
+            frequency: LATEST_LOG_EXTRACTION_DEFAULTS.frequency,
+            defaultsVersion: LATEST_LOG_EXTRACTION_DEFAULTS.defaultsVersion,
           }),
         },
         { refresh: 'wait_for', mergeAttributes: true }
       );
       expect(result.logsExtraction.docsLimit).toBe(5000);
       expect(result.logsExtraction.delay).toBe('5m');
-      expect(result.logsExtraction.defaultsVersion).toBe(LATEST_DEFAULTS.defaultsVersion);
+      expect(result.logsExtraction.defaultsVersion).toBe(
+        LATEST_LOG_EXTRACTION_DEFAULTS.defaultsVersion
+      );
     });
 
     it('does not rewrite logsExtraction when only historySnapshot is updated', async () => {
@@ -201,8 +217,17 @@ describe('EntityStoreGlobalStateClient', () => {
       );
       // Still the resolved-from-find config (V1 pin → latest fill), not rewritten to disk
       expect(result.logsExtraction.delay).toBe('5m');
-      expect(result.logsExtraction.defaultsVersion).toBe(LATEST_DEFAULTS.defaultsVersion);
+      expect(result.logsExtraction.defaultsVersion).toBe(
+        LATEST_LOG_EXTRACTION_DEFAULTS.defaultsVersion
+      );
       expect(soClient.update.mock.calls[0][2]).not.toHaveProperty('logsExtraction');
+    });
+
+    it('does not rewrite logsExtraction when an empty logsExtraction patch is provided', async () => {
+      const result = await client.update({ logsExtraction: {} });
+
+      expect(soClient.update.mock.calls[0][2]).not.toHaveProperty('logsExtraction');
+      expect(result.logsExtraction.delay).toBe('5m');
     });
   });
 });

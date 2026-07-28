@@ -11,10 +11,11 @@ export const DEFAULT_HISTORY_SNAPSHOT_FREQUENCY = '24h';
 
 export const isLogExtractionConfigVersion = (
   value: number
-): value is keyof typeof GLOBAL_DEFAULTS => typeof value === 'number' && value in GLOBAL_DEFAULTS;
+): value is keyof typeof GLOBAL_LOG_EXTRACTION_DEFAULTS =>
+  typeof value === 'number' && value in GLOBAL_LOG_EXTRACTION_DEFAULTS;
 
-const LOG_EXTRACTION_DEFAULTS_VERSION: keyof typeof GLOBAL_DEFAULTS = 2;
-const GLOBAL_DEFAULTS_V1 = {
+const LOG_EXTRACTION_DEFAULTS_VERSION: keyof typeof GLOBAL_LOG_EXTRACTION_DEFAULTS = 2;
+const GLOBAL_LOG_EXTRACTION_DEFAULTS_V1 = {
   additionalIndexPatterns: [],
   excludedIndexPatterns: [],
   fieldHistoryLength: 10,
@@ -30,20 +31,21 @@ const GLOBAL_DEFAULTS_V1 = {
   defaultsVersion: 1,
 } as const satisfies LogExtractionConfigShape;
 
-export const GLOBAL_DEFAULTS = {
-  1: GLOBAL_DEFAULTS_V1,
+export const GLOBAL_LOG_EXTRACTION_DEFAULTS = {
+  1: GLOBAL_LOG_EXTRACTION_DEFAULTS_V1,
   2: {
-    ...GLOBAL_DEFAULTS_V1,
+    ...GLOBAL_LOG_EXTRACTION_DEFAULTS_V1,
     maxLogsPerPage: 100_000,
     frequency: '10m',
     defaultsVersion: 2,
   },
 } as const satisfies Record<number, LogExtractionConfigShape>;
 
-export const LATEST_DEFAULTS = GLOBAL_DEFAULTS[LOG_EXTRACTION_DEFAULTS_VERSION];
+export const LATEST_LOG_EXTRACTION_DEFAULTS =
+  GLOBAL_LOG_EXTRACTION_DEFAULTS[LOG_EXTRACTION_DEFAULTS_VERSION];
 
 const DurationSchema = z.string().regex(/[smdh]$/);
-export const LogExtractionConfigFields = z.object({
+const LogExtractionConfigBase = z.object({
   additionalIndexPatterns: z.array(z.string()),
   excludedIndexPatterns: z.array(z.string()),
   fieldHistoryLength: z.number().int(),
@@ -59,28 +61,34 @@ export const LogExtractionConfigFields = z.object({
   defaultsVersion: z.number().int(),
 });
 
-const base = LogExtractionConfigFields.shape;
+const base = LogExtractionConfigBase.shape;
 
-export type LogExtractionConfigShape = z.infer<typeof LogExtractionConfigFields>;
+export type LogExtractionConfigShape = z.infer<typeof LogExtractionConfigBase>;
 export type LogExtractionConfig = z.infer<typeof LogExtractionConfig>;
 export const LogExtractionConfig = z.object({
   additionalIndexPatterns: base.additionalIndexPatterns.default(
-    LATEST_DEFAULTS.additionalIndexPatterns
+    LATEST_LOG_EXTRACTION_DEFAULTS.additionalIndexPatterns
   ),
-  excludedIndexPatterns: base.excludedIndexPatterns.default(LATEST_DEFAULTS.excludedIndexPatterns),
-  fieldHistoryLength: base.fieldHistoryLength.default(LATEST_DEFAULTS.fieldHistoryLength),
-  lookbackPeriod: base.lookbackPeriod.default(LATEST_DEFAULTS.lookbackPeriod),
-  delay: base.delay.default(LATEST_DEFAULTS.delay),
-  docsLimit: base.docsLimit.default(LATEST_DEFAULTS.docsLimit),
-  maxLogsPerPage: base.maxLogsPerPage.default(LATEST_DEFAULTS.maxLogsPerPage),
-  timeout: base.timeout.default(LATEST_DEFAULTS.timeout),
-  frequency: base.frequency.default(LATEST_DEFAULTS.frequency),
-  maxTimeWindowSize: base.maxTimeWindowSize.default(LATEST_DEFAULTS.maxTimeWindowSize),
-  maxLogsPerWindow: base.maxLogsPerWindow.default(LATEST_DEFAULTS.maxLogsPerWindow),
+  excludedIndexPatterns: base.excludedIndexPatterns.default(
+    LATEST_LOG_EXTRACTION_DEFAULTS.excludedIndexPatterns
+  ),
+  fieldHistoryLength: base.fieldHistoryLength.default(
+    LATEST_LOG_EXTRACTION_DEFAULTS.fieldHistoryLength
+  ),
+  lookbackPeriod: base.lookbackPeriod.default(LATEST_LOG_EXTRACTION_DEFAULTS.lookbackPeriod),
+  delay: base.delay.default(LATEST_LOG_EXTRACTION_DEFAULTS.delay),
+  docsLimit: base.docsLimit.default(LATEST_LOG_EXTRACTION_DEFAULTS.docsLimit),
+  maxLogsPerPage: base.maxLogsPerPage.default(LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerPage),
+  timeout: base.timeout.default(LATEST_LOG_EXTRACTION_DEFAULTS.timeout),
+  frequency: base.frequency.default(LATEST_LOG_EXTRACTION_DEFAULTS.frequency),
+  maxTimeWindowSize: base.maxTimeWindowSize.default(
+    LATEST_LOG_EXTRACTION_DEFAULTS.maxTimeWindowSize
+  ),
+  maxLogsPerWindow: base.maxLogsPerWindow.default(LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerWindow),
   maxLogsPerWindowCapBehavior: base.maxLogsPerWindowCapBehavior.default(
-    LATEST_DEFAULTS.maxLogsPerWindowCapBehavior
+    LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerWindowCapBehavior
   ),
-  defaultsVersion: base.defaultsVersion.default(LATEST_DEFAULTS.defaultsVersion),
+  defaultsVersion: base.defaultsVersion.default(LATEST_LOG_EXTRACTION_DEFAULTS.defaultsVersion),
 });
 
 export type HistorySnapshotStatus = z.infer<typeof HistorySnapshotStatus>;
@@ -107,3 +115,9 @@ export const EntityStoreGlobalState = z.object({
   historySnapshot: HistorySnapshotState,
   logsExtraction: LogExtractionConfig,
 });
+
+/** Partial update/init payload; `logsExtraction` may be a sparse override patch. */
+export interface EntityStoreGlobalStatePatch {
+  historySnapshot?: Partial<HistorySnapshotState>;
+  logsExtraction?: Partial<LogExtractionConfig>;
+}

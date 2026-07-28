@@ -120,20 +120,18 @@ export class AssetManagerClient {
   public async init(
     request: KibanaRequest,
     entityTypes: EntityType[],
-    logsExtractionParams?: LogExtractionInstallParams,
+    logExtraction?: LogExtractionInstallParams,
     historySnapshotParams?: HistorySnapshotBodyParams
   ) {
     try {
-      const existingState = await this.globalStateClient.find();
-      const logsExtraction = resolveLogsExtractionOnInstall(
-        existingState?.logsExtraction,
-        logsExtractionParams
-      );
       const historySnapshot = HistorySnapshotState.parse(historySnapshotParams ?? {});
 
       // Phase 1: Install shared ES assets/storage and run independent setup tasks.
-      await Promise.all([
-        this.globalStateClient.init({ historySnapshot, logsExtraction }),
+      const [{ logsExtraction }] = await Promise.all([
+        this.globalStateClient.init({
+          historySnapshot,
+          logsExtraction: logExtraction,
+        }),
 
         // V1 cleanup is legacy migration work — run it as the internal user so enabling the
         // entity store does not require the user to hold transform/enrich/index admin on v1 assets.
@@ -569,18 +567,4 @@ export class AssetManagerClient {
 
     return ENTITY_STORE_STATUS.RUNNING;
   }
-}
-
-function resolveLogsExtractionOnInstall(
-  existing: LogExtractionConfig | undefined,
-  params: LogExtractionInstallParams | undefined
-): LogExtractionConfig {
-  const hasParams = params !== undefined && Object.keys(params).length > 0;
-  if (hasParams) {
-    return LogExtractionConfig.parse(params);
-  }
-  if (existing !== undefined) {
-    return existing;
-  }
-  return LogExtractionConfig.parse({});
 }

@@ -8,7 +8,7 @@
 import type { SavedObjectsFullModelVersion } from '@kbn/core-saved-objects-server';
 import type { SavedObjectsType } from '@kbn/core/server';
 import { schema } from '@kbn/config-schema';
-import { GLOBAL_DEFAULTS } from './constants';
+import { GLOBAL_LOG_EXTRACTION_DEFAULTS } from './constants';
 
 export const EntityStoreGlobalStateTypeName = 'entity-store-global-state';
 
@@ -73,7 +73,7 @@ const version2: SavedObjectsFullModelVersion = {
         attributes: {
           logsExtraction: {
             excludedIndexPatterns: [],
-            maxTimeWindowSize: GLOBAL_DEFAULTS[1].maxTimeWindowSize,
+            maxTimeWindowSize: GLOBAL_LOG_EXTRACTION_DEFAULTS[1].maxTimeWindowSize,
           },
         },
       }),
@@ -103,8 +103,9 @@ const version3: SavedObjectsFullModelVersion = {
       backfillFn: () => ({
         attributes: {
           logsExtraction: {
-            maxLogsPerWindow: GLOBAL_DEFAULTS[1].maxLogsPerWindow,
-            maxLogsPerWindowCapBehavior: GLOBAL_DEFAULTS[1].maxLogsPerWindowCapBehavior,
+            maxLogsPerWindow: GLOBAL_LOG_EXTRACTION_DEFAULTS[1].maxLogsPerWindow,
+            maxLogsPerWindowCapBehavior:
+              GLOBAL_LOG_EXTRACTION_DEFAULTS[1].maxLogsPerWindowCapBehavior,
           },
         },
       }),

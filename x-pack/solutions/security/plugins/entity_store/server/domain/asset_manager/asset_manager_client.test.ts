@@ -14,7 +14,7 @@ import type { TaskManagerStartContract } from '@kbn/task-manager-plugin/server';
 import { loggerMock } from '@kbn/logging-mocks';
 import type { SecurityPluginStart } from '@kbn/security-plugin/server';
 import { AssetManagerClient } from './asset_manager_client';
-import { LATEST_DEFAULTS } from '../saved_objects/global_state/constants';
+import { LATEST_LOG_EXTRACTION_DEFAULTS } from '../saved_objects/global_state/constants';
 import {
   installSharedElasticsearchAssets,
   installIndicesAndDataStreams,
@@ -117,7 +117,24 @@ describe('AssetManagerClient', () => {
     };
 
     mockGlobalStateClient = {
-      init: jest.fn().mockResolvedValue(undefined),
+      init: jest.fn().mockResolvedValue({
+        historySnapshot: { status: 'started', frequency: '24h' },
+        logsExtraction: {
+          additionalIndexPatterns: [],
+          excludedIndexPatterns: [],
+          fieldHistoryLength: 10,
+          lookbackPeriod: '3h',
+          delay: '1m',
+          docsLimit: 10000,
+          maxLogsPerPage: LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerPage,
+          timeout: '59s',
+          frequency: LATEST_LOG_EXTRACTION_DEFAULTS.frequency,
+          maxTimeWindowSize: '15m',
+          maxLogsPerWindow: LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerWindow,
+          maxLogsPerWindowCapBehavior: LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerWindowCapBehavior,
+          defaultsVersion: LATEST_LOG_EXTRACTION_DEFAULTS.defaultsVersion,
+        },
+      }),
       findOrThrow: jest.fn().mockResolvedValue({
         historySnapshot: {},
         logsExtraction: {},
@@ -341,106 +358,26 @@ describe('AssetManagerClient', () => {
     });
   });
 
-  describe('logsExtraction resolution on install', () => {
-    const existingLogsExtraction = {
-      additionalIndexPatterns: ['existing-*'],
-      fieldHistoryLength: 99,
-      lookbackPeriod: '12h',
-      delay: '5m',
-      docsLimit: 1234,
-      maxLogsPerPage: 5678,
-      timeout: '60s',
-      frequency: '2m',
-    };
-
-    it('fresh install with no params applies defaults', async () => {
-      mockGlobalStateClient.find.mockResolvedValue(undefined);
-
+  describe('logsExtraction on install', () => {
+    it('passes logExtraction through to global state init', async () => {
       await client.init({} as KibanaRequest, ['host']);
 
-      expect(mockGlobalStateClient.init).toHaveBeenCalledWith(
-        expect.objectContaining({
-          logsExtraction: expect.objectContaining({
-            additionalIndexPatterns: [],
-            fieldHistoryLength: 10,
-            lookbackPeriod: '3h',
-            delay: '1m',
-            frequency: LATEST_DEFAULTS.frequency,
-            docsLimit: 10000,
-            maxLogsPerPage: LATEST_DEFAULTS.maxLogsPerPage,
-            timeout: '59s',
-          }),
-        })
-      );
-    });
-
-    it('fresh install with params merges params with defaults', async () => {
-      mockGlobalStateClient.find.mockResolvedValue(undefined);
-
-      await client.init({} as KibanaRequest, ['host'], { delay: '2m', frequency: '1m' });
-
-      expect(mockGlobalStateClient.init).toHaveBeenCalledWith(
-        expect.objectContaining({
-          logsExtraction: expect.objectContaining({
-            delay: '2m',
-            frequency: '1m',
-            lookbackPeriod: '3h',
-            fieldHistoryLength: 10,
-            additionalIndexPatterns: [],
-            docsLimit: 10000,
-            maxLogsPerPage: LATEST_DEFAULTS.maxLogsPerPage,
-          }),
-        })
-      );
-    });
-
-    it('re-install with no params preserves existing config', async () => {
-      mockGlobalStateClient.find.mockResolvedValue({
-        historySnapshot: {},
-        logsExtraction: existingLogsExtraction,
-      });
-
-      await client.init({} as KibanaRequest, ['host']);
-
-      expect(mockGlobalStateClient.init).toHaveBeenCalledWith(
-        expect.objectContaining({ logsExtraction: existingLogsExtraction })
-      );
-    });
-
-    it('re-install with empty params object preserves existing config', async () => {
-      mockGlobalStateClient.find.mockResolvedValue({
-        historySnapshot: {},
-        logsExtraction: existingLogsExtraction,
+      expect(mockGlobalStateClient.init).toHaveBeenCalledWith({
+        historySnapshot: expect.any(Object),
+        logsExtraction: undefined,
       });
 
       await client.init({} as KibanaRequest, ['host'], {});
-
-      expect(mockGlobalStateClient.init).toHaveBeenCalledWith(
-        expect.objectContaining({ logsExtraction: existingLogsExtraction })
-      );
-    });
-
-    it('re-install with params overwrites existing config with parsed params', async () => {
-      mockGlobalStateClient.find.mockResolvedValue({
-        historySnapshot: {},
-        logsExtraction: existingLogsExtraction,
+      expect(mockGlobalStateClient.init).toHaveBeenCalledWith({
+        historySnapshot: expect.any(Object),
+        logsExtraction: {},
       });
 
-      await client.init({} as KibanaRequest, ['host'], { delay: '2m' });
-
-      expect(mockGlobalStateClient.init).toHaveBeenCalledWith(
-        expect.objectContaining({
-          logsExtraction: expect.objectContaining({
-            delay: '2m',
-            frequency: LATEST_DEFAULTS.frequency,
-            lookbackPeriod: '3h',
-            fieldHistoryLength: 10,
-            additionalIndexPatterns: [],
-            docsLimit: 10000,
-            maxLogsPerPage: LATEST_DEFAULTS.maxLogsPerPage,
-          }),
-        })
-      );
+      await client.init({} as KibanaRequest, ['host'], { delay: '2m', frequency: '1m' });
+      expect(mockGlobalStateClient.init).toHaveBeenCalledWith({
+        historySnapshot: expect.any(Object),
+        logsExtraction: { delay: '2m', frequency: '1m' },
+      });
     });
   });
 });

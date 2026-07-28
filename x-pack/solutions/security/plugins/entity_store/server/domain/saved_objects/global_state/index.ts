@@ -11,7 +11,11 @@ import type {
 } from '@kbn/core-saved-objects-api-server';
 import { SavedObjectsErrorHelpers, type Logger } from '@kbn/core/server';
 import Boom from '@hapi/boom';
-import { EntityStoreGlobalState, HistorySnapshotState } from './constants';
+import {
+  EntityStoreGlobalState,
+  HistorySnapshotState,
+  type EntityStoreGlobalStatePatch,
+} from './constants';
 import { LogExtractionDefaults } from './log_extraction_defaults';
 import { EntityStoreGlobalStateTypeName } from './types';
 
@@ -52,7 +56,7 @@ export class EntityStoreGlobalStateClient {
     return response;
   }
 
-  async init(initialState?: Partial<EntityStoreGlobalState>): Promise<EntityStoreGlobalState> {
+  async init(initialState?: EntityStoreGlobalStatePatch): Promise<EntityStoreGlobalState> {
     const existing = await this.find();
     if (existing !== undefined) {
       return this.updateInternal(this.getSavedObjectId(), initialState ?? {}, existing);
@@ -75,14 +79,14 @@ export class EntityStoreGlobalStateClient {
     return parsed;
   }
 
-  async update(partial: Partial<EntityStoreGlobalState>): Promise<EntityStoreGlobalState> {
+  async update(partial: EntityStoreGlobalStatePatch): Promise<EntityStoreGlobalState> {
     const existing = await this.findOrThrow();
     return this.updateInternal(this.getSavedObjectId(), partial, existing);
   }
 
   private async updateInternal(
     id: string,
-    partial: Partial<EntityStoreGlobalState>,
+    partial: EntityStoreGlobalStatePatch,
     existing: EntityStoreGlobalState
   ): Promise<EntityStoreGlobalState> {
     const toWrite: Partial<EntityStoreGlobalState> = {};
@@ -94,7 +98,7 @@ export class EntityStoreGlobalStateClient {
       });
     }
 
-    if (partial.logsExtraction !== undefined) {
+    if (partial.logsExtraction !== undefined && Object.keys(partial.logsExtraction).length > 0) {
       toWrite.logsExtraction = this.logExtractionDefaults.resolve({
         ...existing.logsExtraction,
         ...partial.logsExtraction,
