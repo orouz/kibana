@@ -14,17 +14,7 @@ import type { EntityStorePluginRouter } from '../../types';
 import { wrapMiddlewares } from '../middleware';
 import { EntityType } from '../../../common/domain/definitions/entity_schema';
 import { getEntityDefinition } from '../../../common/domain/definitions/registry';
-import {
-  LOG_EXTRACTION_CAP_BEHAVIOR_DEFAULT,
-  LOG_EXTRACTION_DELAY_DEFAULT,
-  LOG_EXTRACTION_FREQUENCY_DEFAULT,
-  LOG_EXTRACTION_LOOKBACK_PERIOD_DEFAULT,
-  LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT,
-  LOG_EXTRACTION_MAX_LOGS_PER_WINDOW_DEFAULT,
-  LOG_EXTRACTION_MAX_TIME_WINDOW_SIZE_DEFAULT,
-} from '../../domain/saved_objects/global_state/constants';
-
-const DEFAULT_DOCS_LIMIT = 10000;
+import { LATEST_DEFAULTS } from '../../domain/saved_objects/global_state/constants';
 
 const paramsSchema = z.object({
   entityType: EntityType,
@@ -36,10 +26,10 @@ const bodySchema = z.object({
   toDateISO: z.string().datetime(),
   docsLimit: z.number().int().min(1).optional(),
   maxLogsPerPage: z.number().int().min(1).optional(),
-  maxLogsPerWindow: z.number().int().min(0).default(LOG_EXTRACTION_MAX_LOGS_PER_WINDOW_DEFAULT),
+  maxLogsPerWindow: z.number().int().min(0).default(LATEST_DEFAULTS.maxLogsPerWindow),
   maxLogsPerWindowCapBehavior: z
     .enum(['defer', 'drop'])
-    .default(LOG_EXTRACTION_CAP_BEHAVIOR_DEFAULT),
+    .default(LATEST_DEFAULTS.maxLogsPerWindowCapBehavior),
 });
 
 export function registerForceRemoteExtractToUpdates(router: EntityStorePluginRouter) {
@@ -90,14 +80,14 @@ export function registerForceRemoteExtractToUpdates(router: EntityStorePluginRou
         const result = await remoteLogsExtractionClient.extractToUpdates({
           type: entityType,
           remoteIndexPatterns: indexPatterns,
-          docsLimit: docsLimit ?? DEFAULT_DOCS_LIMIT,
-          maxLogsPerPage: maxLogsPerPage ?? LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT,
-          lookbackPeriod: LOG_EXTRACTION_LOOKBACK_PERIOD_DEFAULT,
-          delay: LOG_EXTRACTION_DELAY_DEFAULT,
-          frequency: LOG_EXTRACTION_FREQUENCY_DEFAULT,
+          docsLimit: docsLimit ?? LATEST_DEFAULTS.docsLimit,
+          maxLogsPerPage: maxLogsPerPage ?? LATEST_DEFAULTS.maxLogsPerPage,
+          lookbackPeriod: LATEST_DEFAULTS.lookbackPeriod,
+          delay: LATEST_DEFAULTS.delay,
+          frequency: LATEST_DEFAULTS.frequency,
           entityDefinition,
           windowOverride: { fromDateISO, toDateISO },
-          maxTimeWindowSize: LOG_EXTRACTION_MAX_TIME_WINDOW_SIZE_DEFAULT,
+          maxTimeWindowSize: LATEST_DEFAULTS.maxTimeWindowSize,
           maxLogsPerWindow,
           maxLogsPerWindowCapBehavior,
         });

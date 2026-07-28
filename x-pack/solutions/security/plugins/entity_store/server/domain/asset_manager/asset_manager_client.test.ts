@@ -14,7 +14,7 @@ import type { TaskManagerStartContract } from '@kbn/task-manager-plugin/server';
 import { loggerMock } from '@kbn/logging-mocks';
 import type { SecurityPluginStart } from '@kbn/security-plugin/server';
 import { AssetManagerClient } from './asset_manager_client';
-import { LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT } from '../saved_objects/global_state/constants';
+import { LATEST_DEFAULTS } from '../saved_objects/global_state/constants';
 import {
   installSharedElasticsearchAssets,
   installIndicesAndDataStreams,
@@ -365,9 +365,9 @@ describe('AssetManagerClient', () => {
             fieldHistoryLength: 10,
             lookbackPeriod: '3h',
             delay: '1m',
-            frequency: '1m',
+            frequency: LATEST_DEFAULTS.frequency,
             docsLimit: 10000,
-            maxLogsPerPage: LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT,
+            maxLogsPerPage: LATEST_DEFAULTS.maxLogsPerPage,
             timeout: '59s',
           }),
         })
@@ -388,7 +388,7 @@ describe('AssetManagerClient', () => {
             fieldHistoryLength: 10,
             additionalIndexPatterns: [],
             docsLimit: 10000,
-            maxLogsPerPage: LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT,
+            maxLogsPerPage: LATEST_DEFAULTS.maxLogsPerPage,
           }),
         })
       );
@@ -432,12 +432,12 @@ describe('AssetManagerClient', () => {
         expect.objectContaining({
           logsExtraction: expect.objectContaining({
             delay: '2m',
-            frequency: '1m',
+            frequency: LATEST_DEFAULTS.frequency,
             lookbackPeriod: '3h',
             fieldHistoryLength: 10,
             additionalIndexPatterns: [],
             docsLimit: 10000,
-            maxLogsPerPage: LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT,
+            maxLogsPerPage: LATEST_DEFAULTS.maxLogsPerPage,
           }),
         })
       );

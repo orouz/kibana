@@ -17,11 +17,7 @@ import {
 } from '../fixtures/constants';
 import { FF_ENABLE_ENTITY_STORE_V2 } from '../../../../common';
 import { clearEntityStoreIndices, ingestDoc } from '../fixtures/helpers';
-import {
-  LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT,
-  LOG_EXTRACTION_MAX_LOGS_PER_WINDOW_DEFAULT,
-  LOG_EXTRACTION_CAP_BEHAVIOR_DEFAULT,
-} from '../../../../server/domain/saved_objects';
+import { LATEST_DEFAULTS } from '../../../../server/domain/saved_objects';
 
 const FROM_DATE = '2026-06-10T10:00:00Z';
 const TO_DATE = '2026-06-10T11:00:00Z';
@@ -161,9 +157,9 @@ apiTest.describe('Entity Store volume cap', { tag: ENTITY_STORE_TAGS }, () => {
           responseType: 'json',
           body: {
             logExtraction: {
-              maxLogsPerPage: LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT,
-              maxLogsPerWindow: LOG_EXTRACTION_MAX_LOGS_PER_WINDOW_DEFAULT,
-              maxLogsPerWindowCapBehavior: LOG_EXTRACTION_CAP_BEHAVIOR_DEFAULT,
+              maxLogsPerPage: LATEST_DEFAULTS.maxLogsPerPage,
+              maxLogsPerWindow: LATEST_DEFAULTS.maxLogsPerWindow,
+              maxLogsPerWindowCapBehavior: LATEST_DEFAULTS.maxLogsPerWindowCapBehavior,
             },
           },
         });
@@ -223,9 +219,9 @@ apiTest.describe('Entity Store volume cap', { tag: ENTITY_STORE_TAGS }, () => {
           responseType: 'json',
           body: {
             logExtraction: {
-              maxLogsPerPage: LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT,
-              maxLogsPerWindow: LOG_EXTRACTION_MAX_LOGS_PER_WINDOW_DEFAULT,
-              maxLogsPerWindowCapBehavior: LOG_EXTRACTION_CAP_BEHAVIOR_DEFAULT,
+              maxLogsPerPage: LATEST_DEFAULTS.maxLogsPerPage,
+              maxLogsPerWindow: LATEST_DEFAULTS.maxLogsPerWindow,
+              maxLogsPerWindowCapBehavior: LATEST_DEFAULTS.maxLogsPerWindowCapBehavior,
             },
           },
         });
@@ -281,8 +277,8 @@ apiTest.describe('Entity Store volume cap', { tag: ENTITY_STORE_TAGS }, () => {
           responseType: 'json',
           body: {
             logExtraction: {
-              maxLogsPerPage: LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT,
-              maxLogsPerWindow: LOG_EXTRACTION_MAX_LOGS_PER_WINDOW_DEFAULT,
+              maxLogsPerPage: LATEST_DEFAULTS.maxLogsPerPage,
+              maxLogsPerWindow: LATEST_DEFAULTS.maxLogsPerWindow,
             },
           },
         });

@@ -9,50 +9,78 @@ import { z } from '@kbn/zod/v4';
 
 export const DEFAULT_HISTORY_SNAPSHOT_FREQUENCY = '24h';
 
-export const LOG_EXTRACTION_DELAY_DEFAULT = '1m';
-export const LOG_EXTRACTION_LOOKBACK_PERIOD_DEFAULT = '3h';
-export const LOG_EXTRACTION_FREQUENCY_DEFAULT = '1m';
-// Max amount of entities to extract in one ESQL query
-export const LOG_EXTRACTION_DOCS_LIMIT_DEFAULT = 10000;
-// Max raw log documents per logs to be processed in a query (inside elastic search)
-export const LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT = 50_000;
-export const LOG_EXTRACTION_TIMEOUT_DEFAULT = '59s';
-export const LOG_EXTRACTION_MAX_TIME_WINDOW_SIZE_DEFAULT = '15m';
-// Max total raw log documents to process per task run; 0 = no cap
-export const LOG_EXTRACTION_MAX_LOGS_PER_WINDOW_DEFAULT = 100_000;
-export const LOG_EXTRACTION_CAP_BEHAVIOR_DEFAULT = 'drop' as const;
+export const isLogExtractionConfigVersion = (
+  value: number
+): value is keyof typeof GLOBAL_DEFAULTS => typeof value === 'number' && value in GLOBAL_DEFAULTS;
 
+const LOG_EXTRACTION_DEFAULTS_VERSION: keyof typeof GLOBAL_DEFAULTS = 2;
+const GLOBAL_DEFAULTS_V1 = {
+  additionalIndexPatterns: [],
+  excludedIndexPatterns: [],
+  fieldHistoryLength: 10,
+  lookbackPeriod: '3h',
+  delay: '1m',
+  docsLimit: 10_000,
+  maxLogsPerPage: 50_000,
+  timeout: '59s',
+  frequency: '1m',
+  maxTimeWindowSize: '15m',
+  maxLogsPerWindow: 100_000,
+  maxLogsPerWindowCapBehavior: 'drop',
+  defaultsVersion: 1,
+} as const satisfies LogExtractionConfigShape;
+
+export const GLOBAL_DEFAULTS = {
+  1: GLOBAL_DEFAULTS_V1,
+  2: {
+    ...GLOBAL_DEFAULTS_V1,
+    maxLogsPerPage: 100_000,
+    frequency: '10m',
+    defaultsVersion: 2,
+  },
+} as const satisfies Record<number, LogExtractionConfigShape>;
+
+export const LATEST_DEFAULTS = GLOBAL_DEFAULTS[LOG_EXTRACTION_DEFAULTS_VERSION];
+
+const DurationSchema = z.string().regex(/[smdh]$/);
+export const LogExtractionConfigFields = z.object({
+  additionalIndexPatterns: z.array(z.string()),
+  excludedIndexPatterns: z.array(z.string()),
+  fieldHistoryLength: z.number().int(),
+  lookbackPeriod: DurationSchema,
+  delay: DurationSchema,
+  docsLimit: z.number().int().min(1),
+  maxLogsPerPage: z.number().int().min(1),
+  timeout: DurationSchema,
+  frequency: DurationSchema,
+  maxTimeWindowSize: DurationSchema,
+  maxLogsPerWindow: z.number().int().min(0),
+  maxLogsPerWindowCapBehavior: z.enum(['defer', 'drop']),
+  defaultsVersion: z.number().int(),
+});
+
+const base = LogExtractionConfigFields.shape;
+
+export type LogExtractionConfigShape = z.infer<typeof LogExtractionConfigFields>;
 export type LogExtractionConfig = z.infer<typeof LogExtractionConfig>;
 export const LogExtractionConfig = z.object({
-  additionalIndexPatterns: z.array(z.string()).default([]),
-  excludedIndexPatterns: z.array(z.string()).default([]),
-  fieldHistoryLength: z.number().int().default(10),
-  lookbackPeriod: z
-    .string()
-    .regex(/[smdh]$/)
-    .default(LOG_EXTRACTION_LOOKBACK_PERIOD_DEFAULT),
-  delay: z
-    .string()
-    .regex(/[smdh]$/)
-    .default(LOG_EXTRACTION_DELAY_DEFAULT),
-  docsLimit: z.number().int().min(1).default(LOG_EXTRACTION_DOCS_LIMIT_DEFAULT),
-  maxLogsPerPage: z.number().int().min(1).default(LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT),
-  timeout: z
-    .string()
-    .regex(/[smdh]$/)
-    .default(LOG_EXTRACTION_TIMEOUT_DEFAULT),
-  frequency: z
-    .string()
-    .regex(/[smdh]$/)
-    .default(LOG_EXTRACTION_FREQUENCY_DEFAULT),
-  maxTimeWindowSize: z
-    .string()
-    .regex(/[smdh]$/)
-    .default(LOG_EXTRACTION_MAX_TIME_WINDOW_SIZE_DEFAULT),
-  maxLogsPerWindow: z.number().int().min(0).default(LOG_EXTRACTION_MAX_LOGS_PER_WINDOW_DEFAULT),
-  maxLogsPerWindowCapBehavior: z
-    .enum(['defer', 'drop'])
-    .default(LOG_EXTRACTION_CAP_BEHAVIOR_DEFAULT),
+  additionalIndexPatterns: base.additionalIndexPatterns.default(
+    LATEST_DEFAULTS.additionalIndexPatterns
+  ),
+  excludedIndexPatterns: base.excludedIndexPatterns.default(LATEST_DEFAULTS.excludedIndexPatterns),
+  fieldHistoryLength: base.fieldHistoryLength.default(LATEST_DEFAULTS.fieldHistoryLength),
+  lookbackPeriod: base.lookbackPeriod.default(LATEST_DEFAULTS.lookbackPeriod),
+  delay: base.delay.default(LATEST_DEFAULTS.delay),
+  docsLimit: base.docsLimit.default(LATEST_DEFAULTS.docsLimit),
+  maxLogsPerPage: base.maxLogsPerPage.default(LATEST_DEFAULTS.maxLogsPerPage),
+  timeout: base.timeout.default(LATEST_DEFAULTS.timeout),
+  frequency: base.frequency.default(LATEST_DEFAULTS.frequency),
+  maxTimeWindowSize: base.maxTimeWindowSize.default(LATEST_DEFAULTS.maxTimeWindowSize),
+  maxLogsPerWindow: base.maxLogsPerWindow.default(LATEST_DEFAULTS.maxLogsPerWindow),
+  maxLogsPerWindowCapBehavior: base.maxLogsPerWindowCapBehavior.default(
+    LATEST_DEFAULTS.maxLogsPerWindowCapBehavior
+  ),
+  defaultsVersion: base.defaultsVersion.default(LATEST_DEFAULTS.defaultsVersion),
 });
 
 export type HistorySnapshotStatus = z.infer<typeof HistorySnapshotStatus>;

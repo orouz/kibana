@@ -8,11 +8,7 @@
 import type { SavedObjectsFullModelVersion } from '@kbn/core-saved-objects-server';
 import type { SavedObjectsType } from '@kbn/core/server';
 import { schema } from '@kbn/config-schema';
-import {
-  LOG_EXTRACTION_MAX_TIME_WINDOW_SIZE_DEFAULT,
-  LOG_EXTRACTION_MAX_LOGS_PER_WINDOW_DEFAULT,
-  LOG_EXTRACTION_CAP_BEHAVIOR_DEFAULT,
-} from './constants';
+import { GLOBAL_DEFAULTS } from './constants';
 
 export const EntityStoreGlobalStateTypeName = 'entity-store-global-state';
 
@@ -77,7 +73,7 @@ const version2: SavedObjectsFullModelVersion = {
         attributes: {
           logsExtraction: {
             excludedIndexPatterns: [],
-            maxTimeWindowSize: LOG_EXTRACTION_MAX_TIME_WINDOW_SIZE_DEFAULT,
+            maxTimeWindowSize: GLOBAL_DEFAULTS[1].maxTimeWindowSize,
           },
         },
       }),
@@ -107,8 +103,8 @@ const version3: SavedObjectsFullModelVersion = {
       backfillFn: () => ({
         attributes: {
           logsExtraction: {
-            maxLogsPerWindow: LOG_EXTRACTION_MAX_LOGS_PER_WINDOW_DEFAULT,
-            maxLogsPerWindowCapBehavior: LOG_EXTRACTION_CAP_BEHAVIOR_DEFAULT,
+            maxLogsPerWindow: GLOBAL_DEFAULTS[1].maxLogsPerWindow,
+            maxLogsPerWindowCapBehavior: GLOBAL_DEFAULTS[1].maxLogsPerWindowCapBehavior,
           },
         },
       }),
@@ -119,12 +115,36 @@ const version3: SavedObjectsFullModelVersion = {
     forwardCompatibility: globalStateSchemaV3.extends({}, { unknowns: 'ignore' }),
   },
 };
+const globalStateSchemaV4 = globalStateSchemaV3.extends({
+  logsExtraction: logExtractionSchemaV3.extends({
+    defaultsVersion: schema.number(),
+  }),
+});
+
+const version4: SavedObjectsFullModelVersion = {
+  changes: [
+    {
+      type: 'data_backfill',
+      backfillFn: () => ({
+        attributes: {
+          logsExtraction: {
+            defaultsVersion: 1,
+          },
+        },
+      }),
+    },
+  ],
+  schemas: {
+    create: globalStateSchemaV4,
+    forwardCompatibility: globalStateSchemaV4.extends({}, { unknowns: 'ignore' }),
+  },
+};
 
 export const EntityStoreGlobalStateType: SavedObjectsType = {
   name: EntityStoreGlobalStateTypeName,
   hidden: false,
   namespaceType: 'multiple-isolated',
   mappings: EntityStoreGlobalStateTypeMappings,
-  modelVersions: { 1: version1, 2: version2, 3: version3 },
+  modelVersions: { 1: version1, 2: version2, 3: version3, 4: version4 },
   hiddenFromHttpApis: true,
 };

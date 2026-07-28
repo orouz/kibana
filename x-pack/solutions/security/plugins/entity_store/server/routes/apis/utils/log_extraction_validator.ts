@@ -10,10 +10,7 @@ import { validateDataView } from '@kbn/data-view-validation';
 import type { LogExtractionBodyParams } from '../../constants';
 import { LogExtractionInstallParams, LogExtractionUpdateParams } from '../../constants';
 import { parseDurationToMs } from '../../../infra/time';
-import {
-  LOG_EXTRACTION_DELAY_DEFAULT,
-  LOG_EXTRACTION_LOOKBACK_PERIOD_DEFAULT,
-} from '../../../domain/saved_objects';
+import { LATEST_DEFAULTS } from '../../../domain/saved_objects';
 
 const MIN_FREQUENCY_MS = 30 * 1000;
 
@@ -80,8 +77,8 @@ function validateDelayVsLookbackPeriod(data: LogExtractionBodyParams, ctx: z.Ref
 }
 
 function isDelayGteLookbackPeriod(delay?: string, lookbackPeriod?: string): boolean {
-  const lookbackPeriodValue = lookbackPeriod ?? LOG_EXTRACTION_LOOKBACK_PERIOD_DEFAULT;
-  const delayValue = delay ?? LOG_EXTRACTION_DELAY_DEFAULT;
+  const lookbackPeriodValue = lookbackPeriod ?? LATEST_DEFAULTS.lookbackPeriod;
+  const delayValue = delay ?? LATEST_DEFAULTS.delay;
   try {
     const lookbackPeriodMs = parseDurationToMs(lookbackPeriodValue);
     const delayMs = parseDurationToMs(delayValue);

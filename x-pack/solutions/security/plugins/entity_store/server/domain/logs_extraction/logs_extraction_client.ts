@@ -50,9 +50,6 @@ import {
 } from '../asset_manager/external_indices_contants';
 import {
   type LogExtractionConfig,
-  LogExtractionConfig as LogExtractionConfigSchema,
-} from '../saved_objects';
-import {
   type EngineDescriptorClient,
   type EngineLogExtractionState,
   type EntityStoreGlobalStateClient,
@@ -214,13 +211,9 @@ export class LogsExtractionClient {
   }
 
   public async updateConfig(params: LogExtractionUpdateParams): Promise<LogExtractionConfig> {
-    const globalState = await this.globalStateClient.findOrThrow();
-    const mergedConfig = LogExtractionConfigSchema.parse({
-      ...globalState.logsExtraction,
-      ...params,
-    });
-    await this.globalStateClient.update({ logsExtraction: mergedConfig });
-    return mergedConfig;
+    // Global state client merges the patch onto the resolved config and adopts latest defaults.
+    const { logsExtraction } = await this.globalStateClient.update({ logsExtraction: params });
+    return logsExtraction;
   }
 
   private async runQueryAndIngestDocs({

@@ -22,6 +22,15 @@ import {
   TIMESTAMP_FIELD,
 } from './query_builder_commons';
 import { LOG_PAGINATION_CURSOR_TOTAL_LOGS_FIELD } from './log_pagination_probe_query_builder';
+import {
+  LogExtractionConfig,
+  LATEST_DEFAULTS,
+  type EngineDescriptorClient,
+  type EntityStoreGlobalState,
+  type EntityStoreGlobalStateClient,
+} from '../saved_objects';
+import { ENGINE_STATUS } from '../constants';
+import type { EntityType } from '../../../common/domain/definitions/entity_schema';
 
 const LOG_PAGINATION_CURSOR_PROBE_COLUMNS: ESQLSearchResponse['columns'] = [
   { name: TIMESTAMP_FIELD, type: 'date' },
@@ -36,7 +45,7 @@ const LOG_PAGINATION_CURSOR_PROBE_COLUMNS: ESQLSearchResponse['columns'] = [
  */
 function mockLogPaginationCursorProbeRow(
   timestamp: string,
-  totalLogsInSlice: number = LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT
+  totalLogsInSlice: number = LATEST_DEFAULTS.maxLogsPerPage
 ): ESQLSearchResponse {
   return {
     columns: LOG_PAGINATION_CURSOR_PROBE_COLUMNS,
@@ -74,15 +83,6 @@ function mockExtractSuccessSequence(
     .mockResolvedValueOnce(mockLogPaginationCursorProbeEmpty())
     .mockResolvedValueOnce({ columns: [], values: [] });
 }
-import {
-  LogExtractionConfig,
-  LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT,
-  type EngineDescriptorClient,
-  type EntityStoreGlobalState,
-  type EntityStoreGlobalStateClient,
-} from '../saved_objects';
-import { ENGINE_STATUS } from '../constants';
-import type { EntityType } from '../../../common/domain/definitions/entity_schema';
 
 type MockRemoteLogsExtractionClient = jest.Mocked<
   Pick<RemoteLogsExtractionClient, 'extractToUpdates'>
@@ -156,7 +156,13 @@ function createMockGlobalStateClient(
   return {
     find: jest.fn().mockResolvedValue(state),
     findOrThrow: jest.fn().mockResolvedValue(state),
-    update: jest.fn().mockResolvedValue({}),
+    update: jest.fn().mockImplementation(async (partial) => ({
+      ...state,
+      ...partial,
+      logsExtraction: partial.logsExtraction
+        ? LogExtractionConfig.parse({ ...logsExtraction, ...partial.logsExtraction })
+        : logsExtraction,
+    })),
   };
 }
 
@@ -1339,7 +1345,7 @@ describe('LogsExtractionClient', () => {
           .mockResolvedValueOnce(mockLogPaginationCursorProbeRow(stalledTs)) // slice 1, not last
           .mockResolvedValueOnce({ columns: [], values: [] }) // entity extraction 1
           .mockResolvedValueOnce(
-            mockLogPaginationCursorProbeRow(stalledTs, LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT) // slice 2: stall fires, extraction skipped
+            mockLogPaginationCursorProbeRow(stalledTs, LATEST_DEFAULTS.maxLogsPerPage) // slice 2: stall fires, extraction skipped
           )
           .mockResolvedValueOnce(mockLogPaginationCursorProbeEmpty()) // probe 3 with bumpedTs → last page
           .mockResolvedValueOnce({ columns: [], values: [] }); // follow-up sweep extraction → loop ends
@@ -1352,7 +1358,7 @@ describe('LogsExtractionClient', () => {
         // scope) raw config variable name.
         expect(mockLogger.warn).toHaveBeenCalledWith(
           expect.stringContaining(
-            `Log-slice probe stalled at ${stalledTs} with a saturated page; advancing cursor by 1ms. Docs sharing this timestamp beyond the configured per-page limit (${LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT}) will be dropped.`
+            `Log-slice probe stalled at ${stalledTs} with a saturated page; advancing cursor by 1ms. Docs sharing this timestamp beyond the configured per-page limit (${LATEST_DEFAULTS.maxLogsPerPage}) will be dropped.`
           )
         );
         // After the stall bump, a later update persists checkpointTimestamp = bumpedTs.
@@ -1375,7 +1381,7 @@ describe('LogsExtractionClient', () => {
           .mockResolvedValueOnce(mockLogPaginationCursorProbeRow(ts1)) // slice 1, not last
           .mockResolvedValueOnce({ columns: [], values: [] }) // entity extraction 1
           .mockResolvedValueOnce(
-            mockLogPaginationCursorProbeRow(ts2, LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT) // full page, different ts → not last
+            mockLogPaginationCursorProbeRow(ts2, LATEST_DEFAULTS.maxLogsPerPage) // full page, different ts → not last
           )
           .mockResolvedValueOnce({ columns: [], values: [] }) // entity extraction 2
           .mockResolvedValueOnce(mockLogPaginationCursorProbeEmpty()) // terminal probe → last page
@@ -1414,7 +1420,7 @@ describe('LogsExtractionClient', () => {
         // still triggers one more (swept) extraction before the loop ends.
         mockExecuteEsqlQuery
           .mockResolvedValueOnce(
-            mockLogPaginationCursorProbeRow(someTs, LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT)
+            mockLogPaginationCursorProbeRow(someTs, LATEST_DEFAULTS.maxLogsPerPage)
           )
           .mockResolvedValueOnce({ columns: [], values: [] }) // entity extraction
           .mockResolvedValueOnce(mockLogPaginationCursorProbeEmpty()) // terminal probe → last page
@@ -1685,16 +1691,15 @@ describe('LogsExtractionClient', () => {
   });
 
   describe('updateConfig', () => {
-    it('should merge provided params over current config and persist via globalStateClient', async () => {
+    it('should pass the patch to globalStateClient.update', async () => {
       await client.updateConfig({ delay: '5m' });
 
-      expect(mockGlobalStateClient.findOrThrow).toHaveBeenCalledTimes(1);
       expect(mockGlobalStateClient.update).toHaveBeenCalledWith({
-        logsExtraction: expect.objectContaining({ delay: '5m' }),
+        logsExtraction: { delay: '5m' },
       });
     });
 
-    it('should return the merged config', async () => {
+    it('should return the logsExtraction from the update result', async () => {
       const result = await client.updateConfig({ delay: '5m', frequency: '2m' });
 
       expect(result.delay).toBe('5m');
@@ -1736,14 +1741,13 @@ describe('LogsExtractionClient', () => {
       expect(result.fieldHistoryLength).toBe(5);
     });
 
-    it('should throw when global state is not found', async () => {
+    it('should throw when global state update fails', async () => {
       const notFoundError = new Error('No global state found for this namespace');
-      mockGlobalStateClient.findOrThrow.mockRejectedValue(notFoundError);
+      mockGlobalStateClient.update.mockRejectedValue(notFoundError);
 
       await expect(client.updateConfig({ delay: '5m' })).rejects.toThrow(
         'No global state found for this namespace'
       );
-      expect(mockGlobalStateClient.update).not.toHaveBeenCalled();
     });
   });
 });
