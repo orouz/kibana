@@ -32,9 +32,7 @@ import {
   EngineDescriptorTypeName,
   type EngineDescriptor,
   type EngineDescriptorClient,
-  type EntityStoreGlobalStateClient,
-  HistorySnapshotState,
-  LogExtractionConfig,
+  type LogExtractionConfig,
 } from '../saved_objects';
 import type { HistorySnapshotBodyParams, LogExtractionInstallParams } from '../../routes/constants';
 import { ENGINE_STATUS, ENTITY_STORE_STATUS } from '../constants';
@@ -57,6 +55,7 @@ import { getComponentTemplateName, getUpdatesComponentTemplateName } from './com
 import { getUpdatesEntitiesDataStreamName } from './updates_data_stream';
 import { getMetadataEntitiesDataStreamName } from './metadata_data_stream';
 import type { LogsExtractionClient } from '../logs_extraction';
+import type { HistorySnapshotClient } from '../history_snapshot';
 import type { RemoteLogExtractionStateClient } from '../saved_objects/remote_log_extraction_state';
 import type { ManagedEntityDefinition } from '../../../common/domain/definitions/entity_schema';
 import { getEntityDefinition } from '../../../common/domain/definitions/registry';
@@ -76,7 +75,7 @@ interface AssetManagerDependencies {
   internalEsClient: ElasticsearchClient;
   taskManager: TaskManagerStartContract;
   engineDescriptorClient: EngineDescriptorClient;
-  globalStateClient: EntityStoreGlobalStateClient;
+  historySnapshotClient: HistorySnapshotClient;
   remoteLogExtractionStateClient: RemoteLogExtractionStateClient;
   namespace: string;
   isServerless: boolean;
@@ -92,7 +91,7 @@ export class AssetManagerClient {
   private readonly internalEsClient: ElasticsearchClient;
   private readonly taskManager: TaskManagerStartContract;
   private readonly engineDescriptorClient: EngineDescriptorClient;
-  private readonly globalStateClient: EntityStoreGlobalStateClient;
+  private readonly historySnapshotClient: HistorySnapshotClient;
   private readonly remoteLogExtractionStateClient: RemoteLogExtractionStateClient;
   private readonly namespace: string;
   private readonly isServerless: boolean;
@@ -107,7 +106,7 @@ export class AssetManagerClient {
     this.internalEsClient = deps.internalEsClient;
     this.taskManager = deps.taskManager;
     this.engineDescriptorClient = deps.engineDescriptorClient;
-    this.globalStateClient = deps.globalStateClient;
+    this.historySnapshotClient = deps.historySnapshotClient;
     this.remoteLogExtractionStateClient = deps.remoteLogExtractionStateClient;
     this.namespace = deps.namespace;
     this.isServerless = deps.isServerless;
@@ -124,17 +123,14 @@ export class AssetManagerClient {
     historySnapshotParams?: HistorySnapshotBodyParams
   ) {
     try {
-      const existingState = await this.globalStateClient.find();
-      const logsExtraction = resolveLogsExtractionOnInstall(
-        existingState?.logsExtraction,
-        logsExtractionParams
-      );
-      const historySnapshot = HistorySnapshotState.parse(historySnapshotParams ?? {});
+      // Idempotent + order-independent: either client can create the shared global SO.
+      const [historySnapshot] = await Promise.all([
+        this.historySnapshotClient.init(historySnapshotParams),
+        this.logsExtractionClient.init(entityTypes, logsExtractionParams),
+      ]);
 
       // Phase 1: Install shared ES assets/storage and run independent setup tasks.
       await Promise.all([
-        this.globalStateClient.init({ historySnapshot, logsExtraction }),
-
         // V1 cleanup is legacy migration work — run it as the internal user so enabling the
         // entity store does not require the user to hold transform/enrich/index admin on v1 assets.
         ...entityTypes.map((type) =>
@@ -162,7 +158,7 @@ export class AssetManagerClient {
 
       // Phase 2: Initialize engines and start background tasks.
       await Promise.all([
-        ...entityTypes.map((type) => this.initEntity(request, type, logsExtraction)),
+        ...entityTypes.map((type) => this.initEntity(request, type)),
 
         scheduleHistorySnapshotTasks({
           logger: this.logger,
@@ -246,6 +242,7 @@ export class AssetManagerClient {
       await Promise.all([
         this.engineDescriptorClient.delete(type),
         this.remoteLogExtractionStateClient.delete(type),
+        this.logsExtractionClient.deleteLocalStates([type]),
       ]);
 
       // The ES indices/data streams and the EUID stored scripts are shared across all
@@ -268,7 +265,9 @@ export class AssetManagerClient {
             esClient: this.esClient,
             logger: this.logger,
           }),
-          this.globalStateClient.delete(),
+          // Idempotent + order-independent cleanup of shared state SOs.
+          this.historySnapshotClient.delete(),
+          this.logsExtractionClient.deleteLocalStates(),
           stopStatusReportTask({
             taskManager: this.taskManager,
             logger: this.logger,
@@ -296,11 +295,11 @@ export class AssetManagerClient {
 
   public async getStatus(withComponents: boolean = false): Promise<GetStatusResult> {
     try {
-      const [engines, { historySnapshot, logsExtraction: logsExtractionConfig }] =
-        await Promise.all([
-          this.engineDescriptorClient.getAll(),
-          this.globalStateClient.findOrThrow(),
-        ]);
+      const [engines, historySnapshot, logsExtractionConfig] = await Promise.all([
+        this.engineDescriptorClient.getAll(),
+        this.historySnapshotClient.getHistorySnapshot(),
+        this.logsExtractionClient.getStoreWideConfig(),
+      ]);
 
       const status = this.calculateEntityStoreStatus(engines);
 
@@ -327,19 +326,15 @@ export class AssetManagerClient {
     }
   }
 
-  public async getLogExtractionConfig(): Promise<LogExtractionConfig> {
-    const globalState = await this.globalStateClient.find();
-    return globalState?.logsExtraction ?? LogExtractionConfig.parse({});
+  public async getLogExtractionConfig(type: EntityType): Promise<LogExtractionConfig> {
+    return this.logsExtractionClient.getConfig(type);
   }
 
-  private async initEntity(
-    request: KibanaRequest,
-    type: EntityType,
-    logsExtractionConfig: LogExtractionConfig
-  ): Promise<boolean> {
+  private async initEntity(request: KibanaRequest, type: EntityType): Promise<boolean> {
     const installed = await this.install(type);
     if (installed) {
-      await this.start(request, type, logsExtractionConfig);
+      const config = await this.logsExtractionClient.getConfig(type);
+      await this.start(request, type, config);
     }
     this.analytics.reportEvent(ENTITY_STORE_INITIALIZATION_EVENT, {
       entityType: type,
@@ -569,18 +564,4 @@ export class AssetManagerClient {
 
     return ENTITY_STORE_STATUS.RUNNING;
   }
-}
-
-function resolveLogsExtractionOnInstall(
-  existing: LogExtractionConfig | undefined,
-  params: LogExtractionInstallParams | undefined
-): LogExtractionConfig {
-  const hasParams = params !== undefined && Object.keys(params).length > 0;
-  if (hasParams) {
-    return LogExtractionConfig.parse(params);
-  }
-  if (existing !== undefined) {
-    return existing;
-  }
-  return LogExtractionConfig.parse({});
 }

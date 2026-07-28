@@ -34,7 +34,7 @@ function createMockGlobalStateClient(overrides?: { status?: 'started' | 'stopped
       ...mockGlobalStateStarted,
       historySnapshot,
     }),
-    update: jest.fn().mockResolvedValue(undefined),
+    updateHistorySnapshot: jest.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -102,12 +102,12 @@ describe('HistorySnapshotClient', () => {
           },
         })
       );
-      expect(mockGlobalStateClient.update).toHaveBeenCalledWith({
-        historySnapshot: expect.objectContaining({
+      expect(mockGlobalStateClient.updateHistorySnapshot).toHaveBeenCalledWith(
+        expect.objectContaining({
           lastExecutionTimestamp: expect.any(String),
           lastError: undefined,
-        }),
-      });
+        })
+      );
     });
 
     it('uses nested entity field access in the reset script (no flat dotted keys)', () => {
@@ -128,12 +128,12 @@ describe('HistorySnapshotClient', () => {
         expect(result.resetCount).toBe(0);
       }
       expect(mockUpdateByQueryWithScript).not.toHaveBeenCalled();
-      expect(mockGlobalStateClient.update).toHaveBeenCalledWith({
-        historySnapshot: expect.objectContaining({
+      expect(mockGlobalStateClient.updateHistorySnapshot).toHaveBeenCalledWith(
+        expect.objectContaining({
           lastExecutionTimestamp: expect.any(String),
           lastError: undefined,
-        }),
-      });
+        })
+      );
     });
 
     it('returns skipped when history snapshot status is not started', async () => {
@@ -155,7 +155,7 @@ describe('HistorySnapshotClient', () => {
       expect(result).toHaveProperty('skipped', true);
       expect(mockCreateIndex).not.toHaveBeenCalled();
       expect(mockReindex).not.toHaveBeenCalled();
-      expect(mockGlobalStateClient.update).not.toHaveBeenCalled();
+      expect(mockGlobalStateClient.updateHistorySnapshot).not.toHaveBeenCalled();
     });
 
     it('returns error when createIndex throws', async () => {
@@ -169,11 +169,11 @@ describe('HistorySnapshotClient', () => {
       }
       expect(mockReindex).not.toHaveBeenCalled();
       expect(mockUpdateByQueryWithScript).not.toHaveBeenCalled();
-      expect(mockGlobalStateClient.update).toHaveBeenCalledWith({
-        historySnapshot: expect.objectContaining({
+      expect(mockGlobalStateClient.updateHistorySnapshot).toHaveBeenCalledWith(
+        expect.objectContaining({
           lastError: { message: 'index creation failed', timestamp: expect.any(String) },
-        }),
-      });
+        })
+      );
     });
 
     it('returns error when reindex throws', async () => {
@@ -187,11 +187,11 @@ describe('HistorySnapshotClient', () => {
         expect(result.error.message).toBe('History snapshot failed');
       }
       expect(mockUpdateByQueryWithScript).not.toHaveBeenCalled();
-      expect(mockGlobalStateClient.update).toHaveBeenCalledWith({
-        historySnapshot: expect.objectContaining({
+      expect(mockGlobalStateClient.updateHistorySnapshot).toHaveBeenCalledWith(
+        expect.objectContaining({
           lastError: { message: 'reindex failed', timestamp: expect.any(String) },
-        }),
-      });
+        })
+      );
     });
 
     it('returns error when updateByQueryWithScript throws', async () => {
@@ -205,14 +205,14 @@ describe('HistorySnapshotClient', () => {
       if (!result.ok) {
         expect(result.error.message).toBe('History snapshot failed');
       }
-      expect(mockGlobalStateClient.update).toHaveBeenCalledWith({
-        historySnapshot: expect.objectContaining({
+      expect(mockGlobalStateClient.updateHistorySnapshot).toHaveBeenCalledWith(
+        expect.objectContaining({
           lastError: {
             message: 'update_by_query failed',
             timestamp: expect.any(String),
           },
-        }),
-      });
+        })
+      );
     });
   });
 });

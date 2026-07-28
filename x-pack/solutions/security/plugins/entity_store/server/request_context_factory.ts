@@ -19,6 +19,7 @@ import { FeatureFlags } from './infra/feature_flags';
 import {
   EngineDescriptorClient,
   EntityStoreGlobalStateClient,
+  EntityStoreLocalStateClient,
   EntityStorePreferencesClient,
 } from './domain/saved_objects';
 import { LogsExtractionClient } from './domain/logs_extraction';
@@ -77,6 +78,12 @@ export async function createRequestHandlerContext({
     logger
   );
 
+  const localStateClient = new EntityStoreLocalStateClient(
+    core.savedObjects.client,
+    namespace,
+    logger
+  );
+
   // The preferences saved object is plugin-internal (not in the security feature's saved-object
   // types and hidden from the generic SO HTTP API). Access it with a client that skips the
   // security extension so it doesn't require per-type saved-object privileges; the `/preferences`
@@ -122,6 +129,7 @@ export async function createRequestHandlerContext({
     dataViewsService,
     engineDescriptorClient,
     globalStateClient,
+    localStateClient,
     remoteLogsExtractionClient,
   });
 
@@ -141,7 +149,7 @@ export async function createRequestHandlerContext({
       internalEsClient: core.elasticsearch.client.asInternalUser,
       taskManager: taskManagerStart,
       engineDescriptorClient,
-      globalStateClient,
+      historySnapshotClient,
       remoteLogExtractionStateClient,
       namespace,
       isServerless,

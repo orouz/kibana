@@ -11,9 +11,11 @@ import type { EntityStoreCoreSetup } from '../types';
 import { AssetManagerClient } from '../domain/asset_manager';
 import { LogsExtractionClient } from '../domain/logs_extraction';
 import { createRemoteLogsExtractionClient } from '../domain/logs_extraction/remote';
+import { HistorySnapshotClient } from '../domain/history_snapshot';
 import {
   EngineDescriptorClient,
   EntityStoreGlobalStateClient,
+  EntityStoreLocalStateClient,
   type RemoteLogExtractionStateClient,
 } from '../domain/saved_objects';
 import type { TelemetryReporter } from '../telemetry/events';
@@ -22,6 +24,7 @@ export interface LogsExtractionClientFactoryResult {
   logsExtractionClient: LogsExtractionClient;
   /** Exposed so AssetManager can reuse the same instance for uninstall cleanup. */
   remoteLogExtractionStateClient: RemoteLogExtractionStateClient;
+  globalStateClient: EntityStoreGlobalStateClient;
 }
 
 export interface AssetManagerClientFactoryResult {
@@ -35,12 +38,15 @@ export async function createLogsExtractionClient({
   logger,
   namespace,
   isServerless,
+  globalStateClient: sharedGlobalStateClient,
 }: {
   core: EntityStoreCoreSetup;
   logger: Logger;
   namespace: string;
   fakeRequest: KibanaRequest;
   isServerless: boolean;
+  /** Optional shared global SO client (same instance as HistorySnapshotClient). */
+  globalStateClient?: EntityStoreGlobalStateClient;
 }): Promise<LogsExtractionClientFactoryResult> {
   const [coreStart, pluginsStart] = await core.getStartServices();
 
@@ -68,19 +74,26 @@ export async function createLogsExtractionClient({
       isServerless,
     });
 
+  const engineDescriptorClient = new EngineDescriptorClient(soClient, namespace, logger);
+  const globalStateClient =
+    sharedGlobalStateClient ?? new EntityStoreGlobalStateClient(soClient, namespace, logger);
+  const localStateClient = new EntityStoreLocalStateClient(soClient, namespace, logger);
+
   const logsExtractionClient = new LogsExtractionClient({
     logger,
     namespace,
     esClient,
     dataViewsService,
-    engineDescriptorClient: new EngineDescriptorClient(soClient, namespace, logger),
-    globalStateClient: new EntityStoreGlobalStateClient(soClient, namespace, logger),
+    engineDescriptorClient,
+    globalStateClient,
+    localStateClient,
     remoteLogsExtractionClient,
   });
 
   return {
     logsExtractionClient,
     remoteLogExtractionStateClient,
+    globalStateClient,
   };
 }
 
@@ -106,6 +119,13 @@ export async function createAssetManagerClient({
   const engineDescriptorClient = new EngineDescriptorClient(soClient, namespace, logger);
   const globalStateClient = new EntityStoreGlobalStateClient(soClient, namespace, logger);
 
+  const historySnapshotClient = new HistorySnapshotClient({
+    logger,
+    esClient,
+    namespace,
+    globalStateClient,
+  });
+
   const { logsExtractionClient, remoteLogExtractionStateClient } = await createLogsExtractionClient(
     {
       core,
@@ -113,6 +133,7 @@ export async function createAssetManagerClient({
       logger,
       namespace,
       isServerless,
+      globalStateClient,
     }
   );
 
@@ -124,7 +145,7 @@ export async function createAssetManagerClient({
       internalEsClient: coreStart.elasticsearch.client.asInternalUser,
       taskManager: pluginsStart.taskManager,
       engineDescriptorClient,
-      globalStateClient,
+      historySnapshotClient,
       remoteLogExtractionStateClient,
       namespace,
       isServerless,

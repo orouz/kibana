@@ -11,9 +11,25 @@ import type {
 } from '@kbn/core-saved-objects-api-server';
 import { SavedObjectsErrorHelpers, type Logger } from '@kbn/core/server';
 import Boom from '@hapi/boom';
-import { EntityStoreGlobalState, HistorySnapshotState, LogExtractionConfig } from './constants';
+import type { StoredLogsExtraction } from './constants';
+import {
+  EntityStoreGlobalState,
+  HistorySnapshotState,
+  toStoredGlobalLogsExtraction,
+} from './constants';
 import { EntityStoreGlobalStateTypeName } from './types';
 
+const REPLACE_MAX_ATTEMPTS = 5;
+
+/**
+ * Persistence for the entity-store global SO (historySnapshot + logsExtraction shell).
+ *
+ * Do not write `logsExtraction` from here except via {@link updateLogsExtraction} —
+ * that path is reserved for {@link LogExtractionStateManager}.
+ *
+ * Create / field updates are race-safe so HistorySnapshotClient and LogsExtractionClient
+ * can init in parallel without coordinating order.
+ */
 export class EntityStoreGlobalStateClient {
   constructor(
     private readonly soClient: SavedObjectsClientContract,
@@ -26,9 +42,6 @@ export class EntityStoreGlobalStateClient {
     if (response.total === 0) {
       return undefined;
     }
-    // Apply zod defaults to the persisted attributes so that fields added in newer Kibana
-    // versions (e.g. `maxTimeWindowSize`) are populated for SOs that were written before the
-    // field existed. This avoids `undefined` reaching consumers like `parseDurationToMs`.
     return EntityStoreGlobalState.parse(response.saved_objects[0].attributes);
   }
 
@@ -42,54 +55,67 @@ export class EntityStoreGlobalStateClient {
     return response;
   }
 
-  async init(
-    initialState?: Partial<EntityStoreGlobalState>
-  ): Promise<Partial<EntityStoreGlobalState>> {
+  /**
+   * Idempotent: return existing SO or create one with default history + empty sparse logs shell.
+   * Concurrent creates resolve via conflict → re-find.
+   */
+  async ensureExists(): Promise<EntityStoreGlobalState> {
     const existing = await this.find();
     if (existing !== undefined) {
-      return this.updateInternal(this.getSavedObjectId(), initialState ?? {});
+      return existing;
     }
 
     const id = this.getSavedObjectId();
     this.logger.debug(`Creating global state with id ${id}`);
 
-    const historySnapshot = HistorySnapshotState.parse(initialState?.historySnapshot ?? {});
-    const logsExtraction = LogExtractionConfig.parse(initialState?.logsExtraction ?? {});
-    const defaultState: EntityStoreGlobalState = {
-      historySnapshot,
-      logsExtraction,
-    };
-    const parsed = EntityStoreGlobalState.parse(defaultState);
+    const historySnapshot = HistorySnapshotState.parse({});
+    const logsExtraction = toStoredGlobalLogsExtraction({});
+    const parsed = EntityStoreGlobalState.parse({ historySnapshot, logsExtraction });
 
-    const { attributes } = await this.soClient.create<EntityStoreGlobalState>(
-      EntityStoreGlobalStateTypeName,
-      parsed,
-      { id }
-    );
-
-    return attributes;
+    try {
+      const { attributes } = await this.soClient.create<EntityStoreGlobalState>(
+        EntityStoreGlobalStateTypeName,
+        parsed,
+        { id, refresh: 'wait_for' }
+      );
+      return attributes;
+    } catch (error) {
+      if (SavedObjectsErrorHelpers.isConflictError(error) || Boom.isBoom(error, 409)) {
+        return this.findOrThrow();
+      }
+      throw error;
+    }
   }
 
-  async update(partial: Partial<EntityStoreGlobalState>): Promise<Partial<EntityStoreGlobalState>> {
-    await this.findOrThrow();
-
-    const id = this.getSavedObjectId();
-    return this.updateInternal(id, partial);
+  /**
+   * Idempotent history upsert. Ensures the SO exists; never touches logsExtraction.
+   */
+  async init(
+    initialState?: Partial<{
+      historySnapshot: EntityStoreGlobalState['historySnapshot'];
+    }>
+  ): Promise<EntityStoreGlobalState> {
+    await this.ensureExists();
+    if (initialState?.historySnapshot === undefined) {
+      return this.findOrThrow();
+    }
+    return this.updateHistorySnapshot(initialState.historySnapshot);
   }
 
-  private async updateInternal(
-    id: string,
-    partial: Partial<EntityStoreGlobalState>
-  ): Promise<Partial<EntityStoreGlobalState>> {
-    const { attributes } = await this.soClient.update<EntityStoreGlobalState>(
-      EntityStoreGlobalStateTypeName,
-      id,
-      partial,
-      { refresh: 'wait_for', mergeAttributes: true }
-    );
-    return attributes;
+  async updateHistorySnapshot(
+    historySnapshot: EntityStoreGlobalState['historySnapshot']
+  ): Promise<EntityStoreGlobalState> {
+    await this.ensureExists();
+    return this.replaceAttributes({ historySnapshot });
   }
 
+  /** Reserved for LogExtractionStateManager — pass an already-sparse stored shape. */
+  async updateLogsExtraction(logsExtraction: StoredLogsExtraction): Promise<EntityStoreGlobalState> {
+    await this.ensureExists();
+    return this.replaceAttributes({ logsExtraction });
+  }
+
+  /** Idempotent: no-op when missing. */
   async delete(): Promise<void> {
     const response = await this.findSO();
     if (response.total === 0) {
@@ -101,11 +127,49 @@ export class EntityStoreGlobalStateClient {
       this.logger.debug(`Deleting global state with id ${id}`);
       await this.soClient.delete(EntityStoreGlobalStateTypeName, id);
     } catch (error) {
-      if (Boom.isBoom(error, 404)) {
+      if (Boom.isBoom(error, 404) || SavedObjectsErrorHelpers.isNotFoundError(error)) {
         return;
       }
       throw error;
     }
+  }
+
+  private async replaceAttributes(partial: {
+    historySnapshot?: EntityStoreGlobalState['historySnapshot'];
+    logsExtraction?: StoredLogsExtraction;
+  }): Promise<EntityStoreGlobalState> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < REPLACE_MAX_ATTEMPTS; attempt++) {
+      try {
+        const { id, attributes, version } = await this.findSOOrThrow();
+        const next: EntityStoreGlobalState = {
+          historySnapshot: partial.historySnapshot ?? attributes.historySnapshot,
+          logsExtraction: partial.logsExtraction ?? attributes.logsExtraction,
+        };
+        const parsed = EntityStoreGlobalState.parse(next);
+
+        await this.soClient.update<EntityStoreGlobalState>(
+          EntityStoreGlobalStateTypeName,
+          id,
+          parsed,
+          {
+            refresh: 'wait_for',
+            mergeAttributes: false,
+            version,
+          }
+        );
+
+        return parsed;
+      } catch (error) {
+        lastError = error;
+        // Parallel history + logs field updates can race on SO version.
+        if (SavedObjectsErrorHelpers.isConflictError(error) || Boom.isBoom(error, 409)) {
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw lastError;
   }
 
   private getSavedObjectId(): string {
@@ -118,5 +182,15 @@ export class EntityStoreGlobalStateClient {
       namespaces: [this.namespace],
       perPage: 1,
     });
+  }
+
+  private async findSOOrThrow() {
+    const response = await this.findSO();
+    if (response.total === 0) {
+      throw SavedObjectsErrorHelpers.createGenericNotFoundError(
+        'No global state found for this namespace'
+      );
+    }
+    return response.saved_objects[0];
   }
 }

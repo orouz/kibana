@@ -132,7 +132,7 @@ export function registerStatus(router: EntityStorePluginRouter) {
           const { logger, assetManagerClient: assetManager } = entityStoreCtx;
           logger.debug('Status API invoked');
           const withComponents = req.query.include_components;
-          const { status, engines, ...rest } = await assetManager.getStatus(withComponents);
+          const { status, engines } = await assetManager.getStatus(withComponents);
 
           if (status === ENTITY_STORE_STATUS.NOT_INSTALLED) {
             return res.ok({
@@ -140,12 +140,14 @@ export function registerStatus(router: EntityStorePluginRouter) {
             });
           }
 
-          const { logsExtractionConfig } = rest as GetStatusSuccessResult;
-
           return res.ok({
             body: {
               status,
-              engines: engines.map((engine) => toPublicEngine(engine, logsExtractionConfig)),
+              engines: await Promise.all(
+                engines.map(async (engine) =>
+                  toPublicEngine(engine, await assetManager.getLogExtractionConfig(engine.type))
+                )
+              ),
             },
           });
         }

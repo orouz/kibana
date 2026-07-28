@@ -49,18 +49,18 @@ import {
   getSecuritySolutionDataViewName,
 } from '../asset_manager/external_indices_contants';
 import {
-  type LogExtractionConfig,
-  LogExtractionConfig as LogExtractionConfigSchema,
-} from '../saved_objects';
-import {
   type EngineDescriptorClient,
   type EngineLogExtractionState,
   type EntityStoreGlobalStateClient,
+  type EntityStoreLocalStateClient,
+  type LogExtractionConfig,
+  type LogExtractionConfigInput,
 } from '../saved_objects';
 import { ENGINE_STATUS } from '../constants';
 import type { RemoteLogsExtractionClient } from './remote';
 import { EntityStoreNotRunningError } from '../errors';
 import type { LogExtractionUpdateParams } from '../../routes/constants';
+import { LogExtractionStateManager } from './log_extraction_state_manager';
 
 /** Engine state with all cursor fields cleared. Used between sub-window iterations so a fresh
  * sub-window does not re-trigger recovery from cursors persisted by an earlier sub-window. */
@@ -104,17 +104,23 @@ export interface LogsExtractionClientDependencies {
   dataViewsService: DataViewsService;
   engineDescriptorClient: EngineDescriptorClient;
   globalStateClient: EntityStoreGlobalStateClient;
+  localStateClient: EntityStoreLocalStateClient;
   remoteLogsExtractionClient: RemoteLogsExtractionClient;
 }
 
+/**
+ * Public facade for log-extraction config + extraction runtime.
+ * Sole owner of {@link LogExtractionStateManager} — callers must not construct/use the manager.
+ */
 export class LogsExtractionClient {
   logger: Logger;
   namespace: string;
   esClient: ElasticsearchClient;
   dataViewsService: DataViewsService;
   engineDescriptorClient: EngineDescriptorClient;
-  globalStateClient: EntityStoreGlobalStateClient;
   remoteLogsExtractionClient: RemoteLogsExtractionClient;
+  private readonly logExtractionStateManager: LogExtractionStateManager;
+
   constructor({
     logger,
     namespace,
@@ -122,6 +128,7 @@ export class LogsExtractionClient {
     dataViewsService,
     engineDescriptorClient,
     globalStateClient,
+    localStateClient,
     remoteLogsExtractionClient,
   }: LogsExtractionClientDependencies) {
     this.logger = logger;
@@ -129,8 +136,36 @@ export class LogsExtractionClient {
     this.esClient = esClient;
     this.dataViewsService = dataViewsService;
     this.engineDescriptorClient = engineDescriptorClient;
-    this.globalStateClient = globalStateClient;
     this.remoteLogsExtractionClient = remoteLogsExtractionClient;
+    this.logExtractionStateManager = new LogExtractionStateManager(
+      logger,
+      globalStateClient,
+      localStateClient
+    );
+  }
+
+  public async getConfig(type: EntityType): Promise<LogExtractionConfig> {
+    return this.logExtractionStateManager.getConfig(type);
+  }
+
+  public async getStoreWideConfig(): Promise<LogExtractionConfig> {
+    return this.logExtractionStateManager.getStoreWideConfig();
+  }
+
+  /**
+   * Idempotent: ensure global SO exists, apply optional install params, ensure local shells.
+   * Safe to call in parallel with {@link HistorySnapshotClient.init}.
+   */
+  public async init(
+    entityTypes: EntityType[],
+    params?: LogExtractionConfigInput
+  ): Promise<void> {
+    await this.logExtractionStateManager.init(entityTypes, params);
+  }
+
+  /** Idempotent local-state cleanup (missing docs are ignored). */
+  public async deleteLocalStates(entityTypes?: EntityType[]): Promise<void> {
+    await this.logExtractionStateManager.deleteLocalStates(entityTypes);
   }
 
   private async getLogExtractionConfigAndState(
@@ -140,8 +175,10 @@ export class LogsExtractionClient {
     if (engineDescriptor.status !== ENGINE_STATUS.STARTED) {
       throw new EntityStoreNotRunningError();
     }
-    const globalState = await this.globalStateClient.findOrThrow();
-    return { config: globalState.logsExtraction, engineState: engineDescriptor.logExtractionState };
+    return {
+      config: await this.getConfig(type),
+      engineState: engineDescriptor.logExtractionState,
+    };
   }
 
   public async extractLogs(
@@ -213,14 +250,11 @@ export class LogsExtractionClient {
     }
   }
 
-  public async updateConfig(params: LogExtractionUpdateParams): Promise<LogExtractionConfig> {
-    const globalState = await this.globalStateClient.findOrThrow();
-    const mergedConfig = LogExtractionConfigSchema.parse({
-      ...globalState.logsExtraction,
-      ...params,
-    });
-    await this.globalStateClient.update({ logsExtraction: mergedConfig });
-    return mergedConfig;
+  public async updateConfig(
+    params: LogExtractionUpdateParams,
+    entityTypes?: EntityType[]
+  ): Promise<void> {
+    await this.logExtractionStateManager.updateConfig(params, entityTypes);
   }
 
   private async runQueryAndIngestDocs({

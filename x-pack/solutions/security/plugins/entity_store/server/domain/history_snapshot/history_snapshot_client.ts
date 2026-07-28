@@ -8,8 +8,11 @@
 import type { ElasticsearchClient, Logger } from '@kbn/core/server';
 import moment from 'moment';
 import { entityStoreMetrics } from '../../monitor/metrics';
-import type { EntityStoreGlobalState } from '../saved_objects';
-import type { EntityStoreGlobalStateClient } from '../saved_objects';
+import {
+  HistorySnapshotState,
+  type EntityStoreGlobalState,
+  type EntityStoreGlobalStateClient,
+} from '../saved_objects';
 import { createIndex, reindex, updateByQueryWithScript } from '../../infra/elasticsearch';
 import { getLatestEntitiesIndexName } from '../../../common/domain/entity_index';
 import { getErrorMessage } from '../../../common';
@@ -37,6 +40,10 @@ export interface HistorySnapshotClientDependencies {
   globalStateClient: EntityStoreGlobalStateClient;
 }
 
+/**
+ * Owns historySnapshot on the entity-store global SO (and the SO document lifecycle).
+ * Do not touch EntityStoreGlobalStateClient from outside this client for history concerns.
+ */
 export class HistorySnapshotClient {
   private readonly logger: Logger;
   private readonly esClient: ElasticsearchClient;
@@ -53,6 +60,28 @@ export class HistorySnapshotClient {
     this.esClient = esClient;
     this.namespace = namespace;
     this.globalStateClient = globalStateClient;
+  }
+
+  /**
+   * Idempotent: ensure the global SO exists and apply history settings.
+   * Safe to call in parallel with {@link LogsExtractionClient.init}.
+   */
+  public async init(
+    historySnapshotParams?: Partial<HistorySnapshotState>
+  ): Promise<HistorySnapshotState> {
+    const historySnapshot = HistorySnapshotState.parse(historySnapshotParams ?? {});
+    const state = await this.globalStateClient.init({ historySnapshot });
+    return state.historySnapshot;
+  }
+
+  public async getHistorySnapshot(): Promise<HistorySnapshotState> {
+    const state = await this.globalStateClient.findOrThrow();
+    return state.historySnapshot;
+  }
+
+  /** Idempotent: deletes the entire global SO when present. */
+  public async delete(): Promise<void> {
+    await this.globalStateClient.delete();
   }
 
   public async runHistorySnapshot(
@@ -136,12 +165,10 @@ export class HistorySnapshotClient {
 
   private async updateGlobalStateOnSuccess(globalState: EntityStoreGlobalState): Promise<void> {
     try {
-      await this.globalStateClient.update({
-        historySnapshot: {
-          ...globalState.historySnapshot,
-          lastExecutionTimestamp: moment.utc().toISOString(),
-          lastError: undefined,
-        },
+      await this.globalStateClient.updateHistorySnapshot({
+        ...globalState.historySnapshot,
+        lastExecutionTimestamp: moment.utc().toISOString(),
+        lastError: undefined,
       });
     } catch (updateErr) {
       this.logger.error(
@@ -155,13 +182,11 @@ export class HistorySnapshotClient {
     error: Error
   ): Promise<void> {
     try {
-      await this.globalStateClient.update({
-        historySnapshot: {
-          ...globalState.historySnapshot,
-          lastError: {
-            message: error.message,
-            timestamp: moment.utc().toISOString(),
-          },
+      await this.globalStateClient.updateHistorySnapshot({
+        ...globalState.historySnapshot,
+        lastError: {
+          message: error.message,
+          timestamp: moment.utc().toISOString(),
         },
       });
     } catch (updateErr) {
