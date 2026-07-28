@@ -14,7 +14,7 @@ import type { TaskManagerStartContract } from '@kbn/task-manager-plugin/server';
 import { loggerMock } from '@kbn/logging-mocks';
 import type { SecurityPluginStart } from '@kbn/security-plugin/server';
 import { AssetManagerClient } from './asset_manager_client';
-import { LATEST_LOG_EXTRACTION_DEFAULTS } from '../saved_objects/global_state/constants';
+import { LogExtractionConfig } from '../saved_objects/global_state/constants';
 import {
   installSharedElasticsearchAssets,
   installIndicesAndDataStreams,
@@ -119,21 +119,7 @@ describe('AssetManagerClient', () => {
     mockGlobalStateClient = {
       init: jest.fn().mockResolvedValue({
         historySnapshot: { status: 'started', frequency: '24h' },
-        logsExtraction: {
-          additionalIndexPatterns: [],
-          excludedIndexPatterns: [],
-          fieldHistoryLength: 10,
-          lookbackPeriod: '3h',
-          delay: '1m',
-          docsLimit: 10000,
-          maxLogsPerPage: LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerPage,
-          timeout: '59s',
-          frequency: LATEST_LOG_EXTRACTION_DEFAULTS.frequency,
-          maxTimeWindowSize: '15m',
-          maxLogsPerWindow: LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerWindow,
-          maxLogsPerWindowCapBehavior: LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerWindowCapBehavior,
-          defaultsVersion: LATEST_LOG_EXTRACTION_DEFAULTS.defaultsVersion,
-        },
+        logsExtraction: LogExtractionConfig.parse({}),
       }),
       findOrThrow: jest.fn().mockResolvedValue({
         historySnapshot: {},

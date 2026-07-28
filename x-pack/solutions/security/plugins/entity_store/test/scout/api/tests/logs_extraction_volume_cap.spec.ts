@@ -17,7 +17,11 @@ import {
 } from '../fixtures/constants';
 import { FF_ENABLE_ENTITY_STORE_V2 } from '../../../../common';
 import { clearEntityStoreIndices, ingestDoc } from '../fixtures/helpers';
-import { LATEST_LOG_EXTRACTION_DEFAULTS } from '../../../../server/domain/saved_objects';
+import {
+  LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT,
+  LOG_EXTRACTION_MAX_LOGS_PER_WINDOW_DEFAULT,
+  LOG_EXTRACTION_CAP_BEHAVIOR_DEFAULT,
+} from '../../../../server/domain/saved_objects';
 
 const FROM_DATE = '2026-06-10T10:00:00Z';
 const TO_DATE = '2026-06-10T11:00:00Z';
@@ -157,10 +161,9 @@ apiTest.describe('Entity Store volume cap', { tag: ENTITY_STORE_TAGS }, () => {
           responseType: 'json',
           body: {
             logExtraction: {
-              maxLogsPerPage: LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerPage,
-              maxLogsPerWindow: LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerWindow,
-              maxLogsPerWindowCapBehavior:
-                LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerWindowCapBehavior,
+              maxLogsPerPage: LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT,
+              maxLogsPerWindow: LOG_EXTRACTION_MAX_LOGS_PER_WINDOW_DEFAULT,
+              maxLogsPerWindowCapBehavior: LOG_EXTRACTION_CAP_BEHAVIOR_DEFAULT,
             },
           },
         });
@@ -220,10 +223,9 @@ apiTest.describe('Entity Store volume cap', { tag: ENTITY_STORE_TAGS }, () => {
           responseType: 'json',
           body: {
             logExtraction: {
-              maxLogsPerPage: LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerPage,
-              maxLogsPerWindow: LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerWindow,
-              maxLogsPerWindowCapBehavior:
-                LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerWindowCapBehavior,
+              maxLogsPerPage: LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT,
+              maxLogsPerWindow: LOG_EXTRACTION_MAX_LOGS_PER_WINDOW_DEFAULT,
+              maxLogsPerWindowCapBehavior: LOG_EXTRACTION_CAP_BEHAVIOR_DEFAULT,
             },
           },
         });
@@ -279,8 +281,8 @@ apiTest.describe('Entity Store volume cap', { tag: ENTITY_STORE_TAGS }, () => {
           responseType: 'json',
           body: {
             logExtraction: {
-              maxLogsPerPage: LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerPage,
-              maxLogsPerWindow: LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerWindow,
+              maxLogsPerPage: LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT,
+              maxLogsPerWindow: LOG_EXTRACTION_MAX_LOGS_PER_WINDOW_DEFAULT,
             },
           },
         });

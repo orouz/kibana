@@ -44,6 +44,23 @@ export const GLOBAL_LOG_EXTRACTION_DEFAULTS = {
 export const LATEST_LOG_EXTRACTION_DEFAULTS =
   GLOBAL_LOG_EXTRACTION_DEFAULTS[LOG_EXTRACTION_DEFAULTS_VERSION];
 
+export const LOG_EXTRACTION_DELAY_DEFAULT = LATEST_LOG_EXTRACTION_DEFAULTS.delay;
+export const LOG_EXTRACTION_LOOKBACK_PERIOD_DEFAULT = LATEST_LOG_EXTRACTION_DEFAULTS.lookbackPeriod;
+export const LOG_EXTRACTION_FREQUENCY_DEFAULT = LATEST_LOG_EXTRACTION_DEFAULTS.frequency;
+// Max amount of entities to extract in one ESQL query
+export const LOG_EXTRACTION_DOCS_LIMIT_DEFAULT = LATEST_LOG_EXTRACTION_DEFAULTS.docsLimit;
+// Max raw log documents per logs to be processed in a query (inside elastic search)
+export const LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT =
+  LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerPage;
+export const LOG_EXTRACTION_TIMEOUT_DEFAULT = LATEST_LOG_EXTRACTION_DEFAULTS.timeout;
+export const LOG_EXTRACTION_MAX_TIME_WINDOW_SIZE_DEFAULT =
+  LATEST_LOG_EXTRACTION_DEFAULTS.maxTimeWindowSize;
+// Max total raw log documents to process per task run; 0 = no cap
+export const LOG_EXTRACTION_MAX_LOGS_PER_WINDOW_DEFAULT =
+  LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerWindow;
+export const LOG_EXTRACTION_CAP_BEHAVIOR_DEFAULT =
+  LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerWindowCapBehavior;
+
 const DurationSchema = z.string().regex(/[smdh]$/);
 const LogExtractionConfigBase = z.object({
   additionalIndexPatterns: z.array(z.string()),

@@ -33,7 +33,7 @@ import {
   normalizeKeywordList,
   searchDocById,
 } from '../fixtures/helpers';
-import { LATEST_LOG_EXTRACTION_DEFAULTS } from '../../../../server/domain/saved_objects';
+import { LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT } from '../../../../server/domain/saved_objects';
 
 apiTest.describe('Entity Store Main logs extraction', { tag: ENTITY_STORE_TAGS }, () => {
   let defaultHeaders: Record<string, string>;
@@ -1155,7 +1155,7 @@ apiTest.describe('Entity Store Main logs extraction', { tag: ENTITY_STORE_TAGS }
           headers: defaultHeaders,
           responseType: 'json',
           body: {
-            logExtraction: { maxLogsPerPage: LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerPage },
+            logExtraction: { maxLogsPerPage: LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT },
           },
         });
       }
