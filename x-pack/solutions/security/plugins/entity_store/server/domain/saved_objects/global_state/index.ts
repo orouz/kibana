@@ -89,17 +89,17 @@ export class EntityStoreGlobalStateClient {
     partial: EntityStoreGlobalStatePatch,
     existing: EntityStoreGlobalState
   ): Promise<EntityStoreGlobalState> {
-    const toWrite: Partial<EntityStoreGlobalState> = {};
+    const changes: Partial<EntityStoreGlobalState> = {};
 
     if (partial.historySnapshot !== undefined) {
-      toWrite.historySnapshot = HistorySnapshotState.parse({
+      changes.historySnapshot = HistorySnapshotState.parse({
         ...existing.historySnapshot,
         ...partial.historySnapshot,
       });
     }
 
     if (partial.logsExtraction !== undefined && Object.keys(partial.logsExtraction).length > 0) {
-      toWrite.logsExtraction = this.logExtractionDefaults.resolve({
+      changes.logsExtraction = this.logExtractionDefaults.resolve({
         ...existing.logsExtraction,
         ...partial.logsExtraction,
       });
@@ -108,7 +108,7 @@ export class EntityStoreGlobalStateClient {
     await this.soClient.update<EntityStoreGlobalState>(
       EntityStoreGlobalStateTypeName,
       id,
-      toWrite,
+      changes,
       {
         refresh: 'wait_for',
         mergeAttributes: true,
@@ -116,8 +116,8 @@ export class EntityStoreGlobalStateClient {
     );
 
     return {
-      historySnapshot: toWrite.historySnapshot ?? existing.historySnapshot,
-      logsExtraction: toWrite.logsExtraction ?? existing.logsExtraction,
+      historySnapshot: changes.historySnapshot ?? existing.historySnapshot,
+      logsExtraction: changes.logsExtraction ?? existing.logsExtraction,
     };
   }
 

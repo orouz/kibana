@@ -6,43 +6,9 @@
  */
 
 import { z } from '@kbn/zod/v4';
+import { LATEST_LOG_EXTRACTION_DEFAULTS } from './defaults';
 
 export const DEFAULT_HISTORY_SNAPSHOT_FREQUENCY = '24h';
-
-export const isLogExtractionConfigVersion = (
-  value: number
-): value is keyof typeof GLOBAL_LOG_EXTRACTION_DEFAULTS =>
-  typeof value === 'number' && value in GLOBAL_LOG_EXTRACTION_DEFAULTS;
-
-const LOG_EXTRACTION_DEFAULTS_VERSION: keyof typeof GLOBAL_LOG_EXTRACTION_DEFAULTS = 2;
-const GLOBAL_LOG_EXTRACTION_DEFAULTS_V1 = {
-  additionalIndexPatterns: [],
-  excludedIndexPatterns: [],
-  fieldHistoryLength: 10,
-  lookbackPeriod: '3h',
-  delay: '1m',
-  docsLimit: 10_000,
-  maxLogsPerPage: 50_000,
-  timeout: '59s',
-  frequency: '1m',
-  maxTimeWindowSize: '15m',
-  maxLogsPerWindow: 100_000,
-  maxLogsPerWindowCapBehavior: 'drop',
-  defaultsVersion: 1,
-} as const satisfies LogExtractionConfigShape;
-
-export const GLOBAL_LOG_EXTRACTION_DEFAULTS = {
-  1: GLOBAL_LOG_EXTRACTION_DEFAULTS_V1,
-  2: {
-    ...GLOBAL_LOG_EXTRACTION_DEFAULTS_V1,
-    maxLogsPerPage: 100_000,
-    frequency: '10m',
-    defaultsVersion: 2,
-  },
-} as const satisfies Record<number, LogExtractionConfigShape>;
-
-export const LATEST_LOG_EXTRACTION_DEFAULTS =
-  GLOBAL_LOG_EXTRACTION_DEFAULTS[LOG_EXTRACTION_DEFAULTS_VERSION];
 
 export const LOG_EXTRACTION_DELAY_DEFAULT = LATEST_LOG_EXTRACTION_DEFAULTS.delay;
 export const LOG_EXTRACTION_LOOKBACK_PERIOD_DEFAULT = LATEST_LOG_EXTRACTION_DEFAULTS.lookbackPeriod;
