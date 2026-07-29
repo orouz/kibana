@@ -36,7 +36,7 @@ import {
   HistorySnapshotState,
   LogExtractionConfig,
 } from '../saved_objects';
-import type { HistorySnapshotBodyParams, LogExtractionInstallParams } from '../../routes/constants';
+import type { HistorySnapshotBodyParams, LogExtractionBodyParams } from '../../routes/constants';
 import { ENGINE_STATUS, ENTITY_STORE_STATUS } from '../constants';
 import type {
   EntityStoreStatus,
@@ -120,10 +120,11 @@ export class AssetManagerClient {
   public async init(
     request: KibanaRequest,
     entityTypes: EntityType[],
-    logExtraction?: LogExtractionInstallParams,
+    logExtraction?: LogExtractionBodyParams,
     historySnapshotParams?: HistorySnapshotBodyParams
   ) {
     try {
+      console.log({ logExtraction });
       const historySnapshot = HistorySnapshotState.parse(historySnapshotParams ?? {});
 
       // Phase 1: Install shared ES assets/storage and run independent setup tasks.

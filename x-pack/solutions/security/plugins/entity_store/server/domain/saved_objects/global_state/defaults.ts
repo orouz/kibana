@@ -5,7 +5,8 @@
  * 2.0.
  */
 
-import type { LogExtractionConfigShape } from './constants';
+import type { Logger } from '@kbn/logging';
+import { LogExtractionConfig, type LogExtractionConfigShape } from './constants';
 
 type DefaultsVersion = keyof typeof GLOBAL_LOG_EXTRACTION_DEFAULTS;
 
@@ -34,7 +35,7 @@ const DEFAULTS_V2 = {
   defaultsVersion: 2,
 } as const satisfies LogExtractionConfigShape & { defaultsVersion: 2 };
 
-export const GLOBAL_LOG_EXTRACTION_DEFAULTS = {
+const GLOBAL_LOG_EXTRACTION_DEFAULTS = {
   1: DEFAULTS_V1,
   2: DEFAULTS_V2,
 } as const satisfies Record<number, LogExtractionConfigShape>;
@@ -42,13 +43,12 @@ export const GLOBAL_LOG_EXTRACTION_DEFAULTS = {
 export const LATEST_LOG_EXTRACTION_DEFAULTS =
   GLOBAL_LOG_EXTRACTION_DEFAULTS[LOG_EXTRACTION_DEFAULTS_VERSION];
 
-export const isLogExtractionConfigVersion = (value: number): value is DefaultsVersion =>
+/* -------------------------------------------------------------- */
+
+const isLogExtractionConfigVersion = (value: number): value is DefaultsVersion =>
   typeof value === 'number' && value in GLOBAL_LOG_EXTRACTION_DEFAULTS;
 
-export const getConfigDefaults = (version: DefaultsVersion): LogExtractionConfigShape =>
-  GLOBAL_LOG_EXTRACTION_DEFAULTS[version];
-
-export const getConfigOverrides = (
+const getConfigOverrides = (
   config: Partial<LogExtractionConfigShape>,
   configDefaults: LogExtractionConfigShape
 ): Partial<LogExtractionConfigShape> =>
@@ -56,7 +56,40 @@ export const getConfigOverrides = (
     const configValue = config[key as keyof typeof config];
     const configDefaultValue = configDefaults[key as keyof typeof configDefaults];
     if (configValue !== undefined && configValue !== configDefaultValue) {
+      // configValue is an override, use it instead of the default value
       acc[key as keyof typeof acc] = configValue as never;
     }
     return acc;
   }, {} as Partial<LogExtractionConfigShape>);
+
+/** enables resolving a given config to latest defaults + previous overrides */
+export const createDefaultsResolver = (logger: Logger) => {
+  const getOverrides = (
+    config: Partial<LogExtractionConfigShape>
+  ): Partial<LogExtractionConfigShape> => {
+    const { defaultsVersion } = config;
+    if (defaultsVersion === undefined) {
+      // we can't omit defaults, assume all overrides
+      return config;
+    }
+
+    if (!isLogExtractionConfigVersion(defaultsVersion)) {
+      logger.warn(
+        `Unknown log extraction config defaults version ${defaultsVersion}. Returning latest defaults`
+      );
+      // unknown defaults version, assume no overrides
+      return {};
+    }
+
+    const defaults = GLOBAL_LOG_EXTRACTION_DEFAULTS[defaultsVersion];
+    return getConfigOverrides(config, defaults);
+  };
+
+  const resolve = (config: Partial<LogExtractionConfig> = {}): LogExtractionConfig => {
+    const { defaultsVersion: _, ...overrides } = getOverrides(config);
+    // parse returns a new config with latest defaults applied, and previous overrides preserved
+    return LogExtractionConfig.parse(overrides);
+  };
+
+  return { resolve };
+};

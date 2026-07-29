@@ -16,18 +16,18 @@ import {
   HistorySnapshotState,
   type EntityStoreGlobalStatePatch,
 } from './constants';
-import { LogExtractionDefaults } from './log_extraction_defaults';
 import { EntityStoreGlobalStateTypeName } from './types';
+import { createDefaultsResolver } from './defaults';
 
 export class EntityStoreGlobalStateClient {
-  private readonly logExtractionDefaults: LogExtractionDefaults;
+  private readonly logExtractionDefaults: ReturnType<typeof createDefaultsResolver>;
 
   constructor(
     private readonly soClient: SavedObjectsClientContract,
     private readonly namespace: string,
     private readonly logger: Logger
   ) {
-    this.logExtractionDefaults = new LogExtractionDefaults(logger);
+    this.logExtractionDefaults = createDefaultsResolver(logger);
   }
 
   async find(): Promise<EntityStoreGlobalState | undefined> {
@@ -65,11 +65,9 @@ export class EntityStoreGlobalStateClient {
     const id = this.getSavedObjectId();
     this.logger.debug(`Creating global state with id ${id}`);
 
-    const historySnapshot = HistorySnapshotState.parse(initialState?.historySnapshot ?? {});
-    const logsExtraction = this.logExtractionDefaults.resolve(initialState?.logsExtraction);
     const parsed = EntityStoreGlobalState.parse({
-      historySnapshot,
-      logsExtraction,
+      historySnapshot: initialState?.historySnapshot ?? {},
+      logsExtraction: this.logExtractionDefaults.resolve(initialState?.logsExtraction),
     });
 
     await this.soClient.create<EntityStoreGlobalState>(EntityStoreGlobalStateTypeName, parsed, {

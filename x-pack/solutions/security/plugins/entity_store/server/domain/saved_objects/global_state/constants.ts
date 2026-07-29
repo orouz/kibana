@@ -28,7 +28,7 @@ export const LOG_EXTRACTION_CAP_BEHAVIOR_DEFAULT =
   LATEST_LOG_EXTRACTION_DEFAULTS.maxLogsPerWindowCapBehavior;
 
 const DurationSchema = z.string().regex(/[smdh]$/);
-const LogExtractionConfigBase = z.object({
+export const LogExtractionConfigBase = z.object({
   additionalIndexPatterns: z.array(z.string()),
   excludedIndexPatterns: z.array(z.string()),
   fieldHistoryLength: z.number().int(),
@@ -99,7 +99,6 @@ export const EntityStoreGlobalState = z.object({
   logsExtraction: LogExtractionConfig,
 });
 
-/** Partial update/init payload; `logsExtraction` may be a sparse override patch. */
 export interface EntityStoreGlobalStatePatch {
   historySnapshot?: Partial<HistorySnapshotState>;
   logsExtraction?: Partial<LogExtractionConfig>;
