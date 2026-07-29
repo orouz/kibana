@@ -49,11 +49,7 @@ export function registerUpdate(router: EntityStorePluginRouter) {
         },
       },
       wrapMiddlewares(async (ctx, req, res): Promise<IKibanaResponse> => {
-        const {
-          logsExtractionClient,
-          assetManagerClient: assetManager,
-          logger,
-        } = await ctx.entityStore;
+        const { assetManagerClient: assetManager, logger } = await ctx.entityStore;
         logger.debug('Update api called');
 
         const forbidden = await enforceEntityStorePrivileges(
@@ -65,7 +61,7 @@ export function registerUpdate(router: EntityStorePluginRouter) {
         if (forbidden) return forbidden;
 
         try {
-          await logsExtractionClient.updateConfig(req.body.logExtraction);
+          await assetManager.updateLogExtractionConfig(req.body.logExtraction);
         } catch (error) {
           if (SavedObjectsErrorHelpers.isNotFoundError(error)) {
             return res.notFound({ body: { message: 'Entity store is not installed' } });

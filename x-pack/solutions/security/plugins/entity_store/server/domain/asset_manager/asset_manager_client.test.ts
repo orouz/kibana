@@ -21,13 +21,18 @@ import {
   uninstallElasticsearchAssets,
 } from './install_assets';
 import { installEuidStoredScripts, deleteEuidStoredScripts } from './euid_stored_scripts';
-import { scheduleExtractEntityTask, stopExtractEntityTask } from '../../tasks/extract_entity_task';
+import {
+  rescheduleExtractEntityTasks,
+  scheduleExtractEntityTask,
+  stopExtractEntityTask,
+} from '../../tasks/extract_entity_task';
 import {
   scheduleHistorySnapshotTasks,
   stopHistorySnapshotTask,
 } from '../../tasks/history_snapshot_task';
 import { scheduleStatusReportTask, stopStatusReportTask } from '../../tasks/status_report_task';
 import { stopAndRemoveV1, stopAndRemoveV1SharedTasks } from '../../infra/remove_v1';
+import { ENGINE_STATUS } from '../constants';
 
 jest.mock('./install_assets');
 jest.mock('./euid_stored_scripts');
@@ -52,6 +57,9 @@ const mockDeleteEuidStoredScripts = deleteEuidStoredScripts as jest.MockedFuncti
 >;
 const mockScheduleExtractEntityTask = scheduleExtractEntityTask as jest.MockedFunction<
   typeof scheduleExtractEntityTask
+>;
+const mockRescheduleExtractEntityTasks = rescheduleExtractEntityTasks as jest.MockedFunction<
+  typeof rescheduleExtractEntityTasks
 >;
 const mockStopExtractEntityTask = stopExtractEntityTask as jest.MockedFunction<
   typeof stopExtractEntityTask
@@ -101,6 +109,7 @@ describe('AssetManagerClient', () => {
     mockInstallEuidStoredScripts.mockResolvedValue(undefined);
     mockDeleteEuidStoredScripts.mockResolvedValue(undefined);
     mockScheduleExtractEntityTask.mockResolvedValue(undefined);
+    mockRescheduleExtractEntityTasks.mockResolvedValue(undefined);
     mockStopExtractEntityTask.mockResolvedValue(undefined);
     mockScheduleHistorySnapshotTasks.mockResolvedValue(undefined);
     mockStopHistorySnapshotTask.mockResolvedValue(undefined);
@@ -441,6 +450,80 @@ describe('AssetManagerClient', () => {
           }),
         })
       );
+    });
+  });
+
+  describe('updateLogExtractionConfig', () => {
+    const updatedConfig = {
+      delay: '1m',
+      frequency: '22m',
+      lookbackPeriod: '3h',
+      fieldHistoryLength: 10,
+      additionalIndexPatterns: [],
+      excludedIndexPatterns: [],
+      docsLimit: 10000,
+      maxLogsPerPage: LOG_EXTRACTION_MAX_LOGS_PER_PAGE_DEFAULT,
+      maxTimeWindowSize: '24h',
+      maxLogsPerWindow: 0,
+      maxLogsPerWindowCapBehavior: 'defer' as const,
+    };
+
+    let updateConfigMock: jest.Mock;
+    let updateClient: AssetManagerClient;
+
+    beforeEach(() => {
+      updateConfigMock = jest.fn().mockResolvedValue(updatedConfig);
+      updateClient = new AssetManagerClient({
+        logger: loggerMock.create(),
+        esClient: mockUserEsClient,
+        internalEsClient: mockInternalEsClient,
+        taskManager: {} as jest.Mocked<TaskManagerStartContract>,
+        engineDescriptorClient:
+          mockEngineDescriptorClient as unknown as import('../saved_objects').EngineDescriptorClient,
+        globalStateClient:
+          mockGlobalStateClient as unknown as import('../saved_objects').EntityStoreGlobalStateClient,
+        remoteLogExtractionStateClient: {
+          delete: jest.fn().mockResolvedValue(undefined),
+        } as unknown as import('../saved_objects/remote_log_extraction_state').RemoteLogExtractionStateClient,
+        namespace,
+        isServerless: false,
+        logsExtractionClient: {
+          updateConfig: updateConfigMock,
+        } as unknown as import('../logs_extraction').LogsExtractionClient,
+        security: {} as SecurityPluginStart,
+        analytics: {
+          reportEvent: jest.fn(),
+        } as unknown as import('../../telemetry/events').TelemetryReporter,
+        savedObjectsClient: {} as SavedObjectsClientContract,
+      });
+    });
+
+    it('updates config without rescheduling when frequency is omitted', async () => {
+      const result = await updateClient.updateLogExtractionConfig({ delay: '5m' });
+
+      expect(updateConfigMock).toHaveBeenCalledWith({ delay: '5m' });
+      expect(mockEngineDescriptorClient.getAll).not.toHaveBeenCalled();
+      expect(mockRescheduleExtractEntityTasks).not.toHaveBeenCalled();
+      expect(result).toEqual(updatedConfig);
+    });
+
+    it('reschedules started extract tasks when frequency changes', async () => {
+      mockEngineDescriptorClient.getAll.mockResolvedValue([
+        { type: 'host', status: ENGINE_STATUS.STARTED },
+        { type: 'user', status: ENGINE_STATUS.STOPPED },
+        { type: 'service', status: ENGINE_STATUS.STARTED },
+      ]);
+
+      await updateClient.updateLogExtractionConfig({ frequency: '22m' });
+
+      expect(updateConfigMock).toHaveBeenCalledWith({ frequency: '22m' });
+      expect(mockRescheduleExtractEntityTasks).toHaveBeenCalledWith({
+        logger: expect.anything(),
+        taskManager: expect.anything(),
+        types: ['host', 'service'],
+        namespace,
+        frequency: '22m',
+      });
     });
   });
 });

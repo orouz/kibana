@@ -21,7 +21,11 @@ import {
   ENTITY_STORE_SOURCE_INDICES_PRIVILEGES,
   ENTITY_STORE_TARGET_INDICES_PRIVILEGES,
 } from '../../../common';
-import { scheduleExtractEntityTask, stopExtractEntityTask } from '../../tasks/extract_entity_task';
+import {
+  rescheduleExtractEntityTasks,
+  scheduleExtractEntityTask,
+  stopExtractEntityTask,
+} from '../../tasks/extract_entity_task';
 import {
   scheduleHistorySnapshotTasks,
   stopHistorySnapshotTask,
@@ -36,7 +40,11 @@ import {
   HistorySnapshotState,
   LogExtractionConfig,
 } from '../saved_objects';
-import type { HistorySnapshotBodyParams, LogExtractionInstallParams } from '../../routes/constants';
+import type {
+  HistorySnapshotBodyParams,
+  LogExtractionInstallParams,
+  LogExtractionUpdateParams,
+} from '../../routes/constants';
 import { ENGINE_STATUS, ENTITY_STORE_STATUS } from '../constants';
 import type {
   EntityStoreStatus,
@@ -216,6 +224,34 @@ export class AssetManagerClient {
       await this.engineDescriptorClient.update(type, { status: ENGINE_STATUS.ERROR });
       throw error;
     }
+  }
+
+  /**
+   * Updates global log-extraction config and, when frequency changes, reschedules
+   * extract-entity tasks for started engines so SO config and task intervals stay aligned.
+   */
+  public async updateLogExtractionConfig(
+    params: LogExtractionUpdateParams
+  ): Promise<LogExtractionConfig> {
+    const config = await this.logsExtractionClient.updateConfig(params);
+
+    if (params.frequency === undefined) {
+      return config;
+    }
+
+    const types = (await this.engineDescriptorClient.getAll())
+      .filter((engine) => engine.status === ENGINE_STATUS.STARTED)
+      .map((engine) => engine.type);
+
+    await rescheduleExtractEntityTasks({
+      logger: this.logger,
+      taskManager: this.taskManager,
+      types,
+      namespace: this.namespace,
+      frequency: config.frequency,
+    });
+
+    return config;
   }
 
   public async stop(type: EntityType) {

@@ -221,4 +221,41 @@ apiTest.describe('Entity Store install / update API tests', { tag: ENTITY_STORE_
       });
     }
   );
+
+  apiTest(
+    'Update frequency should reschedule the extract entity task interval',
+    async ({ apiClient, kbnClient }) => {
+      const taskId = 'entity_store:v2:extract_entity_task:user:default';
+      const entityTypes = ['user'] as const;
+
+      await apiClient.post(ENTITY_STORE_ROUTES.public.INSTALL, {
+        headers: defaultHeaders,
+        responseType: 'json',
+        body: { entityTypes, logExtraction: { frequency: '1m' } },
+      });
+
+      let task = await kbnClient.savedObjects.get({ type: 'task', id: taskId });
+      expect((task.attributes as { schedule?: { interval?: string } }).schedule?.interval).toBe(
+        '1m'
+      );
+
+      const update = await apiClient.put(ENTITY_STORE_ROUTES.public.UPDATE, {
+        headers: defaultHeaders,
+        responseType: 'json',
+        body: { logExtraction: { frequency: '22m' } },
+      });
+      expect(update.statusCode).toBe(200);
+
+      task = await kbnClient.savedObjects.get({ type: 'task', id: taskId });
+      expect((task.attributes as { schedule?: { interval?: string } }).schedule?.interval).toBe(
+        '22m'
+      );
+
+      await apiClient.post(ENTITY_STORE_ROUTES.public.UNINSTALL, {
+        headers: defaultHeaders,
+        responseType: 'json',
+        body: { entityTypes },
+      });
+    }
+  );
 });

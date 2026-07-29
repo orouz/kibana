@@ -227,6 +227,40 @@ export async function scheduleExtractEntityTask({
   }
 }
 
+/**
+ * Aligns existing extract-entity task intervals with a new frequency in one call.
+ * Used when the update API changes `logExtraction.frequency` (SO write is separate).
+ */
+export async function rescheduleExtractEntityTasks({
+  logger,
+  taskManager,
+  types,
+  namespace,
+  frequency,
+}: {
+  logger: Logger;
+  taskManager: TaskManagerStartContract;
+  types: EntityType[];
+  namespace: string;
+  frequency: string;
+}): Promise<void> {
+  if (types.length === 0) {
+    return;
+  }
+
+  try {
+    const taskIds = types.map((type) => getExtractEntityTaskId(type, namespace));
+    const { errors } = await taskManager.bulkUpdateSchedules(taskIds, { interval: frequency });
+    const unexpectedErrors = errors.filter((error) => error.error.statusCode !== 404);
+    if (unexpectedErrors.length > 0) {
+      throw new Error(unexpectedErrors.map((error) => error.error.message).join(', '));
+    }
+  } catch (e) {
+    logger.error(`Error rescheduling extract entity tasks, received ${e.message}`);
+    throw e;
+  }
+}
+
 export async function stopExtractEntityTask({
   taskManager,
   logger,
