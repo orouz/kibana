@@ -47,6 +47,7 @@ import {
   EntitiesGrid,
   useEntityAnalyticsUrlState,
   useEntityGridFilters,
+  buildEntityFiltersQuery,
   INDIVIDUAL_ROWS_COLUMNS,
   RESOLVED_ROWS_COLUMNS,
   toList,
@@ -70,6 +71,7 @@ import { useInvestigateInTimeline } from '../../common/hooks/timeline/use_invest
 import { useFlyoutApi } from '../../flyout_v2/use_flyout_api';
 import { FLYOUT_ORIGIN } from '../../common/lib/telemetry';
 import type { ESBoolQuery } from '../../../common/typed_json';
+import { isDefined } from '../../../common/utils/nullable';
 import {
   useAlertBasedTiles,
   useEntitiesWithAnomaliesCount,
@@ -157,24 +159,11 @@ const buildCombinedFilter = (
   tileFilter?: QueryDslQueryContainer | null
 ) => {
   const filterClauses: QueryDslQueryContainer[] = [
-    ...(esFilter ? [esFilter] : []),
-    ...(entityFilters.entityTypes.length
-      ? [{ terms: { 'entity.EngineMetadata.Type': entityFilters.entityTypes } }]
-      : []),
-    ...(entityFilters.riskLevels.length
-      ? [{ terms: { 'entity.risk.calculated_level': entityFilters.riskLevels } }]
-      : []),
-    ...(entityFilters.assetCriticality.length
-      ? [{ terms: { 'asset.criticality': entityFilters.assetCriticality } }]
-      : []),
-    ...(entityFilters.watchlists.length
-      ? [{ terms: { 'entity.attributes.watchlists': entityFilters.watchlists } }]
-      : []),
-    ...(entityFilters.dataSources.length
-      ? [{ terms: { 'entity.source': entityFilters.dataSources } }]
-      : []),
-    ...(tileFilter ? [tileFilter] : []),
-  ];
+    esFilter,
+    ...buildEntityFiltersQuery(entityFilters),
+    tileFilter,
+  ].filter(isDefined);
+
   const mustNotClauses =
     rowsMode === 'resolved'
       ? [{ exists: { field: 'entity.relationships.resolution.resolved_to' } }]
