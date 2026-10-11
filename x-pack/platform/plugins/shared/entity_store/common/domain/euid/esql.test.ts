@@ -18,6 +18,8 @@ import {
   buildOneFieldEvaluationEsql,
   getHostScopedUserEuidEsql,
 } from './esql';
+import { Parser, Walker } from '@elastic/esql';
+import type { ESQLAstItem, ESQLFunction } from '@elastic/esql/types';
 import type {
   EuidRankingBranch,
   FieldEvaluation,
@@ -414,13 +416,16 @@ describe('buildRankingCaseEsql', () => {
     const ranking = [[{ field: 'host.id' }]];
     const aliases = new Map([['host.id', 'host_id_present_or_null']]);
 
-    expect(buildRankingCaseEsql(ranking, aliases)).toBe('host_id_present_or_null');
+    expect(buildRankingCaseEsql(ranking, aliases, '_euid')).toEqual({
+      expression: 'host_id_present_or_null',
+      precomputes: [],
+    });
   });
 
   it('falls back to TO_STRING(<field>) when the field is not in the alias map', () => {
     const ranking = [[{ field: 'host.id' }]];
 
-    expect(buildRankingCaseEsql(ranking, new Map())).toBe('TO_STRING(host.id)');
+    expect(buildRankingCaseEsql(ranking, new Map(), '_euid').expression).toBe('TO_STRING(host.id)');
   });
 
   it('returns CONCAT for a single composed arm (NULL when any component is absent)', () => {
@@ -430,12 +435,13 @@ describe('buildRankingCaseEsql', () => {
       ['host.id', 'host_id_present_or_null'],
     ]);
 
-    expect(buildRankingCaseEsql(ranking, aliases)).toBe(
-      'CONCAT(user_name_present_or_null, "@", host_id_present_or_null)'
-    );
+    expect(buildRankingCaseEsql(ranking, aliases, '_euid')).toEqual({
+      expression: 'CONCAT(user_name_present_or_null, "@", host_id_present_or_null)',
+      precomputes: [],
+    });
   });
 
-  it('returns COALESCE of arms for a multi-arm ranking, preserving priority order', () => {
+  it('returns COALESCE of arm columns for a multi-arm ranking, preserving priority order', () => {
     const ranking = [
       [{ field: 'host.id' }],
       [{ field: 'host.name' }],
@@ -447,36 +453,51 @@ describe('buildRankingCaseEsql', () => {
       ['host.hostname', 'host_hostname_present_or_null'],
     ]);
 
-    expect(buildRankingCaseEsql(ranking, aliases)).toBe(
-      'COALESCE(host_id_present_or_null, host_name_present_or_null, host_hostname_present_or_null)'
-    );
+    expect(buildRankingCaseEsql(ranking, aliases, '_euid')).toEqual({
+      expression: 'COALESCE(_euid_arm0, _euid_arm1, _euid_arm2)',
+      precomputes: [
+        { colName: '_euid_arm0', esql: 'host_id_present_or_null' },
+        { colName: '_euid_arm1', esql: 'host_name_present_or_null' },
+        { colName: '_euid_arm2', esql: 'host_hostname_present_or_null' },
+      ],
+    });
   });
 
   it('throws on an empty ranking', () => {
-    expect(() => buildRankingCaseEsql([], new Map())).toThrow('No euid fields found');
+    expect(() => buildRankingCaseEsql([], new Map(), '_euid')).toThrow('No euid fields found');
   });
 
   it('throws when a single arm starts with a separator', () => {
-    expect(() => buildRankingCaseEsql([[{ sep: '@' }]], new Map())).toThrow(
+    expect(() => buildRankingCaseEsql([[{ sep: '@' }]], new Map(), '_euid')).toThrow(
       'Separator found in single field'
     );
   });
 });
 
 describe('buildSourcePickerEsql', () => {
-  it('returns a COALESCE of single-arm CASEs, one per source variable', () => {
-    expect(buildSourcePickerEsql('_src_entity_source', 2)).toBe(
-      'COALESCE(' +
-        'CASE(_src_entity_source0 IS NOT NULL AND _src_entity_source0 != "", _src_entity_source0), ' +
-        'CASE(_src_entity_source1 IS NOT NULL AND _src_entity_source1 != "", _src_entity_source1)' +
-        ')'
-    );
+  it('returns a COALESCE over one single-arm CASE column per source variable', () => {
+    expect(buildSourcePickerEsql('_src_entity_source', 2)).toEqual({
+      expression: 'COALESCE(_src_entity_source0_value, _src_entity_source1_value)',
+      precomputes: [
+        {
+          colName: '_src_entity_source0_value',
+          esql: 'CASE(_src_entity_source0 IS NOT NULL AND _src_entity_source0 != "", _src_entity_source0)',
+        },
+        {
+          colName: '_src_entity_source1_value',
+          esql: 'CASE(_src_entity_source1 IS NOT NULL AND _src_entity_source1 != "", _src_entity_source1)',
+        },
+      ],
+    });
   });
 
   it('works for count=1 (degenerate single-arm COALESCE)', () => {
-    expect(buildSourcePickerEsql('_src', 1)).toBe(
-      'COALESCE(CASE(_src0 IS NOT NULL AND _src0 != "", _src0))'
-    );
+    expect(buildSourcePickerEsql('_src', 1)).toEqual({
+      expression: 'COALESCE(_src0_value)',
+      precomputes: [
+        { colName: '_src0_value', esql: 'CASE(_src0 IS NOT NULL AND _src0 != "", _src0)' },
+      ],
+    });
   });
 
   it('throws for count=0 (would produce invalid COALESCE())', () => {
@@ -499,7 +520,7 @@ describe('buildDestinationFieldEsql', () => {
     expect(expression).toBe('CASE(_src IS NULL OR _src == "", "default", _src)');
   });
 
-  it('sourceMatchesAny whenClause -> COALESCE with IN list, no precompute columns emitted', () => {
+  it('sourceMatchesAny whenClause -> COALESCE over an IN-list arm column and the fallback column', () => {
     const { expression, conditionPrecomputes } = buildDestinationFieldEsql(
       '_src',
       '_eval_dest',
@@ -507,17 +528,17 @@ describe('buildDestinationFieldEsql', () => {
       [{ sourceMatchesAny: ['okta', 'entityanalytics_okta'], then: 'okta' }]
     );
 
-    expect(conditionPrecomputes).toEqual([]);
-    expect(expression).toBe(
-      'COALESCE(' +
-        'CASE(COALESCE(_src IN ("okta", "entityanalytics_okta"), FALSE), "okta"), ' +
-        'CASE(_src IS NULL OR _src == "", "unknown"), ' +
-        '_src' +
-        ')'
-    );
+    expect(conditionPrecomputes).toEqual([
+      {
+        colName: '_eval_dest_then0',
+        esql: 'CASE(_src IN ("okta", "entityanalytics_okta"), "okta")',
+      },
+      { colName: '_eval_dest_fallback', esql: 'CASE(_src IS NULL OR _src == "", "unknown")' },
+    ]);
+    expect(expression).toBe('COALESCE(_eval_dest_then0, _eval_dest_fallback, _src)');
   });
 
-  it('condition whenClause -> emits one precompute column and references it in the COALESCE arm', () => {
+  it('condition whenClause -> a condition column, an arm column that reads it, and the fallback column', () => {
     const { expression, conditionPrecomputes } = buildDestinationFieldEsql(
       '_src',
       '_eval_dest',
@@ -526,15 +547,11 @@ describe('buildDestinationFieldEsql', () => {
     );
 
     expect(conditionPrecomputes).toEqual([
-      { colName: '_eval_dest_arm0', esql: 'TO_STRING(event.kind) == "asset"' },
+      { colName: '_eval_dest_arm0', esql: '(TO_STRING(event.kind) == "asset")' },
+      { colName: '_eval_dest_then0', esql: 'CASE(_eval_dest_arm0, "local")' },
+      { colName: '_eval_dest_fallback', esql: 'CASE(_src IS NULL OR _src == "", "unknown")' },
     ]);
-    expect(expression).toBe(
-      'COALESCE(' +
-        'CASE(COALESCE(_eval_dest_arm0, FALSE), "local"), ' +
-        'CASE(_src IS NULL OR _src == "", "unknown"), ' +
-        '_src' +
-        ')'
-    );
+    expect(expression).toBe('COALESCE(_eval_dest_then0, _eval_dest_fallback, _src)');
   });
 
   describe('field-mapping then', () => {
@@ -549,46 +566,51 @@ describe('buildDestinationFieldEsql', () => {
       then: { field: string; mapping: Record<string, string> };
     };
 
-    it('emits a precompute column for the condition and a nested CASE for the mapping', () => {
+    it('emits a condition column, one column per mapping entry, and an arm column', () => {
       const { expression, conditionPrecomputes } = buildDestinationFieldEsql(
         '_src',
         '_eval_dest',
         '"unknown"',
         [cloudProviderClause]
       );
+      const byName = new Map(conditionPrecomputes.map(({ colName, esql }) => [colName, esql]));
 
-      expect(conditionPrecomputes).toHaveLength(1);
-      expect(conditionPrecomputes[0].colName).toBe('_eval_dest_arm0');
       // The precomputed condition covers both fields from the real user.ts compound condition.
-      expect(conditionPrecomputes[0].esql).toContain('event.kind');
-      expect(conditionPrecomputes[0].esql).toContain('asset_discovery');
+      expect(byName.get('_eval_dest_arm0')).toContain('event.kind');
+      expect(byName.get('_eval_dest_arm0')).toContain('asset_discovery');
 
-      // Outer CASE guards on the condition column; inner CASE maps cloud.provider values.
-      // When condition is true but cloud.provider is absent or not in the mapping,
-      // the inner CASE returns NULL → COALESCE falls through to the next arm.
-      // The expression structure is stable regardless of the condition shape.
-      expect(expression).toBe(
-        'COALESCE(' +
-          'CASE(COALESCE(_eval_dest_arm0, FALSE), CASE(MV_FIRST(TO_STRING(cloud.provider)) == "aws", "aws", MV_FIRST(TO_STRING(cloud.provider)) == "gcp", "gcp", MV_FIRST(TO_STRING(cloud.provider)) == "azure", "entra_id")), ' +
-          'CASE(_src IS NULL OR _src == "", "unknown"), ' +
-          '_src' +
-          ')'
+      // The mapping reads cloud.provider once, maps it with one single-condition CASE per
+      // entry, and combines the entries. When the condition holds but cloud.provider is
+      // absent or not in the mapping, the mapping is NULL → COALESCE falls through.
+      expect(byName.get('_eval_dest_map0_value')).toBe('MV_FIRST(TO_STRING(cloud.provider))');
+      expect(byName.get('_eval_dest_map0_0')).toBe('CASE(_eval_dest_map0_value == "aws", "aws")');
+      expect(byName.get('_eval_dest_map0_1')).toBe('CASE(_eval_dest_map0_value == "gcp", "gcp")');
+      expect(byName.get('_eval_dest_map0_2')).toBe(
+        'CASE(_eval_dest_map0_value == "azure", "entra_id")'
       );
+      expect(byName.get('_eval_dest_map0')).toBe(
+        'COALESCE(_eval_dest_map0_0, _eval_dest_map0_1, _eval_dest_map0_2)'
+      );
+      expect(byName.get('_eval_dest_then0')).toBe('CASE(_eval_dest_arm0, _eval_dest_map0)');
+      expect(expression).toBe('COALESCE(_eval_dest_then0, _eval_dest_fallback, _src)');
     });
 
-    it('inner mapping CASE has no fallback arm so unmapped values produce NULL (fall-through)', () => {
-      // The inner CASE has exactly 3 explicit condition→value pairs and no trailing fallback.
+    it('mapping has no fallback entry so unmapped values produce NULL (fall-through)', () => {
+      // The mapping has exactly 3 explicit value→namespace entries and no catch-all.
       // An unmapped provider (e.g. "ibm") or absent cloud.provider yields NULL,
       // which causes the outer COALESCE to try the next arm instead of assigning a namespace.
-      const { expression } = buildDestinationFieldEsql('_src', '_eval_dest', '"unknown"', [
-        cloudProviderClause,
-      ]);
-      // Inner CASE maps exactly the 3 declared providers.
-      expect(expression).toContain('"aws", "aws"');
-      expect(expression).toContain('"gcp", "gcp"');
-      expect(expression).toContain('"azure", "entra_id"');
-      // No trailing catch-all default inside the inner CASE.
-      expect(expression).not.toContain('"ibm"');
+      const { conditionPrecomputes } = buildDestinationFieldEsql(
+        '_src',
+        '_eval_dest',
+        '"unknown"',
+        [cloudProviderClause]
+      );
+      const mappingEntries = conditionPrecomputes.filter(({ colName }) =>
+        /^_eval_dest_map0_\d+$/.test(colName)
+      );
+
+      expect(mappingEntries).toHaveLength(3);
+      expect(conditionPrecomputes.map(({ esql }) => esql).join('\n')).not.toContain('"ibm"');
     });
   });
 });
@@ -628,7 +650,10 @@ describe('buildOneFieldEvaluationEsql', () => {
       '_src_entity_namespace1 = MV_FIRST(SPLIT(MV_FIRST(TO_STRING(data_stream.dataset)), "."))'
     );
     expect(result).toContain(
-      '_src_entity_namespace = COALESCE(CASE(_src_entity_namespace0 IS NOT NULL'
+      '_src_entity_namespace0_value = CASE(_src_entity_namespace0 IS NOT NULL'
+    );
+    expect(result).toContain(
+      '_src_entity_namespace = COALESCE(_src_entity_namespace0_value, _src_entity_namespace1_value)'
     );
     expect(result).toContain('entity.namespace = CASE(_src_entity_namespace IS NULL');
   });
@@ -748,5 +773,57 @@ describe('getHostScopedUserEuidEsql', () => {
       // user.email belongs to the IDP ranking branch, not this one.
       expect(presenceGate).not.toContain('user.email');
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Evaluation shape: keeps ES|QL on its page-at-a-time evaluators
+// ---------------------------------------------------------------------------
+
+/** A column, a literal, or `TO_STRING` of a column (the `_present_or_null` aliases). */
+const isColumnOrLiteral = (node: ESQLAstItem): boolean => {
+  if (Array.isArray(node)) return false;
+  if (node.type === 'column' || node.type === 'literal') return true;
+  return (
+    node.type === 'function' &&
+    node.name === 'to_string' &&
+    node.args.length === 1 &&
+    !Array.isArray(node.args[0]) &&
+    node.args[0].type === 'column'
+  );
+};
+
+/** Every CASE and COALESCE call in an EVAL fragment. */
+const getConditionalCalls = (evalFragment: string): ESQLFunction[] => {
+  const { root, errors } = Parser.parse(`FROM logs | EVAL ${evalFragment}`);
+  expect(errors).toEqual([]);
+  return Walker.findAll(
+    root,
+    (node) => node.type === 'function' && (node.name === 'case' || node.name === 'coalesce')
+  ) as ESQLFunction[];
+};
+
+describe('generated CASE and COALESCE expressions', () => {
+  const fragments = (['generic', 'host', 'user', 'service'] as const).flatMap((entityType) => [
+    [`getEuidEsqlEvaluation(${entityType})`, getEuidEsqlEvaluation(entityType, 'entity.id')],
+    [`getFieldEvaluationsEsql(${entityType})`, getFieldEvaluationsEsql(entityType)],
+  ]);
+
+  it.each(fragments)('%s gives CASE a single condition', (_, esql) => {
+    for (const { name, args } of getConditionalCalls(esql ?? 'x = 1')) {
+      if (name === 'case') expect(args.length).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it.each(fragments)('%s passes only columns and literals as values', (_, esql) => {
+    for (const { name, args, text } of getConditionalCalls(esql ?? 'x = 1')) {
+      // A CASE condition may be any boolean expression; its values and every COALESCE
+      // argument must be columns or literals.
+      const values = name === 'case' ? args.slice(1) : args;
+      expect({ call: text, allColumnsOrLiterals: values.every(isColumnOrLiteral) }).toEqual({
+        call: text,
+        allColumnsOrLiterals: true,
+      });
+    }
   });
 });
