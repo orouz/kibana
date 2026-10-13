@@ -65,8 +65,6 @@ interface EntitySeed {
   level: Level;
   /** Boundary docs, oldest first: score, level and hours before the 30 day boundary. */
   boundary?: ReadonlyArray<[score: number, level: Level, hoursBefore: number]>;
-  /** Group score docs at the boundary: the risk engine writes them next to the entity's own. */
-  groupBoundary?: ReadonlyArray<[score: number, level: Level, hoursBefore: number]>;
   criticality?: string;
   resolvedTo?: string;
 }
@@ -82,8 +80,6 @@ const ENTITIES: readonly EntitySeed[] = [
     score: 60,
     level: 'Moderate',
     boundary: [[40, 'Moderate', IN_WINDOW_LAST]],
-    // Later than its own boundary score, so only the own scores may count.
-    groupBoundary: [[60, 'Moderate', IN_WINDOW_LAST / 2]],
     criticality: 'high_impact',
   },
   { id: 'host:exact', score: 60, level: 'Moderate', boundary: [[50, 'Moderate', IN_WINDOW_LAST]] },
@@ -157,21 +153,15 @@ const toEntityDoc = ({ id, score, level, criticality, resolvedTo }: EntitySeed, 
   ...(resolvedTo ? { 'entity.relationships.resolution.resolved_to': resolvedTo } : {}),
 });
 
-const toRiskDocs = ({ id, boundary = [], groupBoundary = [] }: EntitySeed, now: number) => {
+const toRiskDocs = ({ id, boundary = [] }: EntitySeed, now: number) => {
   const type = id.split(':')[0];
-  const toDocs = (
-    docs: NonNullable<EntitySeed['boundary']>,
-    scoreType: 'base' | 'resolution'
-  ): Array<Record<string, unknown>> =>
-    docs.map(([score, level, hoursBefore]) => ({
-      '@timestamp': toIsoAgo(now, BOUNDARY_MS + hoursBefore * HOUR_MS),
-      [`${type}.risk.id_field`]: 'entity.id',
-      [`${type}.risk.id_value`]: id,
-      [`${type}.risk.calculated_score_norm`]: score,
-      [`${type}.risk.calculated_level`]: level,
-      [`${type}.risk.score_type`]: scoreType,
-    }));
-  return [...toDocs(boundary, 'base'), ...toDocs(groupBoundary, 'resolution')];
+  return boundary.map(([score, level, hoursBefore]) => ({
+    '@timestamp': toIsoAgo(now, BOUNDARY_MS + hoursBefore * HOUR_MS),
+    [`${type}.risk.id_field`]: 'entity.id',
+    [`${type}.risk.id_value`]: id,
+    [`${type}.risk.calculated_score_norm`]: score,
+    [`${type}.risk.calculated_level`]: level,
+  }));
 };
 
 interface FixtureIndex {
@@ -209,7 +199,6 @@ const FIXTURE_INDICES: readonly FixtureIndex[] = [
             [`${type}.risk.id_value`, KEYWORD],
             [`${type}.risk.calculated_score_norm`, FLOAT],
             [`${type}.risk.calculated_level`, KEYWORD],
-            [`${type}.risk.score_type`, KEYWORD],
           ]
         )
       ),
