@@ -32,7 +32,7 @@ export const getEntityAlias = (namespace: string) => getEntitiesAlias(ENTITY_LAT
 export const getAlertsIndex = (namespace: string) => `${DEFAULT_ALERTS_INDEX}-${namespace}`;
 export const getRiskScoreIndex = (namespace: string) => getRiskScoreTimeSeriesIndex(namespace);
 
-const RISK_SCORE_TYPE = `COALESCE(host.risk.score_type, user.risk.score_type, service.risk.score_type)`;
+export const RISK_SCORE_TYPE = `COALESCE(host.risk.score_type, user.risk.score_type, service.risk.score_type)`;
 
 /**
  * Keeps the risk score docs of the entity itself. A resolution score is the entity's group
