@@ -30,6 +30,15 @@ export const getEntityAlias = (namespace: string) => getEntitiesAlias(ENTITY_LAT
 export const getAlertsIndex = (namespace: string) => `${DEFAULT_ALERTS_INDEX}-${namespace}`;
 export const getRiskScoreIndex = (namespace: string) => getRiskScoreTimeSeriesIndex(namespace);
 
+const RISK_SCORE_TYPE = `COALESCE(host.risk.score_type, user.risk.score_type, service.risk.score_type)`;
+
+/**
+ * Keeps the risk score docs of the entity itself. A resolution score is the entity's group
+ * score, written next to the entity's own score with the same key and time; docs from before
+ * the score types have no type and are the entity's own.
+ */
+export const OWN_RISK_SCORE_CONDITION = `(${RISK_SCORE_TYPE} IS NULL OR ${RISK_SCORE_TYPE} != "resolution")`;
+
 // ── ML anomalies ─────────────────────────────────────────────────────────────
 // One definition of an entity anomaly, shared by the anomalies tile and column.
 

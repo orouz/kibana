@@ -6,7 +6,11 @@
  */
 
 import type { TimeRange } from '../../entities_grid/common';
-import { buildLookback, getRiskScoreIndex } from '../../entities_grid/queries/esql';
+import {
+  buildLookback,
+  getRiskScoreIndex,
+  OWN_RISK_SCORE_CONDITION,
+} from '../../entities_grid/queries/esql';
 
 /**
  * Builds an ES|QL query that counts entities whose risk score rose by ≥10 points
@@ -49,6 +53,7 @@ export const buildRiskMoversCountQuery = (
     // Boundary scores from the risk score docs.
     `  FROM ${index}`,
     `  | WHERE @timestamp >= ${boundary} - ${BOUNDARY_WINDOW_HOURS} hours AND @timestamp <= ${boundary}`,
+    `  | WHERE ${OWN_RISK_SCORE_CONDITION}`,
     `  | EVAL entity_euid = COALESCE(host.risk.id_value, user.risk.id_value, service.risk.id_value)`,
     `  | EVAL risk_score = COALESCE(host.risk.calculated_score_norm, user.risk.calculated_score_norm, service.risk.calculated_score_norm)`,
     `  | WHERE entity_euid IS NOT NULL`,
