@@ -7,7 +7,7 @@
 
 import { httpServiceMock } from '@kbn/core/public/mocks';
 import { buildKeepClause } from './esql';
-import type { PageCursor, QueryArgs, Row } from '../common';
+import type { QueryArgs, Row } from '../common';
 import { COLUMN_ENRICHERS, SORT_PAGE_FETCHERS } from '../grid_columns';
 import { buildEntitiesInViewCountQuery } from './entities_in_view';
 import { alertCountQuerySpec } from './alerts';
@@ -20,7 +20,6 @@ const BASE_ARGS: QueryArgs = {
   namespace: 'default',
   timeRange: '7d',
   sort: { field: 'entity.name', direction: 'desc' },
-  cursor: null,
   pageSize: 25,
   rowsMode: 'resolved',
   concreteEntityIndexName: '.entities.v2.latest.default-00001',
@@ -44,9 +43,6 @@ const LARGE_VIEW_FETCHERS = SORT_PAGE_FETCHERS.filter(([id]) =>
     id
   )
 );
-
-/** Sort value of the rows without a value, per sort page column; null when not listed. */
-const EMPTY_SORT_VALUES: Readonly<Record<string, number>> = { alert_count: 0, group_size: 1 };
 
 const PAGE_ROWS: readonly Row[] = [
   {
@@ -101,13 +97,6 @@ const recordSortQueries = async (
   return queries.join('\n\n');
 };
 
-const cursorFor = (sortField: string): PageCursor => ({
-  sortField,
-  sortDirection: 'desc',
-  sortValue: 42,
-  entityId: 'host:h-1',
-});
-
 describe('entities grid query builders', () => {
   describe('count', () => {
     it.each([
@@ -126,12 +115,11 @@ describe('entities grid query builders', () => {
       expect(await recordSortQueries(fetchSortPage, args, 0)).toMatchSnapshot();
     });
 
-    it('builds the sort query with filters and a cursor', async () => {
+    it('builds the sort query with filters', async () => {
       const args: QueryArgs = {
         ...BASE_ARGS,
         ...FILTERED_ARGS,
         sort: { field: sortField, direction: 'asc' },
-        cursor: cursorFor(sortField),
       };
 
       expect(await recordSortQueries(fetchSortPage, args, 0)).toMatchSnapshot();
@@ -146,40 +134,20 @@ describe('entities grid query builders', () => {
 
       expect(await recordSortQueries(fetchSortPage, args, 0)).toMatchSnapshot();
     });
-
-    it('builds the sort query with a cursor on an empty value', async () => {
-      const args: QueryArgs = {
-        ...BASE_ARGS,
-        cursor: { ...cursorFor(sortField), sortValue: null },
-        sort: { field: sortField, direction: 'desc' },
-      };
-
-      expect(await recordSortQueries(fetchSortPage, args, 0)).toMatchSnapshot();
-    });
   });
 
   describe.each(LARGE_VIEW_FETCHERS)(
     'sort page by %s on a large view',
     (sortField, fetchSortPage) => {
-      const emptyCursor: PageCursor = {
-        ...cursorFor(sortField),
-        sortValue: EMPTY_SORT_VALUES[sortField] ?? null,
-      };
-
       it.each([
         ['the first page descending', { sort: { field: sortField, direction: 'desc' } }],
         ['the first page ascending', { sort: { field: sortField, direction: 'asc' } }],
         [
-          'a page after a value with entity filters',
+          'the first page with entity filters',
           {
             sort: { field: sortField, direction: 'desc' },
             entityExpression: ENTITY_EXPRESSION,
-            cursor: cursorFor(sortField),
           },
-        ],
-        [
-          'a page after an empty value',
-          { sort: { field: sortField, direction: 'desc' }, cursor: emptyCursor },
         ],
         [
           'the first page with a search',

@@ -7,7 +7,6 @@
 
 import { getEntityIds, getEntityId, getNumber, getString, RISK_SCORE_NORM_FIELD } from '../common';
 import {
-  buildAfterIdClause,
   buildKeepClause,
   buildSortSuffix,
   buildLookupJoinClause,
@@ -19,7 +18,7 @@ import {
 import { buildMergedForeignRows, buildMergedForeignSortQuery } from './foreign_sort';
 import type { QueryArgs } from '../common';
 import type { MergedForeignRowsOptions } from './foreign_sort';
-import { buildEmptyRowsQuery, buildValueCursorClause, fetchSplitSortPage } from './split_sort';
+import { buildEmptyRowsQuery, fetchSplitSortPage } from './split_sort';
 import type { SplitSortPlan } from './split_sort';
 import type { ColumnQuerySpec, PageEnricher } from './types';
 
@@ -98,7 +97,6 @@ const riskScoreChangeSplitSortPlan: SplitSortPlan = {
     [
       ...buildScoredEntityRows(args),
       `| WHERE ${RISK_SCORE_CHANGE_FIELD} IS NOT NULL`,
-      ...buildValueCursorClause(args.cursor),
       ...buildSortSuffix(RISK_SCORE_CHANGE_FIELD, args.sort.direction, limit),
       buildLookupJoinClause(args.concreteEntityIndexName),
       buildKeepClause(args, RISK_SCORE_CHANGE_FIELD),
@@ -107,7 +105,7 @@ const riskScoreChangeSplitSortPlan: SplitSortPlan = {
     ].join('\n'),
   buildSortQuery: buildRiskScoreChangeSortQuery,
   // Empty rows: unscored entities, plus scored entities without a reference score.
-  fetchEmptyRows: async (args, runQuery, afterId, limit) => {
+  fetchEmptyRows: async (args, runQuery, limit) => {
     const [unscored, unreferenced] = await Promise.all([
       runQuery(
         buildEmptyRowsQuery(
@@ -117,7 +115,6 @@ const riskScoreChangeSplitSortPlan: SplitSortPlan = {
             emptyColumns: `${RISK_SCORE_CHANGE_FIELD} = TO_DOUBLE(null)`,
             columns: [RISK_SCORE_CHANGE_FIELD],
           },
-          afterId,
           limit
         )
       ),
@@ -125,7 +122,6 @@ const riskScoreChangeSplitSortPlan: SplitSortPlan = {
         [
           ...buildScoredEntityRows(args),
           `| WHERE ${RISK_SCORE_CHANGE_FIELD} IS NULL`,
-          ...buildAfterIdClause(afterId),
           '| SORT `entity.id` ASC',
           `| LIMIT ${limit}`,
           buildLookupJoinClause(args.concreteEntityIndexName),

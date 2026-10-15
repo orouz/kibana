@@ -110,21 +110,12 @@ export const EMPTY_ENTITY_FILTERS: EntityFilters = {
   watchlists: [],
   dataSources: [],
 };
-/** A sort column value in a cursor. Sort columns hold strings, numbers or null. */
 export type SortValue = string | number | null;
-
-export interface PageCursor {
-  sortField: string;
-  sortDirection: SortDir;
-  sortValue: SortValue;
-  entityId: string;
-}
 
 export interface QueryArgs {
   namespace: string;
   timeRange: TimeRange;
   sort: { field: string; direction: SortDir };
-  cursor: PageCursor | null;
   pageSize: number;
   rowsMode: RowsMode;
   /** Concrete (non-alias) entity store index name — required for ES|QL LOOKUP JOIN from the browser. */

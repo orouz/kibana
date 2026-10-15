@@ -32,9 +32,8 @@ see the comment on `useEntityGridData` in `../hooks/use_entity_grid_data.ts`.
 
 ## What every query has in common
 
-- **Paging**: each query returns one page plus one extra row. The extra row tells whether there
-  is a next page. The last row of a page is where the next page starts (`buildCursorClause` in
-  `esql.ts`).
+- **Rows**: the grid loads up to 1,000 rows in one query, plus one extra row that tells whether
+  the view has more.
 - **Time range**: always written as `buildLookback(range)`, which is `NOW() - N days`. The grid
   and the tiles use the same helper, so they agree on the window.
 - **Count**: always the number of entities in view. Besides showing the total, it tells the
@@ -51,7 +50,8 @@ Small views use one simple query per column. On large views that simple query ge
 
 | Sort | Search? | Small view | Large view |
 |---|---|---|---|
-| Name, type, risk score, criticality, first seen, last seen | any | one query on the entity index (`native.ts`) | same |
+| Name, type, risk score, first seen, last seen | any | one query on the entity index (`native.ts`) | same |
+| Criticality | any | one query per level, highest first, until the rows are full (`native.ts`) | same |
 | Alerts, last alert | no | alerts and entities read together and merged (`alerts.ts`) | split sort |
 | Anomalies | no | anomalies merged with the entities in view (`anomalies.ts`, `foreign_sort.ts`) | split sort |
 | Risk score change | no | old scores merged with the entities in view (`risk_score_change.ts`) | split sort for scored entities |
@@ -66,8 +66,8 @@ It reads value rows and empty rows separately:
 - Empty rows: a plain query on the entity index for the entities in view that are not in the
   value rows.
 
-A page can take the end of one part and the start of the other. Entities with no alerts have
-0, so they come first when sorting ascending. A missing last alert or anomaly count has no
+The rows take the value rows, then the empty rows when they aren't full. Entities with no
+alerts have 0, so they come first when sorting ascending. A missing last alert or anomaly count has no
 value, so it always comes last.
 
 **Split sort for scored entities** (risk score change). Only entities with a risk score can
@@ -79,7 +79,7 @@ have a change.
 **Groups and single entities** (Records, `fetchAliasGroupsPage`). Most entities are alone in their
 group. So:
 - the groups with aliases are built from the alias entities, which are few;
-- the single entities are read in order from the entity index, a page at a time;
+- the single entities are read in order from the entity index;
 - the browser merges both, and then reads the entity fields of the page's groups.
 
 **Records with a search** (`fetchSearchedTargetsPage`). The search decides which rows show, but

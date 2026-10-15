@@ -22,13 +22,12 @@ import {
   buildLookupJoinClause,
   ESQL_MAX_RESULT_ROWS,
   toList,
-  buildCursorClause,
   buildJoinedPageSteps,
   compareEntityIds,
 } from './esql';
 import { buildEntitiesInViewSteps } from './entities_in_view';
 import { buildMergedForeignSortQuery } from './foreign_sort';
-import type { QueryArgs, Row, PageCursor, SortDir } from '../common';
+import type { QueryArgs, Row, SortDir } from '../common';
 import { SPLIT_SORT_MIN_VIEW_SIZE, buildEmptyRowsQuery } from './split_sort';
 import type { ColumnQuerySpec, EsqlRunner, PageEnricher, SortPageContext } from './types';
 
@@ -72,7 +71,6 @@ const getMaxAliasGroups = (pageSize: number): number => ESQL_MAX_RESULT_ROWS - p
  */
 const buildAliasFirstGroupSizeSortQuery = (args: QueryArgs): string => {
   const entityFilter = buildFilterClause(args.entityExpression);
-  const cursor = buildCursorClause(args.cursor);
   const indent = (steps: string[]) => steps.map((step) => `  ${step}`);
   return [
     'FROM (',
@@ -94,7 +92,6 @@ const buildAliasFirstGroupSizeSortQuery = (args: QueryArgs): string => {
       `| WHERE ${ENTITY_TYPE_FILTER} AND ${RESOLVED_TO_FIELD} IS NULL`,
       ...entityFilter,
       `| EVAL ${GROUP_SIZE_FIELD} = TO_LONG(1)`,
-      ...cursor,
       `| SORT \`entity.id\` ASC`,
       `| LIMIT ${args.pageSize + 1 + getMaxAliasGroups(args.pageSize)}`,
       `| KEEP \`entity.id\`, ${GROUP_SIZE_FIELD}`,
@@ -154,15 +151,14 @@ const buildAliasGroupsQuery = (args: QueryArgs): string =>
   ].join('\n');
 
 /**
- * Entities in view, as groups of one, after `afterId` by entity.id. A top level query, so
- * Lucene sorts and limits it; inside a FROM subquery it reads every entity.id. Some of them
- * head a group with aliases, so callers ask for that many extra rows.
+ * Entities in view, as groups of one, by entity.id. A top level query, so Lucene sorts and
+ * limits it; inside a FROM subquery it reads every entity.id. Some of them head a group with
+ * aliases, so callers ask for that many extra rows.
  */
-const buildSingleEntitiesQuery = (args: QueryArgs, afterId: string | null, limit: number) =>
+const buildSingleEntitiesQuery = (args: QueryArgs, limit: number) =>
   buildEmptyRowsQuery(
     args,
     { emptyColumns: `${GROUP_SIZE_FIELD} = TO_LONG(1)`, columns: [GROUP_SIZE_FIELD] },
-    afterId,
     limit
   );
 
@@ -175,15 +171,6 @@ const compareGroups =
     const bySize = getGroupSize(a) - getGroupSize(b);
     if (bySize !== 0) return direction === 'desc' ? -bySize : bySize;
     return compareEntityIds(a, b);
-  };
-
-const isAfterCursor =
-  (cursor: PageCursor | null) =>
-  (row: Row): boolean => {
-    if (cursor == null || typeof cursor.sortValue !== 'number') return true;
-    const size = getGroupSize(row);
-    if (size === cursor.sortValue) return (getEntityId(row) ?? '') > cursor.entityId;
-    return cursor.sortDirection === 'desc' ? size < cursor.sortValue : size > cursor.sortValue;
   };
 
 /**
@@ -264,11 +251,8 @@ const fetchWithEntityDocs = async (
   });
 };
 
-const getPage = (rows: Row[], { sort, cursor, pageSize }: QueryArgs): Row[] =>
-  rows
-    .sort(compareGroups(sort.direction))
-    .filter(isAfterCursor(cursor))
-    .slice(0, pageSize + 1);
+const getPage = (rows: Row[], { sort, pageSize }: QueryArgs): Row[] =>
+  rows.sort(compareGroups(sort.direction)).slice(0, pageSize + 1);
 
 /**
  * A search that matches few targets: read them, then the size of just their groups. Faster
@@ -306,9 +290,7 @@ const fetchSearchedTargetsPage = async (
  *
  * Why: most entities are alone in their group, so only the alias docs need grouping.
  * Measured (10M entities, 16GB ECH, Oct 2026): grouping every entity in one query 20–25s;
- * this 1.3–2.7s (a deep page 7s), with the same rows.
- * Rejected: caching the groups with aliases between pages. It saves ~1s per page after the
- * first, but would show stale group sizes as entities resolve.
+ * this 1.3–2.7s, with the same rows.
  */
 const fetchAliasGroupsPage = async (args: QueryArgs, runQuery: EsqlRunner): Promise<Row[]> => {
   const aliasGroups = await runQuery(buildAliasGroupsQuery(args));
@@ -329,19 +311,12 @@ const fetchAliasGroupsPage = async (args: QueryArgs, runQuery: EsqlRunner): Prom
     : aliasGroupIds;
   const groups = aliasGroups.filter((row) => searchedIds.has(getEntityId(row) ?? ''));
 
-  const { cursor } = args;
   const limit = args.pageSize + 1;
-  // Groups with aliases (size 2 or more) sort before single entities descending, after them
-  // ascending. Skip the singles when the page can't reach them.
-  const groupsAfterCursor = groups.filter(isAfterCursor(cursor)).length;
-  const needsSingles =
-    args.sort.direction === 'desc'
-      ? groupsAfterCursor < limit
-      : cursor == null || cursor.sortValue === 1;
-  // Single entities sort by entity.id: only a cursor among them skips some.
-  const afterId = cursor?.sortValue === 1 ? cursor.entityId : null;
+  // Groups with aliases (size 2 or more) sort before single entities descending: skip the
+  // singles when the groups fill the page.
+  const needsSingles = args.sort.direction === 'asc' || groups.length < limit;
   const singles = needsSingles
-    ? (await runQuery(buildSingleEntitiesQuery(args, afterId, limit + aliasGroupIds.size)))
+    ? (await runQuery(buildSingleEntitiesQuery(args, limit + aliasGroupIds.size)))
         // A target with aliases is in `groups` with its full size.
         .filter((row) => !aliasGroupIds.has(getEntityId(row) ?? ''))
     : [];

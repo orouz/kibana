@@ -16,7 +16,6 @@ const baseArgs: QueryArgs = {
   namespace: 'default',
   timeRange: '30d',
   sort: { field: 'group_size', direction: 'desc' },
-  cursor: null,
   pageSize: 2,
   rowsMode: 'resolved',
   concreteEntityIndexName: '.entities.v2.latest.default-00001',
@@ -144,37 +143,6 @@ describe('group size sort page', () => {
       runQuery
     );
     expect(ids(rows)).toEqual(['a', 't']);
-  });
-
-  it('continues single entities after a cursor among them', async () => {
-    const { runQuery } = fakeRunner([], [single('a'), single('b'), single('c'), single('d')]);
-    const cursor = {
-      sortField: 'group_size',
-      sortDirection: 'asc' as const,
-      sortValue: 1,
-      entityId: 'b',
-    };
-    const rows = await runPage(
-      { ...baseArgs, sort: { field: 'group_size', direction: 'asc' }, cursor },
-      runQuery
-    );
-    expect(ids(rows)).toEqual(['c', 'd']);
-  });
-
-  it('skips single entities ascending once the cursor is past them', async () => {
-    const { runQuery, kinds } = fakeRunner([group('t', 2), group('u', 3)], [single('a')]);
-    const cursor = {
-      sortField: 'group_size',
-      sortDirection: 'asc' as const,
-      sortValue: 2,
-      entityId: 't',
-    };
-    const rows = await runPage(
-      { ...baseArgs, sort: { field: 'group_size', direction: 'asc' }, cursor },
-      runQuery
-    );
-    expect(ids(rows)).toEqual(['u']);
-    expect(kinds).not.toContain('singles');
   });
 
   it('asks for no more rows than ES|QL returns', async () => {

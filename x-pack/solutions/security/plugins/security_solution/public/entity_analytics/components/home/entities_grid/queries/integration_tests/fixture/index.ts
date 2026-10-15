@@ -100,7 +100,6 @@ export const BASE_ARGS: QueryArgs = {
   namespace: NAMESPACE,
   timeRange: '30d',
   sort: { field: 'entity.risk.calculated_score_norm', direction: 'desc' },
-  cursor: null,
   pageSize: 25,
   rowsMode: 'resolved',
   concreteEntityIndexName: ENTITY_INDEX,

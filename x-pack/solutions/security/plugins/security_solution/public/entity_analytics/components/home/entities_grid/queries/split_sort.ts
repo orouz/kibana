@@ -8,8 +8,6 @@
 import { ENTITY_ID_FIELD, getEntityIds } from '../common';
 import { buildEntitiesInViewConditions, buildEntitiesInViewSteps } from './entities_in_view';
 import {
-  buildAfterIdClause,
-  buildAfterValuePredicate,
   buildKeepClause,
   buildLookupJoinClause,
   buildSortSuffix,
@@ -17,7 +15,7 @@ import {
   ESQL_MAX_RESULT_ROWS,
   toList,
 } from './esql';
-import type { PageCursor, QueryArgs, Row } from '../common';
+import type { QueryArgs, Row } from '../common';
 import type { EsqlRunner, SortPageContext } from './types';
 
 /*
@@ -31,8 +29,8 @@ import type { EsqlRunner, SortPageContext } from './types';
  * - empty rows: every other entity in view. Their sort value is the column's empty value
  *   (0 or null), so they sort as one block, by `entity.id` ascending, and a native query
  *   over the entity index reads them.
- * Pages use a cursor (sort value + entity.id), so each page reads from one block, or the end
- * of one block and the start of the other. Every page has the same rows as the general query.
+ * The page reads the value rows, then the empty rows when it isn't full (or the other way
+ * round when the empty rows sort first). It has the same rows as the general query.
  *
  * Above SPLIT_SORT_MIN_VIEW_SIZE entities in view this is about 5–10x faster on ECH; below
  * it the general query is cheaper. Search keeps the general query: KQL can't run after a
@@ -64,27 +62,13 @@ const MAX_VALUE_ROWS = ESQL_MAX_RESULT_ROWS - 1;
 export interface SplitSortPlan {
   /** Sort value of an entity without foreign data: 0 sorts first ascending, null always last. */
   emptyValue: 0 | null;
-  /** Page of value rows after the cursor, sorted, at most `limit` rows. */
+  /** Value rows, sorted, at most `limit` rows. */
   buildValueRowsQuery: (args: QueryArgs, limit: number) => string;
   /** General sort query, for views where the split does not apply. */
   buildSortQuery: (args: QueryArgs) => string;
-  /** Page of empty rows after `afterId`, sorted by entity.id, at most `limit` rows. */
-  fetchEmptyRows: (
-    args: QueryArgs,
-    runQuery: EsqlRunner,
-    afterId: string | null,
-    limit: number
-  ) => Promise<Row[] | null>;
+  /** Empty rows, sorted by entity.id, at most `limit` rows. */
+  fetchEmptyRows: (args: QueryArgs, runQuery: EsqlRunner, limit: number) => Promise<Row[] | null>;
 }
-
-/**
- * Keeps the value rows after the cursor in `SORT field <dir>, entity.id ASC` order. Unlike
- * `buildCursorClause` it leaves out empty rows: the empty block is read separately.
- */
-export const buildValueCursorClause = (cursor: PageCursor | null): string[] =>
-  cursor?.sortValue != null
-    ? [`| WHERE ${buildAfterValuePredicate(cursor, cursor.sortValue)}`]
-    : [];
 
 interface EmptyRowsOptions {
   /** Entities to leave out: the entities with a value. */
@@ -97,18 +81,16 @@ interface EmptyRowsOptions {
   columns: readonly string[];
 }
 
-/** Page of entities in view without a value, after `afterId`, sorted by entity.id. */
+/** Entities in view without a value, sorted by entity.id. */
 export const buildEmptyRowsQuery = (
   args: QueryArgs,
   { excludeIds = [], conditions = [], emptyColumns, columns }: EmptyRowsOptions,
-  afterId: string | null,
   limit: number
 ): string =>
   [
     ...buildEntitiesInViewSteps(args),
     ...conditions.map((condition) => `| WHERE ${condition}`),
     ...(excludeIds.length ? [`| WHERE NOT ${ENTITY_ID_FIELD} IN (${toList(excludeIds)})`] : []),
-    ...buildAfterIdClause(afterId),
     `| SORT ${ENTITY_ID_FIELD} ASC`,
     `| LIMIT ${limit}`,
     `| EVAL ${emptyColumns}`,
@@ -126,13 +108,12 @@ const fetchEmptyRowsExcludingValueIds = async (
   /** Entities with a value, one row per `entity.id`. */
   valueEntities: readonly string[],
   options: Omit<EmptyRowsOptions, 'excludeIds'>,
-  afterId: string | null,
   limit: number
 ): Promise<Row[] | null> => {
   const valueIdsQuery = [...valueEntities, '| KEEP `entity.id`', `| LIMIT ${MAX_VALUE_ROWS + 1}`];
   const ids = getEntityIds(await runQuery(valueIdsQuery.join('\n')));
   if (ids.length > MAX_VALUE_ROWS) return null;
-  const emptyRowsQuery = buildEmptyRowsQuery(args, { ...options, excludeIds: ids }, afterId, limit);
+  const emptyRowsQuery = buildEmptyRowsQuery(args, { ...options, excludeIds: ids }, limit);
   // Long ids can make the excluded list longer than ES|QL parses.
   if (emptyRowsQuery.length > ESQL_MAX_QUERY_LENGTH) return null;
   return runQuery(emptyRowsQuery);
@@ -177,18 +158,16 @@ export const buildEntityListSortPlan = ({
     buildValueRowsQuery: (args, limit) =>
       [
         ...buildEntitiesWithValues(args, `| STATS ${aggregations.join(', ')} BY \`entity.id\``),
-        ...buildValueCursorClause(args.cursor),
         ...buildSortSuffix(sortField, args.sort.direction, limit),
         buildKeepClause(args, ...columns),
       ].join('\n'),
     buildSortQuery,
-    fetchEmptyRows: (args, runQuery, afterId, limit) =>
+    fetchEmptyRows: (args, runQuery, limit) =>
       fetchEmptyRowsExcludingValueIds(
         args,
         runQuery,
         buildEntitiesWithValues(args, '| STATS BY `entity.id`'),
         { emptyColumns, columns },
-        afterId,
         limit
       ),
   };
@@ -210,30 +189,18 @@ export const fetchSplitSortPage = async (
   }
 
   const limit = args.pageSize + 1;
-  const { cursor } = args;
-  const inEmptyBlock = cursor != null && cursor.sortValue === plan.emptyValue;
-  const emptyRows = async (afterId: string | null, count: number): Promise<Row[] | null> =>
-    plan.fetchEmptyRows(args, runQuery, afterId, count);
-  const valueRows = (valueArgs: QueryArgs, count: number) =>
-    runQuery(plan.buildValueRowsQuery(valueArgs, count));
+  const emptyRows = (count: number) => plan.fetchEmptyRows(args, runQuery, count);
+  const valueRows = (count: number) => runQuery(plan.buildValueRowsQuery(args, count));
 
   // Empty rows come first only for a 0 empty value in ascending order.
-  const emptyFirst = plan.emptyValue === 0 && args.sort.direction === 'asc';
-
-  if (emptyFirst) {
-    if (cursor != null && !inEmptyBlock) return valueRows(args, limit);
-    const empty = await emptyRows(cursor?.entityId ?? null, limit);
+  if (plan.emptyValue === 0 && args.sort.direction === 'asc') {
+    const empty = await emptyRows(limit);
     if (empty == null) return general();
     if (empty.length >= limit) return empty;
-    return [...empty, ...(await valueRows({ ...args, cursor: null }, limit - empty.length))];
+    return [...empty, ...(await valueRows(limit - empty.length))];
   }
-
-  if (inEmptyBlock) {
-    const empty = await emptyRows(cursor.entityId, limit);
-    return empty ?? general();
-  }
-  const values = await valueRows(args, limit);
+  const values = await valueRows(limit);
   if (values.length >= limit) return values;
-  const empty = await emptyRows(null, limit - values.length);
+  const empty = await emptyRows(limit - values.length);
   return empty == null ? general() : [...values, ...empty];
 };

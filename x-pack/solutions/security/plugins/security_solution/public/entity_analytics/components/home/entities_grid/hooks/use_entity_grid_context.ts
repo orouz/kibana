@@ -15,7 +15,7 @@ import { useKibana } from '../../../../../common/lib/kibana';
 import { useSpaceId } from '../../../../../common/hooks/use_space_id';
 import { useResolvedLatestEntitiesIndexName } from '../../../../../common/hooks/use_resolved_latest_entities_index_name';
 import { useInstalledSecurityJobsIds } from '../../../../../common/components/ml/hooks/use_installed_security_jobs';
-import type { PageCursor, QueryArgs, Row, RowsMode, SortDir, TimeRange } from '../common';
+import type { QueryArgs, Row, RowsMode, SortDir, TimeRange } from '../common';
 
 /** `page`: the grid rows. `children`: the records of expanded groups. */
 export type EntityGridKeyScope = 'page' | 'children';
@@ -45,10 +45,10 @@ export interface UseEntityGridDataOptions {
 export const getKeyScope = ({ keyScope = 'page' }: UseEntityGridDataOptions): EntityGridKeyScope =>
   keyScope;
 
-/** One load of rows, and the cursor of the next one (`null` when there is none). */
+/** The loaded rows, and whether the view has more than the grid loads. */
 export interface RowsBatch {
   rows: Row[];
-  nextCursor: PageCursor | null;
+  hasMore: boolean;
 }
 
 const ENTITIES_INDEX_UNAVAILABLE = i18n.translate(
@@ -104,16 +104,13 @@ export const getViewKey = (
   rowsMode,
 });
 
-/** The arguments of the column queries for a view, at a cursor. */
 export const buildQueryArgs = (
   { spaceId, concreteEntityIndexName, anomalyJobIds }: ReadyGridContext,
-  options: UseEntityGridDataOptions,
-  cursor: PageCursor | null
+  options: UseEntityGridDataOptions
 ): QueryArgs => ({
   namespace: spaceId,
   timeRange: options.timeRange,
   sort: { field: options.sortField, direction: options.sortDirection },
-  cursor,
   pageSize: options.pageSize,
   rowsMode: options.rowsMode,
   concreteEntityIndexName,

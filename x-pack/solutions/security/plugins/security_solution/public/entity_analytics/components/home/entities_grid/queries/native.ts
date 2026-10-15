@@ -6,23 +6,16 @@
  */
 
 import { buildEntitiesInViewSteps } from './entities_in_view';
-import { buildKeepClause, buildCursorClause, buildSortSuffix } from './esql';
+import { buildKeepClause, buildSortSuffix } from './esql';
 import type { QueryArgs } from '../common';
 import type { ColumnQuerySpec } from './types';
 
-const buildNativeEntitySortQuery = (args: QueryArgs): string => {
-  const {
-    sort: { field, direction: dir },
-    cursor,
-    pageSize,
-  } = args;
-  return [
+const buildNativeEntitySortQuery = (args: QueryArgs): string =>
+  [
     ...buildEntitiesInViewSteps(args),
     buildKeepClause(args),
-    ...buildCursorClause(cursor),
-    ...buildSortSuffix(field, dir, pageSize + 1),
+    ...buildSortSuffix(args.sort.field, args.sort.direction, args.pageSize + 1),
   ].join('\n');
-};
 
 /** Sort of a column whose value is on the entity doc. */
 export const nativeSortQuerySpec = {

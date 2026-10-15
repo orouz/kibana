@@ -101,7 +101,7 @@ const fetchEnrichedBatch = (
   if (!ready) return Promise.resolve({ rows: [], errors: [] });
   return fetchEnrichedRows(
     batch.rows,
-    buildQueryArgs(ready, options, null),
+    buildQueryArgs(ready, options),
     { runQuery: createEsqlRunner(context.searchService, signal), http: context.http, signal },
     PAGE_ENRICHERS[options.rowsMode]
   );

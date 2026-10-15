@@ -22,7 +22,7 @@ import {
   ENTITY_TYPE_FIELD,
   getEntityId,
 } from '../common';
-import type { PageCursor, QueryArgs, Row, SortDir, TimeRange } from '../common';
+import type { QueryArgs, Row, SortDir, TimeRange } from '../common';
 import type { EsqlRunner } from './types';
 
 // ── index name helpers ────────────────────────────────────────────────────────
@@ -133,37 +133,6 @@ const TIME_RANGE_DAYS = { '24h': 1, '7d': 7, '30d': 30 } as const;
  */
 export const buildLookback = (range: TimeRange): string => `NOW() - ${TIME_RANGE_DAYS[range]} days`;
 
-// ── cursors ──────────────────────────────────────────────────────────────────
-
-/**
- * Keeps the rows after the cursor in `SORT field <dir> NULLS LAST, entity.id ASC` order.
- * Null sort values come last, so every page after a non-null cursor also keeps them.
- */
-export const buildCursorClause = (cursor: PageCursor | null): string[] => {
-  if (cursor == null) return [];
-  const { sortField, sortValue, entityId } = cursor;
-  if (sortValue == null) {
-    return [`| WHERE ${sortField} IS NULL AND ${ENTITY_ID_FIELD} > ${escapeStringValue(entityId)}`];
-  }
-  return [`| WHERE ${buildAfterValuePredicate(cursor, sortValue)} OR ${sortField} IS NULL`];
-};
-
-/** Rows after a cursor with a non-null sort value, in `SORT field <dir>, entity.id ASC` order. */
-export const buildAfterValuePredicate = (
-  { sortField, sortDirection, entityId }: PageCursor,
-  sortValue: string | number
-): string => {
-  const op = sortDirection === 'desc' ? '<' : '>';
-  const val = typeof sortValue === 'string' ? escapeStringValue(sortValue) : String(sortValue);
-  return `(${sortField} ${op} ${val}) OR (${sortField} == ${val} AND ${ENTITY_ID_FIELD} > ${escapeStringValue(
-    entityId
-  )})`;
-};
-
-/** Keeps the entities after `afterId`, for pages sorted by `entity.id` alone. */
-export const buildAfterIdClause = (afterId: string | null): string[] =>
-  afterId != null ? [`| WHERE ${ENTITY_ID_FIELD} > ${escapeStringValue(afterId)}`] : [];
-
 /** The order of every grid page, `field <dir> NULLS LAST, entity.id ASC`, and its limit. */
 export const buildSortSuffix = (field: string, direction: SortDir, limit: number): string[] => [
   `| SORT ${field} ${direction.toUpperCase()} NULLS LAST, ${ENTITY_ID_FIELD} ASC`,
@@ -180,7 +149,6 @@ export const buildJoinedPageSteps = (
   sortField: string,
   extraFields: readonly string[] = []
 ): string[] => [
-  ...buildCursorClause(args.cursor),
   ...buildSortSuffix(sortField, args.sort.direction, args.pageSize + 1),
   buildLookupJoinClause(args.concreteEntityIndexName),
   buildKeepClause(args, sortField, ...extraFields),

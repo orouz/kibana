@@ -9,7 +9,7 @@ import { httpServiceMock } from '@kbn/core/public/mocks';
 import { EntityType } from '../../../../../../../common/entity_analytics/types';
 import { RiskSeverity } from '../../../../../../../common/search_strategy';
 import { EMPTY_ENTITY_FILTERS } from '../../common';
-import type { PageCursor, QueryArgs, Row, SortDir } from '../../common';
+import type { QueryArgs, Row, SortDir } from '../../common';
 import { COLUMN_ENRICHERS, findSortPageFetcher } from '../../grid_columns';
 import { toEsql } from '../../active_filters';
 import type { ActiveFilters } from '../../active_filters';
@@ -25,30 +25,6 @@ const fetchPage = (runQuery: EsqlRunner, args: QueryArgs, viewSize: number): Pro
   const fetchSortPage = findSortPageFetcher(args.sort.field);
   if (!fetchSortPage) throw new Error(`${args.sort.field} is not sortable`);
   return fetchSortPage(args, { runQuery, fetchViewSize: async () => viewSize });
-};
-
-const toCursor = (row: Row, { field, direction }: QueryArgs['sort']): PageCursor => {
-  const value = row[field];
-  return {
-    sortField: field,
-    sortDirection: direction,
-    sortValue: typeof value === 'string' || typeof value === 'number' ? value : null,
-    entityId: String(row['entity.id']),
-  };
-};
-
-/** Every row from the cursor on, read a page of `pageSize` at a time like Load More does. */
-const fetchAllPages = async (
-  runQuery: EsqlRunner,
-  args: QueryArgs,
-  viewSize: number
-): Promise<Row[]> => {
-  const page = await fetchPage(runQuery, args, viewSize);
-  const rows = page.slice(0, args.pageSize);
-  // The page reads one row more than it shows: only then is there a next page.
-  if (page.length <= args.pageSize) return rows;
-  const cursor = toCursor(rows[rows.length - 1], args.sort);
-  return [...rows, ...(await fetchAllPages(runQuery, { ...args, cursor }, viewSize))];
 };
 
 /** Expected resolved rows in order, per sort. */
@@ -209,15 +185,18 @@ describe('entities grid on Elasticsearch', () => {
       });
 
       it.each(EXPECTED_ORDERS)(
-        'reads the same %s %s order two rows at a time',
+        'cuts the %s %s order at any limit',
         async (field, direction, expected) => {
-          const rows = await fetchAllPages(
-            cluster.runQuery,
-            { ...BASE_ARGS, sort: { field, direction }, pageSize: 2 },
-            viewSize
-          );
+          // Each limit cuts at another place: in the value rows, the empty rows, or where they meet.
+          for (let pageSize = 1; pageSize < expected.length; pageSize++) {
+            const rows = await fetchPage(
+              cluster.runQuery,
+              { ...BASE_ARGS, sort: { field, direction }, pageSize },
+              viewSize
+            );
 
-          expect(getIds(rows)).toEqual(expected);
+            expect(getIds(rows)).toEqual(expected.slice(0, pageSize + 1));
+          }
         }
       );
     });
@@ -302,7 +281,7 @@ describe('entities grid on Elasticsearch', () => {
     it.each(Object.entries(VIEW_SIZES))(
       'gives an entity the same anomaly count sorted by it as enriched, on %s',
       async (_view, viewSize) => {
-        const sorted = await fetchAllPages(
+        const sorted = await fetchPage(
           cluster.runQuery,
           { ...BASE_ARGS, sort: { field: 'anomaly_count', direction: 'desc' } },
           viewSize
