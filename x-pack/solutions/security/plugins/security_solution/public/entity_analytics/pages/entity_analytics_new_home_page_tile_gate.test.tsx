@@ -16,6 +16,7 @@ import { useEntityEnginePrivileges } from '../components/entity_store/hooks/use_
 import { useAnomalyPrivileges } from '../api/hooks/use_anomaly_privileges';
 import { useAlertsPrivileges } from '../../detections/containers/detection_engine/alerts/use_alerts_privileges';
 import { SignalCards } from '../components/home/needs_attention_tiles/signal_cards';
+import { useSearchBarExpression } from '../components/home/entities_grid/hooks/use_search_bar_expression';
 import type { SignalCardData } from '../components/home/needs_attention_tiles/data';
 
 jest.mock('../components/home/needs_attention_tiles/hooks', () => ({
@@ -33,6 +34,7 @@ jest.mock('../components/home/needs_attention_tiles/hooks', () => ({
   useRiskMoversCount: jest.fn(),
   useRiskMoversDelta: jest.fn(),
   useRiskTilesSeries: jest.fn(),
+  useSearchedTileEntityIds: jest.fn(),
   useTilesLoadTelemetry: jest.fn(),
   useTilesTimeoutNotice: jest.fn(),
   TILE_TIMEOUT_MESSAGE: 'Timed out',
@@ -77,6 +79,9 @@ jest.mock('../components/home/entities_grid/hooks/use_entity_analytics_url_state
     expandedIds: [],
     toggleExpandedId: jest.fn(),
   }),
+}));
+jest.mock('../components/home/entities_grid/hooks/use_search_bar_expression', () => ({
+  useSearchBarExpression: jest.fn(),
 }));
 jest.mock('../components/home/entities_grid/components/entities_grid', () => ({
   EntitiesGrid: () => null,
@@ -278,6 +283,10 @@ const mockTiles = (
     newlyHighCriticalTrend: undefined,
     isTrendLoading: false,
   });
+  hooks.useSearchedTileEntityIds.mockImplementation(({ tileEntityIds }) => ({
+    tileEntityIds,
+    isSearchPending: false,
+  }));
 };
 
 const lastOptions = (hook: string) => {
@@ -504,5 +513,61 @@ describe('EntityAnalyticsNewHomePage: each tile waits for its own count', () => 
     mockTiles({}, { anomaliesMissingJobs: false });
     render(<EntityAnalyticsNewHomePage />, { wrapper: TestProviders });
     expect(anomaliesNoDataMessage()).toBeUndefined();
+  });
+});
+
+describe('EntityAnalyticsNewHomePage: the search narrows the tiles', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockPrivileges();
+    (useEntityStoreStatus as jest.Mock).mockReturnValue({
+      data: { status: 'running' },
+      isLoading: false,
+    });
+    mockTiles();
+  });
+
+  it("shows each tile's searched entities, without its delta and sparkline", () => {
+    (useSearchBarExpression as jest.Mock).mockReturnValue('KQL("host.name: a")');
+    hooks.useSearchedTileEntityIds.mockReturnValue({
+      tileEntityIds: {
+        entitiesWithAlerts: ['host:a'],
+        entitiesWithAnomalies: [],
+        riskMovers: [],
+        newlyHighCritical: [],
+        watchlisted: [],
+        newEntity: [],
+      },
+      isSearchPending: false,
+    });
+    render(<EntityAnalyticsNewHomePage />, { wrapper: TestProviders });
+
+    expect(lastOptions('useSearchedTileEntityIds').searchExpression).toBe('KQL("host.name: a")');
+    expect(getCard('entitiesWithAlerts')).toMatchObject({
+      value: 1,
+      delta: undefined,
+      isDeltaLoading: false,
+      isDeltaUnavailable: false,
+      trend: undefined,
+    });
+    expect(getCard('entitiesWithAnomalies')?.value).toBe(0);
+  });
+
+  it('keeps the counts, deltas and sparklines without a search', () => {
+    (useSearchBarExpression as jest.Mock).mockReturnValue(undefined);
+    render(<EntityAnalyticsNewHomePage />, { wrapper: TestProviders });
+
+    expect(getCard('entitiesWithAlerts')).toMatchObject({ value: 5, delta: 1 });
+  });
+
+  it('loads the tiles while the search is checked', () => {
+    (useSearchBarExpression as jest.Mock).mockReturnValue('KQL("host.name: a")');
+    hooks.useSearchedTileEntityIds.mockImplementation(({ tileEntityIds }) => ({
+      tileEntityIds,
+      isSearchPending: true,
+    }));
+    render(<EntityAnalyticsNewHomePage />, { wrapper: TestProviders });
+
+    expect(getCard('entitiesWithAlerts')?.isLoading).toBe(true);
   });
 });
