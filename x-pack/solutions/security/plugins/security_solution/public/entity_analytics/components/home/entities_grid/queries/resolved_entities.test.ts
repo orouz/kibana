@@ -10,6 +10,7 @@ import type { EntityAggregation } from './esql';
 import {
   applyResolvedEntityFilterOverrides,
   fetchResolvedEntityFilterOverrides,
+  fetchResolvedEntityOverrides,
   getMergedRowsByEntity,
   isFilteringByGroupValue,
   withEntityAliases,
@@ -187,6 +188,37 @@ describe('fetchResolvedEntityFilterOverrides', () => {
     await expect(fetchResolvedEntityFilterOverrides(FILTERED_ARGS, runQuery)).rejects.toThrow(
       'too many resolved entities'
     );
+  });
+});
+
+describe('fetchResolvedEntityOverrides', () => {
+  const CONDITIONS = {
+    own: 'entity.name == "bob"',
+    group: 'MV_CONTAINS(group_names, "bob")',
+  };
+
+  it('reads the own condition before the group values come in, and the group condition after', async () => {
+    const { runQuery, queries } = recordQueries();
+    await fetchResolvedEntityOverrides({ ...ARGS, ...CONDITIONS }, runQuery);
+
+    const [query] = queries;
+    const own = query.indexOf(`own_matches = COALESCE(${CONDITIONS.own}, false)`);
+    const group = query.indexOf(`resolved_entity_matches = COALESCE(${CONDITIONS.group}, false)`);
+    expect(own).toBeGreaterThan(query.indexOf('LOOKUP JOIN'));
+    expect(own).toBeLessThan(query.indexOf('EVAL group_names'));
+    expect(group).toBeGreaterThan(query.indexOf('EVAL group_names'));
+  });
+
+  it('splits the resolved entities into those the search adds and those it removes', async () => {
+    const runQuery = jest.fn(async () => [
+      row('host:a', { resolved_entity_matches: true }),
+      row('host:b', { resolved_entity_matches: false }),
+    ]);
+
+    expect(await fetchResolvedEntityOverrides({ ...ARGS, ...CONDITIONS }, runQuery)).toEqual({
+      include: ['host:a'],
+      exclude: ['host:b'],
+    });
   });
 });
 
